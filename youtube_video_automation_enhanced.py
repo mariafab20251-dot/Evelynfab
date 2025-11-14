@@ -6,13 +6,14 @@ Compatible with MoviePy 2.x
 import os
 import re
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import json
 from datetime import datetime
 import numpy as np
 
-from moviepy import VideoFileClip, ImageClip, CompositeVideoClip
+from moviepy import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
 from moviepy.video.fx import Resize
+from moviepy.audio.fx import MultiplyVolume, AudioLoop
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
 
@@ -59,6 +60,88 @@ class VideoEffects:
     def apply_background_dim(frame, intensity=0.25):
         """Dim the background"""
         return (frame * (1 - intensity)).astype('uint8')
+
+
+class AudioProcessor:
+    """Audio processing module for BGM and voiceovers"""
+
+    @staticmethod
+    def get_voiceover_files(folder_path: Path) -> List[Path]:
+        """Get audio files from voiceover folder"""
+        if not folder_path or not folder_path.exists():
+            return []
+        audio_extensions = {'.mp3', '.wav', '.m4a', '.aac', '.ogg'}
+        files = [f for f in folder_path.iterdir()
+                if f.suffix.lower() in audio_extensions and f.is_file()]
+        return sorted(files, key=lambda x: x.stat().st_ctime)
+
+    @staticmethod
+    def create_looped_audio(audio_clip, target_duration):
+        """Loop audio to match video duration"""
+        if audio_clip.duration >= target_duration:
+            return audio_clip.subclipped(0, target_duration)
+        else:
+            loops_needed = int(np.ceil(target_duration / audio_clip.duration))
+            clips = [audio_clip] * loops_needed
+            looped = CompositeAudioClip(clips).with_duration(target_duration)
+            return looped
+
+    @staticmethod
+    def mix_audio_tracks(video_clip, settings, voiceover_file: Optional[Path] = None):
+        """Mix original audio, BGM, and voiceover"""
+        audio_tracks = []
+
+        # Original audio
+        if video_clip.audio and not settings.get('mute_original_audio', False):
+            original_volume = settings.get('original_audio_volume', 0.5) if settings.get('mix_audio', True) else 1.0
+            original_audio = video_clip.audio.with_effects([MultiplyVolume(original_volume)])
+            audio_tracks.append(original_audio)
+
+        # Custom BGM
+        if settings.get('add_custom_bgm', False) and settings.get('bgm_file'):
+            bgm_path = Path(settings['bgm_file'])
+            if bgm_path.exists():
+                try:
+                    bgm_audio = AudioFileClip(str(bgm_path))
+
+                    if settings.get('bgm_loop', True):
+                        bgm_audio = AudioProcessor.create_looped_audio(bgm_audio, video_clip.duration)
+                    else:
+                        bgm_audio = bgm_audio.subclipped(0, min(bgm_audio.duration, video_clip.duration))
+
+                    bgm_volume = settings.get('bgm_volume', 0.3)
+                    bgm_audio = bgm_audio.with_effects([MultiplyVolume(bgm_volume)])
+                    audio_tracks.append(bgm_audio)
+                    print(f"✓ Added BGM: {bgm_path.name}")
+                except Exception as e:
+                    print(f"⚠ Could not load BGM: {e}")
+
+        # Voiceover
+        if voiceover_file and voiceover_file.exists():
+            try:
+                voiceover_audio = AudioFileClip(str(voiceover_file))
+                voiceover_volume = settings.get('voiceover_volume', 1.0)
+                voiceover_delay = settings.get('voiceover_delay', 0.0)
+
+                voiceover_audio = voiceover_audio.with_effects([MultiplyVolume(voiceover_volume)])
+
+                if voiceover_delay > 0:
+                    silence = AudioFileClip(str(voiceover_file)).with_duration(voiceover_delay).with_effects([MultiplyVolume(0)])
+                    voiceover_audio = CompositeAudioClip([silence, voiceover_audio.with_start(voiceover_delay)])
+
+                audio_tracks.append(voiceover_audio)
+                print(f"✓ Added voiceover: {voiceover_file.name}")
+            except Exception as e:
+                print(f"⚠ Could not load voiceover: {e}")
+
+        # Mix all tracks
+        if audio_tracks:
+            if len(audio_tracks) == 1:
+                return audio_tracks[0]
+            else:
+                return CompositeAudioClip(audio_tracks)
+        else:
+            return None
 
 
 class TextEffects:
@@ -142,6 +225,16 @@ class VideoQuoteAutomation:
 
         self.log_file = self.output_folder / "processing_log.json"
         self.processing_log = self._load_log()
+
+        # Load voiceover files if enabled
+        self.voiceover_files = []
+        if self.settings.get('add_voiceover', False) and self.settings.get('voiceover_folder'):
+            voiceover_folder = Path(self.settings['voiceover_folder'])
+            self.voiceover_files = AudioProcessor.get_voiceover_files(voiceover_folder)
+            if self.voiceover_files:
+                print(f"✓ Loaded {len(self.voiceover_files)} voiceover files")
+            else:
+                print(f"⚠ No voiceover files found in {voiceover_folder}")
 
     def load_settings(self) -> dict:
         """Load settings from GUI config file"""
@@ -498,7 +591,7 @@ class VideoQuoteAutomation:
 
         return img
 
-    def add_quote_to_video(self, video_path: Path, quote: str) -> Tuple[Path, str]:
+    def add_quote_to_video(self, video_path: Path, quote: str, video_index: int = 0) -> Tuple[Path, str]:
         """Add quote overlay with advanced effects"""
         print(f"\n{'='*70}")
         print(f"Processing: {video_path.name}")
@@ -604,6 +697,22 @@ class VideoQuoteAutomation:
 
         final_video = CompositeVideoClip([video, txt_clip])
 
+        # Audio processing
+        voiceover_file = None
+        if self.settings.get('add_voiceover', False) and self.voiceover_files:
+            if video_index < len(self.voiceover_files):
+                voiceover_file = self.voiceover_files[video_index]
+            else:
+                print(f"⚠ No voiceover file for video index {video_index}")
+
+        final_audio = AudioProcessor.mix_audio_tracks(video, self.settings, voiceover_file)
+
+        if final_audio:
+            final_video = final_video.with_audio(final_audio)
+        elif self.settings.get('mute_original_audio', False):
+            final_video = final_video.without_audio()
+            print("✓ Original audio muted")
+
         output_path = self.output_folder / output_filename
         counter = 1
         original_output_path = output_path
@@ -676,7 +785,7 @@ class VideoQuoteAutomation:
             print(f"\nProcessing {i + 1}/{num_to_process}")
 
             try:
-                output_path, filename = self.add_quote_to_video(video_path, quote)
+                output_path, filename = self.add_quote_to_video(video_path, quote, video_index=i)
 
                 result = {
                     'index': i,

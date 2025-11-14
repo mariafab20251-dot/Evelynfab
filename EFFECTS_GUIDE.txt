@@ -82,3 +82,67 @@ TESTING STRATEGY:
 3. Process same video again
 4. Compare results
 5. Keep best performing effects
+
+AUDIO FEATURES:
+===============
+
+1. MUTE ORIGINAL AUDIO:
+"mute_original_audio": true    ← Remove video's original sound
+
+2. ADD CUSTOM BGM:
+"add_custom_bgm": true,
+"bgm_file": "E:\\Music\\background.mp3",    ← Full path to BGM
+"bgm_volume": 0.3,                          ← BGM volume (0.0-1.0)
+"bgm_loop": true                            ← Loop BGM if shorter than video
+
+3. ADD VOICEOVER:
+"add_voiceover": true,
+"voiceover_folder": "E:\\Voiceovers",       ← Folder with MP3/WAV files
+"voiceover_volume": 1.0,                    ← Voiceover volume (0.0-1.0)
+"voiceover_delay": 0.0                      ← Delay in seconds
+
+4. MIX AUDIO:
+"mix_audio": true,                          ← Mix all audio sources
+"original_audio_volume": 0.5                ← Original volume when mixed
+
+AUDIO SCENARIOS:
+================
+
+Scenario 1: Silent video with BGM only
+"mute_original_audio": true,
+"add_custom_bgm": true,
+"bgm_file": "path/to/music.mp3"
+
+Scenario 2: Original audio + BGM (mixed)
+"mute_original_audio": false,
+"add_custom_bgm": true,
+"mix_audio": true,
+"original_audio_volume": 0.4,
+"bgm_volume": 0.3
+
+Scenario 3: Voiceover + BGM (no original audio)
+"mute_original_audio": true,
+"add_custom_bgm": true,
+"add_voiceover": true,
+"voiceover_folder": "path/to/voiceovers",
+"bgm_volume": 0.2,
+"voiceover_volume": 1.0
+
+Scenario 4: All three mixed
+"mute_original_audio": false,
+"add_custom_bgm": true,
+"add_voiceover": true,
+"original_audio_volume": 0.3,
+"bgm_volume": 0.2,
+"voiceover_volume": 1.0
+
+VOICEOVER FOLDER SETUP:
+=======================
+1. Create folder: E:\Voiceovers
+2. Add MP3/WAV files (one per video)
+3. Files auto-sorted by creation date
+4. Video 1 → First voiceover file
+5. Video 2 → Second voiceover file
+6. etc.
+
+Supported formats: .mp3, .wav, .m4a, .aac, .ogg
