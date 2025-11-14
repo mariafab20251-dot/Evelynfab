@@ -1,0 +1,84 @@
+ENHANCED VIDEO EFFECTS - QUICK GUIDE
+=====================================
+
+✓ CURRENTLY ENABLED (Default):
+- text_fade_in: Smooth fade-in (0.4s)
+- text_glow: White glow around text (intensity 8)
+- vignette: Darkened edges (40% intensity)
+- background_dim: Dimmed background (25%)
+- video_zoom: Slow zoom from 1.0x to 1.08x
+- drop_shadow: Shadow behind text bubbles
+- pulsing_cta: CTA bubble pulses
+- emoji_pop: Emoji pops in with delay
+- color_grade: Warm tone applied
+
+✗ DISABLED (Available):
+- text_slide_up: Text slides from bottom
+- text_bounce: Bouncy entrance
+- text_kinetic: Word-by-word reveal
+- text_glitch: Glitch effect entrance
+- film_grain: Film grain overlay
+- ken_burns: Pan + zoom effect
+- parallax_text: Floating text movement
+- neon_glow: Neon outline effect
+- gradient_overlay: Top-to-bottom fade
+- light_leaks: Corner highlights
+- animated_arrow: Arrow pointing to CTA
+- progress_bar: Bottom progress indicator
+
+HOW TO TOGGLE EFFECTS:
+======================
+Edit overlay_settings.json:
+
+true = ON
+false = OFF
+
+Example:
+"text_slide_up": true,    ← Turn ON
+"film_grain": false,      ← Turn OFF
+
+QUICK PRESETS:
+==============
+
+MINIMAL (Fast render):
+- text_fade_in: true
+- text_glow: true
+- drop_shadow: true
+(All others: false)
+
+BALANCED (Recommended):
+- text_fade_in: true
+- text_glow: true
+- vignette: true
+- video_zoom: true
+- drop_shadow: true
+- color_grade: "warm"
+
+MAXIMUM (Heavy render):
+- ALL effects: true
+- Render time: 3-5x longer
+
+COLOR GRADE OPTIONS:
+====================
+"color_grade": "none"       ← No grading
+"color_grade": "warm"       ← Orange/warm tone
+"color_grade": "cold"       ← Blue/cool tone
+"color_grade": "cinematic"  ← Film look
+"color_grade": "vintage"    ← Old film look
+
+ANIMATION COMBINATIONS:
+=======================
+Can enable ONE text animation at a time:
+- text_fade_in (safest)
+- text_slide_up (dynamic)
+- text_bounce (playful)
+- text_kinetic (attention-grabbing)
+- text_glitch (edgy)
+
+TESTING STRATEGY:
+=================
+1. Process 1 video with current settings
+2. Change ONE effect
+3. Process same video again
+4. Compare results
+5. Keep best performing effects
