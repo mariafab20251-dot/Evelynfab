@@ -182,6 +182,43 @@ class TextSettingsPopup:
         canvas.create_window((0, 0), window=settings_frame, anchor="nw")
         settings_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 
+        # Preset Management Section
+        preset_header = tk.Frame(settings_frame, bg=ModernStyles.ACCENT_PURPLE, height=3)
+        preset_header.pack(fill='x', pady=(15,0))
+        tk.Label(preset_header, text="💾 Caption Presets", bg=ModernStyles.ACCENT_PURPLE, fg='white',
+                font=('Segoe UI', 11, 'bold'), pady=6).pack(padx=15)
+
+        preset_frame = tk.Frame(settings_frame, bg=ModernStyles.BG_DARK)
+        preset_frame.pack(fill='x', padx=15, pady=10)
+
+        # Preset dropdown
+        tk.Label(preset_frame, text="Select Preset:", bg=ModernStyles.BG_DARK,
+                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 9)).pack(anchor='w', pady=(0,5))
+
+        self.preset_var = tk.StringVar(value="Current Settings")
+        self.preset_combo = ttk.Combobox(preset_frame, textvariable=self.preset_var,
+                                        state='readonly', font=('Segoe UI', 9), width=35)
+        self.preset_combo.pack(fill='x', pady=(0,10))
+        self.preset_combo.bind('<<ComboboxSelected>>', self.load_preset)
+
+        # Preset buttons
+        preset_btns = tk.Frame(preset_frame, bg=ModernStyles.BG_DARK)
+        preset_btns.pack(fill='x')
+
+        tk.Button(preset_btns, text="💾 Save as Preset", command=self.save_preset,
+                 bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 9),
+                 relief='flat', padx=10, pady=6, cursor='hand2').pack(side='left', padx=(0,5))
+
+        tk.Button(preset_btns, text="🗑️ Delete", command=self.delete_preset,
+                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 9),
+                 relief='flat', padx=10, pady=6, cursor='hand2').pack(side='left')
+
+        # Load presets
+        self.refresh_preset_list()
+
+        # Divider
+        tk.Frame(settings_frame, bg=ModernStyles.BORDER, height=1).pack(fill='x', pady=15)
+
         # Font settings
         self.create_label(settings_frame, "Font Family", pady=(15,5))
         self.font_var = tk.StringVar(value=self.settings.get('font_style', 'Arial Bold'))
@@ -370,6 +407,137 @@ class TextSettingsPopup:
     def hex_to_rgb(self, hex_color):
         hex_color = hex_color.lstrip('#')
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+    def get_current_text_settings(self):
+        """Get all current text settings as a dictionary"""
+        return {
+            'font_style': self.font_var.get(),
+            'font_size': self.font_size_var.get(),
+            'text_color': self.text_color,
+            'bg_color': self.bg_color,
+            'bg_opacity': self.bg_opacity_var.get(),
+            'position': self.position_var.get()
+        }
+
+    def apply_text_settings(self, settings):
+        """Apply text settings from a preset"""
+        self.font_var.set(settings.get('font_style', 'Arial Bold'))
+        self.font_size_var.set(settings.get('font_size', 45))
+        self.text_color = settings.get('text_color', '#000000')
+        self.bg_color = settings.get('bg_color', '#ffffff')
+        self.bg_opacity_var.set(settings.get('bg_opacity', 90))
+        self.position_var.set(settings.get('position', 'top'))
+        self.update_preview()
+
+    def refresh_preset_list(self):
+        """Load and refresh the preset dropdown"""
+        preset_file = Path('caption_presets.json')
+        presets = {}
+
+        if preset_file.exists():
+            try:
+                with open(preset_file, 'r') as f:
+                    presets = json.load(f)
+            except:
+                presets = {}
+
+        preset_names = ['Current Settings'] + list(presets.keys())
+        self.preset_combo['values'] = preset_names
+        self.preset_var.set('Current Settings')
+
+    def save_preset(self):
+        """Save current settings as a preset"""
+        from tkinter import simpledialog
+
+        preset_name = simpledialog.askstring("Save Preset", "Enter preset name:",
+                                            parent=self.window)
+
+        if not preset_name:
+            return
+
+        # Load existing presets
+        preset_file = Path('caption_presets.json')
+        presets = {}
+
+        if preset_file.exists():
+            try:
+                with open(preset_file, 'r') as f:
+                    presets = json.load(f)
+            except:
+                presets = {}
+
+        # Save current settings
+        presets[preset_name] = self.get_current_text_settings()
+
+        # Write to file
+        with open(preset_file, 'w') as f:
+            json.dump(presets, f, indent=2)
+
+        self.refresh_preset_list()
+        self.preset_var.set(preset_name)
+        messagebox.showinfo("Success", f"Preset '{preset_name}' saved successfully!")
+
+    def load_preset(self, event=None):
+        """Load selected preset"""
+        preset_name = self.preset_var.get()
+
+        if preset_name == 'Current Settings':
+            return
+
+        preset_file = Path('caption_presets.json')
+
+        if not preset_file.exists():
+            messagebox.showerror("Error", "No presets found!")
+            return
+
+        try:
+            with open(preset_file, 'r') as f:
+                presets = json.load(f)
+
+            if preset_name in presets:
+                self.apply_text_settings(presets[preset_name])
+                messagebox.showinfo("Success", f"Preset '{preset_name}' loaded!")
+            else:
+                messagebox.showerror("Error", f"Preset '{preset_name}' not found!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load preset: {e}")
+
+    def delete_preset(self):
+        """Delete selected preset"""
+        preset_name = self.preset_var.get()
+
+        if preset_name == 'Current Settings':
+            messagebox.showwarning("Warning", "Cannot delete 'Current Settings'!")
+            return
+
+        preset_file = Path('caption_presets.json')
+
+        if not preset_file.exists():
+            messagebox.showerror("Error", "No presets found!")
+            return
+
+        # Confirm deletion
+        if not messagebox.askyesno("Confirm Delete",
+                                   f"Are you sure you want to delete preset '{preset_name}'?",
+                                   parent=self.window):
+            return
+
+        try:
+            with open(preset_file, 'r') as f:
+                presets = json.load(f)
+
+            if preset_name in presets:
+                del presets[preset_name]
+
+                with open(preset_file, 'w') as f:
+                    json.dump(presets, f, indent=2)
+
+                self.refresh_preset_list()
+                messagebox.showinfo("Success", f"Preset '{preset_name}' deleted!")
+            else:
+                messagebox.showerror("Error", f"Preset '{preset_name}' not found!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to delete preset: {e}")
 
     def save_settings(self):
         self.settings['font_style'] = self.font_var.get()
