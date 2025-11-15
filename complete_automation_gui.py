@@ -695,7 +695,7 @@ class VideoProcessingWindow:
 
         self.window = tk.Toplevel(parent)
         self.window.title("▶️ Video Processing")
-        self.window.geometry("900x700")
+        self.window.geometry("900x650")
         self.window.configure(bg=ModernStyles.BG_DARK)
         self.window.transient(parent)
         self.window.grab_set()
@@ -705,6 +705,11 @@ class VideoProcessingWindow:
         self.update_log()
 
     def setup_ui(self):
+        # Initialize path variables (loaded from saved config, not shown in UI)
+        self.video_folder_var = tk.StringVar()
+        self.quotes_file_var = tk.StringVar()
+        self.output_folder_var = tk.StringVar()
+
         # Header
         header = tk.Frame(self.window, bg=ModernStyles.ACCENT_GREEN, height=60)
         header.pack(fill='x')
@@ -717,24 +722,6 @@ class VideoProcessingWindow:
         # Content
         content = tk.Frame(self.window, bg=ModernStyles.BG_DARK)
         content.pack(fill='both', expand=True, padx=20, pady=20)
-
-        # Path configurations
-        self.create_section(content, "Configuration", ModernStyles.ACCENT_BLUE)
-
-        # Video folder
-        self.create_label(content, "Video Folder:")
-        self.video_folder_var = tk.StringVar()
-        self.create_path_selector(content, self.video_folder_var, self.browse_video_folder)
-
-        # Quotes file
-        self.create_label(content, "Quotes File:")
-        self.quotes_file_var = tk.StringVar()
-        self.create_path_selector(content, self.quotes_file_var, self.browse_quotes_file, is_file=True)
-
-        # Output folder
-        self.create_label(content, "Output Folder:")
-        self.output_folder_var = tk.StringVar()
-        self.create_path_selector(content, self.output_folder_var, self.browse_output_folder)
 
         # Progress section
         self.create_section(content, "Progress", ModernStyles.ACCENT_GREEN)
@@ -755,7 +742,7 @@ class VideoProcessingWindow:
         log_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
         log_frame.pack(fill='both', expand=True, padx=20, pady=10)
 
-        self.log_text = scrolledtext.ScrolledText(log_frame, height=12, bg='#0f172a',
+        self.log_text = scrolledtext.ScrolledText(log_frame, height=18, bg='#0f172a',
                                                   fg=ModernStyles.TEXT_WHITE, font=('Consolas', 9),
                                                   relief='flat', state='disabled')
         self.log_text.pack(fill='both', expand=True, padx=10, pady=10)
@@ -788,39 +775,6 @@ class VideoProcessingWindow:
 
         tk.Label(header, text=title, bg=color, fg='white',
                 font=('Segoe UI', 11, 'bold'), pady=6).pack(padx=15)
-
-    def create_label(self, parent, text):
-        tk.Label(parent, text=text, bg=ModernStyles.BG_DARK,
-                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 9)).pack(anchor='w', padx=20, pady=(10,2))
-
-    def create_path_selector(self, parent, var, browse_cmd, is_file=False):
-        frame = tk.Frame(parent, bg=ModernStyles.BG_CARD)
-        frame.pack(fill='x', padx=20, pady=5)
-
-        tk.Entry(frame, textvariable=var, width=60,
-                bg='#0f172a', fg=ModernStyles.TEXT_WHITE, relief='flat', font=('Segoe UI', 9)).pack(
-            side='left', fill='x', expand=True, padx=10, pady=10)
-
-        icon = "📄" if is_file else "📁"
-        tk.Button(frame, text=f"{icon} Browse", command=browse_cmd,
-                 bg=ModernStyles.ACCENT_BLUE, fg='white', relief='flat', cursor='hand2', padx=15).pack(
-            side='left', padx=5)
-
-    def browse_video_folder(self):
-        folder = filedialog.askdirectory(title="Select Video Folder")
-        if folder:
-            self.video_folder_var.set(folder)
-
-    def browse_quotes_file(self):
-        filename = filedialog.askopenfilename(title="Select Quotes File",
-                                             filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
-        if filename:
-            self.quotes_file_var.set(filename)
-
-    def browse_output_folder(self):
-        folder = filedialog.askdirectory(title="Select Output Folder")
-        if folder:
-            self.output_folder_var.set(folder)
 
     def load_paths(self):
         """Load previously saved paths"""
