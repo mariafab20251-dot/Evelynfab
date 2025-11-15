@@ -334,9 +334,12 @@ class AudioProcessor:
 
         # Original audio
         if video_clip.audio and not settings.get('mute_original_audio', False):
-            original_volume = settings.get('original_audio_volume', 0.5) if settings.get('mix_audio', True) else 1.0
+            # Convert percentage (0-200) to decimal (0.0-2.0)
+            volume_percent = settings.get('original_audio_volume', 100)
+            original_volume = volume_percent / 100.0
             original_audio = set_volume(video_clip.audio, original_volume)
             audio_tracks.append(original_audio)
+            print(f"✓ Original audio volume: {volume_percent}%")
 
         # Custom BGM (use provided bgm_file or fall back to settings)
         if settings.get('add_custom_bgm', False):

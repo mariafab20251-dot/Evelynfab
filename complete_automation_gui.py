@@ -722,10 +722,24 @@ class AudioSettingsPopup:
         canvas.create_window((0, 0), window=content, anchor="nw")
         content.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 
-        # Mute original
+        # Original Audio
         self.create_section(content, "Original Audio", ModernStyles.ACCENT_BLUE)
         self.mute_var = tk.BooleanVar(value=self.settings.get('mute_original_audio', False))
         self.create_checkbox(content, "Mute Original Video Audio", self.mute_var)
+
+        # Original audio volume
+        self.create_label(content, "Original Audio Volume (%):")
+        volume_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        volume_frame.pack(fill='x', padx=20, pady=5)
+
+        self.original_volume_var = tk.IntVar(value=self.settings.get('original_audio_volume', 100))
+        tk.Scale(volume_frame, from_=0, to=200, orient='horizontal',
+                variable=self.original_volume_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                font=('Segoe UI', 9)).pack(side='left', fill='x', expand=True, padx=15, pady=10)
+
+        tk.Label(volume_frame, textvariable=self.original_volume_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
 
         # BGM
         self.create_section(content, "Background Music", ModernStyles.ACCENT_PURPLE)
@@ -868,6 +882,7 @@ class AudioSettingsPopup:
 
     def save_settings(self):
         self.settings['mute_original_audio'] = self.mute_var.get()
+        self.settings['original_audio_volume'] = self.original_volume_var.get()
         self.settings['add_custom_bgm'] = self.bgm_var.get()
         self.settings['bgm_file'] = self.bgm_path_var.get()
         self.settings['add_voiceover'] = self.vo_var.get()
