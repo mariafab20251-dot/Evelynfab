@@ -80,6 +80,8 @@ class VideoEffects:
     @staticmethod
     def apply_color_grade(frame, grade_type='warm', intensity=0.5):
         """Apply color grading to frame"""
+        # Work on a copy to avoid modifying read-only arrays
+        frame = frame.copy()
         if grade_type == 'warm':
             frame[:,:,0] = np.clip(frame[:,:,0] * (1 + intensity * 0.2), 0, 255)
             frame[:,:,2] = np.clip(frame[:,:,2] * (1 - intensity * 0.1), 0, 255)
@@ -98,6 +100,8 @@ class VideoEffects:
     @staticmethod
     def apply_vignette(frame, intensity=0.4):
         """Apply vignette darkening"""
+        # Work on a copy to avoid modifying read-only arrays
+        frame = frame.copy()
         h, w = frame.shape[:2]
         y, x = np.ogrid[:h, :w]
         cx, cy = w / 2, h / 2
@@ -110,12 +114,16 @@ class VideoEffects:
     @staticmethod
     def apply_film_grain(frame, intensity=0.15):
         """Apply film grain overlay"""
+        # Work on a copy to avoid modifying read-only arrays
+        frame = frame.copy()
         noise = np.random.normal(0, intensity * 255, frame.shape)
         return np.clip(frame + noise, 0, 255).astype('uint8')
 
     @staticmethod
     def apply_background_dim(frame, intensity=0.25):
         """Dim the background"""
+        # Work on a copy to avoid modifying read-only arrays
+        frame = frame.copy()
         return (frame * (1 - intensity)).astype('uint8')
 
 
@@ -131,9 +139,8 @@ class ParticleEffects:
             from moviepy.editor import VideoClip
 
         def make_frame(t):
-            # Create transparent frame (explicitly writable)
-            frame = np.zeros((height, width, 4), dtype=np.uint8)
-            frame.flags.writeable = True
+            # Create transparent frame as writable copy
+            frame = np.zeros((height, width, 4), dtype=np.uint8).copy()
 
             # Number of particles based on intensity
             num_particles = int(50 * intensity)
@@ -155,7 +162,7 @@ class ParticleEffects:
                 frame[y1:y2, x1:x2, :3] = [255, 255, 255]  # White
                 frame[y1:y2, x1:x2, 3] = brightness  # Alpha (twinkling)
 
-            return frame
+            return frame.copy()
 
         clip = VideoClip(make_frame, duration=duration).with_fps(fps)
         return clip
@@ -223,9 +230,8 @@ class ParticleEffects:
                     color = colors[hash(str(particle['x'])) % len(colors)]
                     draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], fill=color)
 
-            # Convert to numpy array and ensure it's writable
-            frame_array = np.array(frame_pil)
-            frame_array.flags.writeable = True
+            # Convert to numpy array with writable copy
+            frame_array = np.array(frame_pil).copy()
             return frame_array
 
         clip = VideoClip(make_frame, duration=duration).with_fps(fps)
@@ -499,8 +505,8 @@ class CaptionRenderer:
                 text_y = padding
                 draw.text((text_x, text_y), text, font=font, fill=text_color + (255,))
 
-                # Convert to numpy array
-                frame = np.array(img)
+                # Convert to numpy array (writable copy)
+                frame = np.array(img).copy()
 
                 # Create ImageClip
                 clip = ImageClip(frame)
@@ -1148,7 +1154,7 @@ class VideoQuoteAutomation:
         print(f"CTA: {cta_text}")
 
         img = self.create_text_overlay_image(video.w, video.h, main_text, emoji_line, cta_text)
-        img_array = np.array(img)
+        img_array = np.array(img).copy()
 
         txt_clip = set_duration(ImageClip(img_array), video.duration)
 
@@ -1192,7 +1198,7 @@ class VideoQuoteAutomation:
                 crop_x = (new_w - w) // 2
                 crop_y = (new_h - h) // 2
                 pil_frame = pil_frame.crop((crop_x, crop_y, crop_x + w, crop_y + h))
-                return np.array(pil_frame)
+                return np.array(pil_frame).copy()
             try:
                 video = video.transform(zoom_effect)
             except AttributeError:
