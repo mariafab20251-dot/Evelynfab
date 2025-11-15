@@ -40,6 +40,101 @@ class ModernStyles:
     BORDER = '#475569'
 
 
+def get_windows_fonts():
+    """Scan Windows fonts folder and return available font families"""
+    fonts_folder = Path(r"C:\Windows\Fonts")
+    font_files = {}
+
+    if not fonts_folder.exists():
+        return ['Arial', 'Arial Bold', 'Impact', 'Verdana']
+
+    # Scan for TTF and OTF fonts
+    for font_file in fonts_folder.glob("*.ttf"):
+        try:
+            # Try to load font to get name
+            font_name = font_file.stem
+            # Clean up common naming patterns
+            font_name = font_name.replace('bd', ' Bold').replace('bi', ' Bold Italic')
+            font_name = font_name.replace('i', ' Italic').replace('z', '')
+            font_files[font_name] = str(font_file)
+        except:
+            pass
+
+    # Add common system fonts with their actual file paths
+    common_fonts = {
+        'Arial': 'arial.ttf',
+        'Arial Bold': 'arialbd.ttf',
+        'Arial Italic': 'ariali.ttf',
+        'Arial Bold Italic': 'arialbi.ttf',
+        'Impact': 'impact.ttf',
+        'Times New Roman': 'times.ttf',
+        'Times New Roman Bold': 'timesbd.ttf',
+        'Verdana': 'verdana.ttf',
+        'Verdana Bold': 'verdanab.ttf',
+        'Calibri': 'calibri.ttf',
+        'Calibri Bold': 'calibrib.ttf',
+        'Comic Sans MS': 'comic.ttf',
+        'Comic Sans MS Bold': 'comicbd.ttf',
+        'Georgia': 'georgia.ttf',
+        'Georgia Bold': 'georgiab.ttf',
+        'Courier New': 'cour.ttf',
+        'Courier New Bold': 'courbd.ttf',
+        'Tahoma': 'tahoma.ttf',
+        'Tahoma Bold': 'tahomabd.ttf',
+        'Trebuchet MS': 'trebuc.ttf',
+        'Trebuchet MS Bold': 'trebucbd.ttf'
+    }
+
+    result = {}
+    for name, filename in common_fonts.items():
+        full_path = fonts_folder / filename
+        if full_path.exists():
+            result[name] = str(full_path)
+
+    # Combine and sort
+    result.update(font_files)
+    return sorted(result.keys())
+
+
+def get_font_path(font_name):
+    """Get full path for a font name"""
+    fonts_folder = Path(r"C:\Windows\Fonts")
+
+    font_map = {
+        'Arial': 'arial.ttf',
+        'Arial Bold': 'arialbd.ttf',
+        'Arial Italic': 'ariali.ttf',
+        'Arial Bold Italic': 'arialbi.ttf',
+        'Impact': 'impact.ttf',
+        'Times New Roman': 'times.ttf',
+        'Times New Roman Bold': 'timesbd.ttf',
+        'Verdana': 'verdana.ttf',
+        'Verdana Bold': 'verdanab.ttf',
+        'Calibri': 'calibri.ttf',
+        'Calibri Bold': 'calibrib.ttf',
+        'Comic Sans MS': 'comic.ttf',
+        'Comic Sans MS Bold': 'comicbd.ttf',
+        'Georgia': 'georgia.ttf',
+        'Georgia Bold': 'georgiab.ttf',
+        'Courier New': 'cour.ttf',
+        'Courier New Bold': 'courbd.ttf',
+        'Tahoma': 'tahoma.ttf',
+        'Tahoma Bold': 'tahomabd.ttf',
+        'Trebuchet MS': 'trebuc.ttf',
+        'Trebuchet MS Bold': 'trebucbd.ttf'
+    }
+
+    if font_name in font_map:
+        return str(fonts_folder / font_map[font_name])
+
+    # Try to find by scanning
+    for font_file in fonts_folder.glob("*.ttf"):
+        if font_name.lower() in font_file.stem.lower():
+            return str(font_file)
+
+    return str(fonts_folder / 'arial.ttf')
+
+
 class TextSettingsPopup:
     """Popup window for text settings with live preview"""
 
@@ -89,8 +184,8 @@ class TextSettingsPopup:
         # Font settings
         self.create_label(settings_frame, "Font Family", pady=(15,5))
         self.font_var = tk.StringVar(value=self.settings.get('font_style', 'Arial Bold'))
-        font_combo = ttk.Combobox(settings_frame, textvariable=self.font_var, width=40)
-        font_combo['values'] = self.get_fonts()
+        font_combo = ttk.Combobox(settings_frame, textvariable=self.font_var, width=40, height=15)
+        font_combo['values'] = get_windows_fonts()
         font_combo.pack(padx=15, pady=(0,10))
         font_combo.bind('<<ComboboxSelected>>', lambda e: self.update_preview())
 
@@ -151,11 +246,15 @@ class TextSettingsPopup:
         right = tk.Frame(main, bg=ModernStyles.BG_CARD, width=400)
         right.pack(side='right', fill='both')
 
-        tk.Label(right, text="🎬 Live Preview", bg=ModernStyles.BG_CARD,
+        tk.Label(right, text="🎬 Live Preview (1080x1920)", bg=ModernStyles.BG_CARD,
                 fg=ModernStyles.TEXT_WHITE, font=('Segoe UI', 12, 'bold')).pack(pady=15)
 
-        self.preview_label = tk.Label(right, bg='#000000', width=360, height=640)
-        self.preview_label.pack(padx=15, pady=(0,15))
+        # Preview scaled down to fit (maintaining 9:16 aspect ratio)
+        preview_frame = tk.Frame(right, bg='#000000')
+        preview_frame.pack(padx=15, pady=(0,15))
+
+        self.preview_label = tk.Label(preview_frame, bg='#000000')
+        self.preview_label.pack()
 
         # Bottom buttons
         btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
@@ -177,9 +276,6 @@ class TextSettingsPopup:
         tk.Label(parent, text=text, bg=ModernStyles.BG_CARD,
                 fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 10)).pack(anchor='w', padx=15, pady=pady)
 
-    def get_fonts(self):
-        return ['Arial', 'Arial Bold', 'Arial Italic', 'Impact', 'Verdana', 'Calibri', 'Times New Roman']
-
     def pick_color(self, color_type):
         color = colorchooser.askcolor(title=f"Choose {color_type}")[1]
         if color:
@@ -190,22 +286,30 @@ class TextSettingsPopup:
             self.update_preview()
 
     def update_preview(self):
-        """Generate live preview of text overlay"""
+        """Generate live preview of text overlay at 1080x1920"""
         try:
-            # Create preview image
-            width, height = 360, 640
+            # Create preview image at full resolution (9:16 aspect ratio)
+            width, height = 1080, 1920
             img = Image.new('RGB', (width, height), '#000000')
             draw = ImageDraw.Draw(img, 'RGBA')
 
             # Sample text
             text = "Sample Quote\nWith Multiple Lines"
 
-            # Get font
+            # Get font - use selected font from dropdown
             font_size = self.font_size_var.get()
+            selected_font = self.font_var.get()
+
             try:
-                font_obj = ImageFont.truetype("arial.ttf", font_size)
-            except:
-                font_obj = ImageFont.load_default()
+                # Get the actual font file path
+                font_path = get_font_path(selected_font)
+                font_obj = ImageFont.truetype(font_path, font_size)
+            except Exception as e:
+                print(f"Font loading error: {e}, using Arial as fallback")
+                try:
+                    font_obj = ImageFont.truetype(get_font_path("Arial"), font_size)
+                except:
+                    font_obj = ImageFont.load_default()
 
             # Calculate text size
             bbox = draw.multiline_textbbox((0, 0), text, font=font_obj, align='center')
@@ -248,8 +352,14 @@ class TextSettingsPopup:
                 anchor='ma'
             )
 
+            # Scale down for display (maintain aspect ratio)
+            # Target display height: 540px (half of 1080 to fit in GUI)
+            display_width = 270  # 540 * 9/16
+            display_height = 480  # 9:16 ratio
+            img_display = img.resize((display_width, display_height), Image.Resampling.LANCZOS)
+
             # Convert to PhotoImage
-            img_tk = ImageTk.PhotoImage(img)
+            img_tk = ImageTk.PhotoImage(img_display)
             self.preview_label.config(image=img_tk)
             self.preview_label.image = img_tk
 
@@ -573,6 +683,11 @@ class ProcessingPopup:
         self.output_folder_var = tk.StringVar()
         self.create_path_selector(content, self.output_folder_var, self.browse_output_folder)
 
+        # Archive folder
+        self.create_label(content, "Archive Folder (for uploaded videos - optional):")
+        self.archive_folder_var = tk.StringVar()
+        self.create_path_selector(content, self.archive_folder_var, self.browse_archive_folder)
+
         # Processing section
         self.create_section(content, "Processing", ModernStyles.ACCENT_PURPLE)
 
@@ -669,6 +784,11 @@ class ProcessingPopup:
         if folder:
             self.output_folder_var.set(folder)
 
+    def browse_archive_folder(self):
+        folder = filedialog.askdirectory(title="Select Archive Folder")
+        if folder:
+            self.archive_folder_var.set(folder)
+
     def load_paths(self):
         """Load previously saved paths"""
         paths_file = Path('processing_paths.json')
@@ -679,6 +799,7 @@ class ProcessingPopup:
                     self.video_folder_var.set(paths.get('video_folder', ''))
                     self.quotes_file_var.set(paths.get('quotes_file', ''))
                     self.output_folder_var.set(paths.get('output_folder', ''))
+                    self.archive_folder_var.set(paths.get('archive_folder', ''))
             except:
                 pass
 
@@ -687,7 +808,8 @@ class ProcessingPopup:
         paths = {
             'video_folder': self.video_folder_var.get(),
             'quotes_file': self.quotes_file_var.get(),
-            'output_folder': self.output_folder_var.get()
+            'output_folder': self.output_folder_var.get(),
+            'archive_folder': self.archive_folder_var.get()
         }
         with open('processing_paths.json', 'w') as f:
             json.dump(paths, f, indent=2)
@@ -880,97 +1002,127 @@ class DashboardGUI:
 
     def setup_ui(self):
         # Top header
-        header = tk.Frame(self.root, bg=ModernStyles.ACCENT_BLUE, height=80)
+        header = tk.Frame(self.root, bg=ModernStyles.ACCENT_BLUE, height=90)
         header.pack(fill='x')
         header.pack_propagate(False)
 
-        tk.Label(header, text="🎬 Video Automation Studio",
-                bg=ModernStyles.ACCENT_BLUE, fg='white',
-                font=('Segoe UI', 24, 'bold')).pack(side='left', padx=30, pady=20)
+        header_content = tk.Frame(header, bg=ModernStyles.ACCENT_BLUE)
+        header_content.pack(expand=True, fill='both', padx=40, pady=20)
 
-        tk.Label(header, text="Professional Dashboard",
+        tk.Label(header_content, text="🎬 Video Automation Studio",
+                bg=ModernStyles.ACCENT_BLUE, fg='white',
+                font=('Segoe UI', 26, 'bold')).pack(side='left')
+
+        tk.Label(header_content, text=" | Professional Dashboard",
                 bg=ModernStyles.ACCENT_BLUE, fg='#e0f2fe',
-                font=('Segoe UI', 12)).pack(side='left', padx=10)
+                font=('Segoe UI', 14)).pack(side='left', padx=(10,0))
 
         # Main dashboard
         dashboard = tk.Frame(self.root, bg=ModernStyles.BG_DARK)
-        dashboard.pack(fill='both', expand=True, padx=30, pady=30)
+        dashboard.pack(fill='both', expand=True, padx=40, pady=30)
 
-        # Feature cards grid
-        cards_frame = tk.Frame(dashboard, bg=ModernStyles.BG_DARK)
-        cards_frame.pack(fill='both', expand=True)
+        # Feature cards grid - centered with equal spacing
+        cards_container = tk.Frame(dashboard, bg=ModernStyles.BG_DARK)
+        cards_container.pack(expand=True, fill='both')
 
         # Row 1
-        row1 = tk.Frame(cards_frame, bg=ModernStyles.BG_DARK)
-        row1.pack(fill='both', expand=True, pady=(0,15))
+        row1 = tk.Frame(cards_container, bg=ModernStyles.BG_DARK)
+        row1.pack(fill='both', expand=True, pady=(0,20))
 
-        self.create_card(row1, "📝", "Text & Fonts", "Configure text style, fonts, colors and position",
-                        ModernStyles.ACCENT_BLUE, lambda: self.open_text_settings()).pack(side='left', fill='both', expand=True, padx=(0,15))
+        # Configure grid for equal spacing
+        row1.grid_columnconfigure(0, weight=1)
+        row1.grid_columnconfigure(1, weight=1)
+        row1.grid_rowconfigure(0, weight=1)
 
-        self.create_card(row1, "✨", "Visual Effects", "Add animations, glow, shadows and color grading",
-                        ModernStyles.ACCENT_PURPLE, lambda: self.open_effects_settings()).pack(side='left', fill='both', expand=True)
+        card1 = self.create_card(row1, "📝", "Text & Fonts",
+                                "Configure text style, fonts, colors and position",
+                                ModernStyles.ACCENT_BLUE, lambda: self.open_text_settings())
+        card1.grid(row=0, column=0, sticky='nsew', padx=(0,10))
+
+        card2 = self.create_card(row1, "✨", "Visual Effects",
+                                "Add animations, glow, shadows and color grading",
+                                ModernStyles.ACCENT_PURPLE, lambda: self.open_effects_settings())
+        card2.grid(row=0, column=1, sticky='nsew', padx=(10,0))
 
         # Row 2
-        row2 = tk.Frame(cards_frame, bg=ModernStyles.BG_DARK)
-        row2.pack(fill='both', expand=True, pady=(0,15))
+        row2 = tk.Frame(cards_container, bg=ModernStyles.BG_DARK)
+        row2.pack(fill='both', expand=True)
 
-        self.create_card(row2, "🔊", "Audio & Music", "BGM, voiceover and audio mixing settings",
-                        ModernStyles.ACCENT_GREEN, lambda: self.open_audio_settings()).pack(side='left', fill='both', expand=True, padx=(0,15))
+        row2.grid_columnconfigure(0, weight=1)
+        row2.grid_columnconfigure(1, weight=1)
+        row2.grid_rowconfigure(0, weight=1)
 
-        self.create_card(row2, "⚙️", "Processing", "Configure paths and process videos",
-                        ModernStyles.ACCENT_ORANGE, lambda: self.show_processing()).pack(side='left', fill='both', expand=True)
+        card3 = self.create_card(row2, "🔊", "Audio & Music",
+                                "BGM, voiceover and audio mixing settings",
+                                ModernStyles.ACCENT_GREEN, lambda: self.open_audio_settings())
+        card3.grid(row=0, column=0, sticky='nsew', padx=(0,10))
 
-        # Processing panel (initially hidden)
-        self.processing_panel = tk.Frame(dashboard, bg=ModernStyles.BG_CARD)
+        card4 = self.create_card(row2, "⚙️", "Processing",
+                                "Configure paths and process videos",
+                                ModernStyles.ACCENT_ORANGE, lambda: self.show_processing())
+        card4.grid(row=0, column=1, sticky='nsew', padx=(10,0))
 
         # Control buttons at bottom
-        controls = tk.Frame(self.root, bg=ModernStyles.BG_DARK, height=80)
-        controls.pack(fill='x', side='bottom')
+        controls = tk.Frame(self.root, bg=ModernStyles.BG_DARK, height=90)
+        controls.pack(fill='x', side='bottom', pady=(20,0))
         controls.pack_propagate(False)
 
         btn_frame = tk.Frame(controls, bg=ModernStyles.BG_DARK)
         btn_frame.pack(expand=True)
 
         tk.Button(btn_frame, text="💾  Save All Settings", command=self.save_settings,
-                 bg=ModernStyles.ACCENT_BLUE, fg='white', font=('Segoe UI', 12, 'bold'),
-                 relief='flat', padx=40, pady=15, cursor='hand2').pack(side='left', padx=10)
+                 bg=ModernStyles.ACCENT_BLUE, fg='white', font=('Segoe UI', 13, 'bold'),
+                 relief='flat', padx=45, pady=16, cursor='hand2',
+                 borderwidth=0, highlightthickness=0).pack(side='left', padx=8)
 
         self.process_btn = tk.Button(btn_frame, text="▶️  Start Processing", command=self.start_processing,
-                                     bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 12, 'bold'),
-                                     relief='flat', padx=40, pady=15, cursor='hand2')
-        self.process_btn.pack(side='left', padx=10)
-
-        tk.Button(btn_frame, text="⏹️  Stop", command=self.stop_processing,
-                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 12, 'bold'),
-                 relief='flat', padx=40, pady=15, cursor='hand2').pack(side='left', padx=10)
+                                     bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 13, 'bold'),
+                                     relief='flat', padx=45, pady=16, cursor='hand2',
+                                     borderwidth=0, highlightthickness=0)
+        self.process_btn.pack(side='left', padx=8)
 
     def create_card(self, parent, emoji, title, description, color, command):
-        card = tk.Frame(parent, bg=ModernStyles.BG_CARD, relief='flat', bd=0, cursor='hand2')
+        card = tk.Frame(parent, bg=ModernStyles.BG_CARD, relief='flat', bd=0, cursor='hand2',
+                       highlightbackground=ModernStyles.BORDER, highlightthickness=1)
 
         # Hover effect
         def on_enter(e):
-            card.config(bg=ModernStyles.BG_CARD_HOVER)
+            card.config(bg=ModernStyles.BG_CARD_HOVER, highlightbackground=color)
+            for widget in card.winfo_children():
+                if isinstance(widget, tk.Label) and widget != border:
+                    widget.config(bg=ModernStyles.BG_CARD_HOVER)
 
         def on_leave(e):
-            card.config(bg=ModernStyles.BG_CARD)
+            card.config(bg=ModernStyles.BG_CARD, highlightbackground=ModernStyles.BORDER)
+            for widget in card.winfo_children():
+                if isinstance(widget, tk.Label) and widget != border:
+                    widget.config(bg=ModernStyles.BG_CARD)
 
         card.bind('<Enter>', on_enter)
         card.bind('<Leave>', on_leave)
         card.bind('<Button-1>', lambda e: command())
 
-        # Content
-        tk.Label(card, text=emoji, bg=ModernStyles.BG_CARD,
-                font=('Segoe UI', 48)).pack(pady=(30,10))
+        # Content container for better alignment
+        content = tk.Frame(card, bg=ModernStyles.BG_CARD)
+        content.pack(expand=True, fill='both', pady=40, padx=30)
 
-        tk.Label(card, text=title, bg=ModernStyles.BG_CARD, fg=color,
-                font=('Segoe UI', 16, 'bold')).pack(pady=(0,10))
+        tk.Label(content, text=emoji, bg=ModernStyles.BG_CARD,
+                font=('Segoe UI', 56)).pack(pady=(0,15))
 
-        tk.Label(card, text=description, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
-                font=('Segoe UI', 10), wraplength=250).pack(pady=(0,30), padx=20)
+        tk.Label(content, text=title, bg=ModernStyles.BG_CARD, fg=color,
+                font=('Segoe UI', 18, 'bold')).pack(pady=(0,12))
+
+        tk.Label(content, text=description, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+                font=('Segoe UI', 11), wraplength=280, justify='center').pack(pady=(0,0))
 
         # Border
-        border = tk.Frame(card, bg=color, height=4)
+        border = tk.Frame(card, bg=color, height=5)
         border.pack(fill='x', side='bottom')
+
+        # Make all child labels clickable
+        for widget in content.winfo_children():
+            if isinstance(widget, tk.Label):
+                widget.bind('<Button-1>', lambda e: command())
 
         return card
 
