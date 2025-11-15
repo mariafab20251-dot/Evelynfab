@@ -119,6 +119,120 @@ class VideoEffects:
         return (frame * (1 - intensity)).astype('uint8')
 
 
+class ParticleEffects:
+    """Animated particle overlays (glitter, stars, confetti, etc.)"""
+
+    @staticmethod
+    def create_glitter_overlay(width, height, duration, fps, intensity=0.5):
+        """Create glitter/sparkle particle effect"""
+        try:
+            from moviepy import ImageClip
+        except ImportError:
+            from moviepy.editor import ImageClip
+
+        def make_frame(t):
+            # Create transparent frame
+            frame = np.zeros((height, width, 4), dtype=np.uint8)
+
+            # Number of particles based on intensity
+            num_particles = int(50 * intensity)
+
+            # Generate random sparkles
+            for _ in range(num_particles):
+                x = np.random.randint(0, width)
+                y = np.random.randint(0, height)
+                size = np.random.randint(2, 6)
+
+                # Twinkling effect using sine wave
+                brightness = int(255 * abs(np.sin(t * 5 + np.random.random() * 10)))
+
+                # Draw sparkle (white with alpha)
+                y1, y2 = max(0, y-size), min(height, y+size)
+                x1, x2 = max(0, x-size), min(width, x+size)
+
+                frame[y1:y2, x1:x2, :3] = [255, 255, 255]  # White
+                frame[y1:y2, x1:x2, 3] = brightness  # Alpha (twinkling)
+
+            return frame
+
+        clip = ImageClip(make_frame, duration=duration)
+        return clip
+
+    @staticmethod
+    def create_stars_overlay(width, height, duration, fps, particle_type='star'):
+        """Create falling stars/hearts/emojis effect"""
+        try:
+            from moviepy import ImageClip
+        except ImportError:
+            from moviepy.editor import ImageClip
+
+        # Create particles with random positions and speeds
+        num_particles = 20
+        particles = []
+
+        for i in range(num_particles):
+            particles.append({
+                'x': np.random.randint(0, width),
+                'y': -np.random.randint(0, height),  # Start above screen
+                'speed': np.random.uniform(50, 150),  # Pixels per second
+                'size': np.random.randint(15, 40),
+                'rotation': np.random.uniform(0, 360),
+                'rotation_speed': np.random.uniform(-180, 180)
+            })
+
+        def make_frame(t):
+            # Create transparent frame
+            frame_pil = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(frame_pil)
+
+            for particle in particles:
+                # Update position
+                y = int(particle['y'] + particle['speed'] * t)
+
+                # Wrap around when particle goes off bottom
+                if y > height + 50:
+                    y = -50
+                    particle['y'] = -50 - particle['speed'] * t
+
+                x = int(particle['x'])
+                size = particle['size']
+
+                # Draw based on type
+                if particle_type == 'star':
+                    # Draw star shape
+                    points = []
+                    for i in range(10):
+                        angle = (i * 36) * np.pi / 180
+                        r = size if i % 2 == 0 else size // 2
+                        px = x + r * np.cos(angle)
+                        py = y + r * np.sin(angle)
+                        points.append((px, py))
+                    draw.polygon(points, fill=(255, 255, 100, 200))  # Yellow
+
+                elif particle_type == 'heart':
+                    # Draw heart (simplified circle-based)
+                    draw.ellipse([x-size//2, y-size//2, x, y+size//2], fill=(255, 50, 50, 200))
+                    draw.ellipse([x, y-size//2, x+size//2, y+size//2], fill=(255, 50, 50, 200))
+                    draw.polygon([(x-size//2, y), (x+size//2, y), (x, y+size)], fill=(255, 50, 50, 200))
+
+                elif particle_type == 'circle':
+                    # Simple colorful circles
+                    colors = [(255, 100, 100, 200), (100, 255, 100, 200),
+                             (100, 100, 255, 200), (255, 255, 100, 200)]
+                    color = colors[hash(str(particle['x'])) % len(colors)]
+                    draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], fill=color)
+
+            return np.array(frame_pil)
+
+        clip = ImageClip(make_frame, duration=duration)
+        return clip
+
+    @staticmethod
+    def create_confetti_overlay(width, height, duration, fps):
+        """Create falling confetti effect"""
+        return ParticleEffects.create_stars_overlay(width, height, duration, fps, particle_type='circle')
+
+
 class TTSGenerator:
     """Text-to-Speech voiceover generator using Microsoft Edge TTS (natural voices)"""
 
@@ -1085,7 +1199,52 @@ class VideoQuoteAutomation:
             except AttributeError:
                 video = video.fl_image(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
 
-        final_video = CompositeVideoClip([video, txt_clip])
+        # Start with video and text overlay
+        layers = [video, txt_clip]
+
+        # Add particle effects if enabled
+        if self.settings.get('add_glitter', False):
+            try:
+                intensity = self.settings.get('glitter_intensity', 0.5)
+                glitter = ParticleEffects.create_glitter_overlay(
+                    video.w, video.h, video.duration, video.fps, intensity
+                )
+                layers.append(glitter)
+                print(f"✓ Added glitter effect (intensity: {intensity})")
+            except Exception as e:
+                print(f"⚠ Glitter effect failed: {e}")
+
+        if self.settings.get('add_stars', False):
+            try:
+                stars = ParticleEffects.create_stars_overlay(
+                    video.w, video.h, video.duration, video.fps, particle_type='star'
+                )
+                layers.append(stars)
+                print("✓ Added falling stars effect")
+            except Exception as e:
+                print(f"⚠ Stars effect failed: {e}")
+
+        if self.settings.get('add_hearts', False):
+            try:
+                hearts = ParticleEffects.create_stars_overlay(
+                    video.w, video.h, video.duration, video.fps, particle_type='heart'
+                )
+                layers.append(hearts)
+                print("✓ Added falling hearts effect")
+            except Exception as e:
+                print(f"⚠ Hearts effect failed: {e}")
+
+        if self.settings.get('add_confetti', False):
+            try:
+                confetti = ParticleEffects.create_confetti_overlay(
+                    video.w, video.h, video.duration, video.fps
+                )
+                layers.append(confetti)
+                print("✓ Added confetti effect")
+            except Exception as e:
+                print(f"⚠ Confetti effect failed: {e}")
+
+        final_video = CompositeVideoClip(layers)
 
         # Audio processing
         voiceover_file = None

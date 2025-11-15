@@ -640,6 +640,44 @@ class EffectsSettingsPopup:
                           bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
                           selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD).pack(side='left', padx=15)
 
+        # Particle Effects (NEW!)
+        self.create_section(content, "✨ Particle Effects (Glitter, Stars, etc.)", ModernStyles.ACCENT_GREEN)
+
+        self.glitter_var = tk.BooleanVar(value=self.settings.get('add_glitter', False))
+        self.create_checkbox(content, "✨ Glitter / Sparkles (Twinkling)", self.glitter_var)
+
+        # Glitter intensity slider
+        glitter_label = tk.Label(content, text="Glitter Intensity:", bg=ModernStyles.BG_DARK,
+                                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 9))
+        glitter_label.pack(anchor='w', padx=20, pady=(10,2))
+
+        glitter_intensity_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        glitter_intensity_frame.pack(fill='x', padx=20, pady=5)
+
+        self.glitter_intensity_var = tk.DoubleVar(value=self.settings.get('glitter_intensity', 0.5))
+        tk.Scale(glitter_intensity_frame, from_=0.1, to=1.0, resolution=0.1, orient='horizontal',
+                variable=self.glitter_intensity_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                font=('Segoe UI', 9)).pack(side='left', fill='x', expand=True, padx=15, pady=10)
+
+        tk.Label(glitter_intensity_frame, textvariable=self.glitter_intensity_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
+
+        self.stars_var = tk.BooleanVar(value=self.settings.get('add_stars', False))
+        self.create_checkbox(content, "⭐ Falling Stars (Animated)", self.stars_var)
+
+        self.hearts_var = tk.BooleanVar(value=self.settings.get('add_hearts', False))
+        self.create_checkbox(content, "❤️ Falling Hearts (Romantic)", self.hearts_var)
+
+        self.confetti_var = tk.BooleanVar(value=self.settings.get('add_confetti', False))
+        self.create_checkbox(content, "🎉 Confetti (Celebration)", self.confetti_var)
+
+        info_particles = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        info_particles.pack(fill='x', padx=20, pady=(0,10))
+        tk.Label(info_particles, text="ℹ️ Particle effects overlay on top of video. Great for celebrations!",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+                font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=10)
+
     def create_section(self, parent, title, color):
         header = tk.Frame(parent, bg=color, height=3)
         header.pack(fill='x', pady=(20,0))
@@ -664,6 +702,13 @@ class EffectsSettingsPopup:
         self.settings['background_dim'] = self.dim_var.get()
         self.settings['video_zoom'] = self.zoom_var.get()
         self.settings['color_grade'] = self.grade_var.get()
+
+        # Particle effects
+        self.settings['add_glitter'] = self.glitter_var.get()
+        self.settings['glitter_intensity'] = self.glitter_intensity_var.get()
+        self.settings['add_stars'] = self.stars_var.get()
+        self.settings['add_hearts'] = self.hearts_var.get()
+        self.settings['add_confetti'] = self.confetti_var.get()
 
         self.on_save(self.settings)
         self.window.destroy()
