@@ -526,9 +526,32 @@ class AudioSettingsPopup:
                 bg=ModernStyles.ACCENT_GREEN, fg='white',
                 font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
 
-        # Content
-        content = tk.Frame(self.window, bg=ModernStyles.BG_DARK)
-        content.pack(fill='both', expand=True, padx=20, pady=20)
+        # Bottom buttons - PACK FIRST before scrollable content
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
+        btn_frame.pack(fill='x', side='bottom')
+        btn_frame.pack_propagate(False)
+
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
+        buttons.pack(expand=True)
+
+        tk.Button(buttons, text="💾  Save Changes", command=self.save_settings,
+                 bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
+
+        tk.Button(buttons, text="✕  Cancel", command=self.window.destroy,
+                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
+
+        # Scrollable content - pack AFTER buttons
+        canvas = tk.Canvas(self.window, bg=ModernStyles.BG_DARK, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self.window, orient="vertical", command=canvas.yview)
+        content = tk.Frame(canvas, bg=ModernStyles.BG_DARK)
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True, padx=20, pady=20)
+        canvas.create_window((0, 0), window=content, anchor="nw")
+        content.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 
         # Mute original
         self.create_section(content, "Original Audio", ModernStyles.ACCENT_BLUE)
@@ -609,22 +632,6 @@ class AudioSettingsPopup:
 
         tk.Label(speed_frame, textvariable=self.tts_speed_var, bg=ModernStyles.BG_CARD,
                 fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
-
-        # Bottom buttons
-        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
-        btn_frame.pack(fill='x', side='bottom')
-        btn_frame.pack_propagate(False)
-
-        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
-        buttons.pack(expand=True)
-
-        tk.Button(buttons, text="💾  Save Changes", command=self.save_settings,
-                 bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 11, 'bold'),
-                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
-
-        tk.Button(buttons, text="✕  Cancel", command=self.window.destroy,
-                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 11, 'bold'),
-                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
 
     def create_section(self, parent, title, color):
         header = tk.Frame(parent, bg=color, height=3)
