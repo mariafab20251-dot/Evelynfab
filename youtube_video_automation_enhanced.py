@@ -23,13 +23,15 @@ except ImportError:
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
-# Text-to-Speech
+# Text-to-Speech - Using edge-tts for natural, human-like voices
 try:
-    import pyttsx3
+    import edge_tts
+    import asyncio
     TTS_AVAILABLE = True
 except ImportError:
     TTS_AVAILABLE = False
-    print("⚠ pyttsx3 not available - TTS voiceover generation disabled")
+    print("⚠ edge-tts not available - TTS voiceover generation disabled")
+    print("  Install with: pip install edge-tts")
 
 
 def set_volume(clip, volume):
@@ -118,11 +120,33 @@ class VideoEffects:
 
 
 class TTSGenerator:
-    """Text-to-Speech voiceover generator"""
+    """Text-to-Speech voiceover generator using Microsoft Edge TTS (natural voices)"""
+
+    # Natural-sounding voice options
+    VOICES = {
+        'female': 'en-US-AriaNeural',      # Natural female voice
+        'male': 'en-US-GuyNeural',         # Natural male voice
+        'female_alt': 'en-US-JennyNeural', # Alternative natural female
+        'male_alt': 'en-US-DavisNeural',   # Alternative natural male
+    }
+
+    @staticmethod
+    async def _generate_async(text: str, output_path: Path, voice: str, rate: str) -> bool:
+        """Async TTS generation using edge-tts"""
+        try:
+            # Create TTS communicator
+            communicate = edge_tts.Communicate(text, voice, rate=rate)
+
+            # Generate and save audio
+            await communicate.save(str(output_path))
+            return True
+        except Exception as e:
+            print(f"⚠ Async TTS generation error: {e}")
+            return False
 
     @staticmethod
     def generate_voiceover(text: str, output_path: Path, settings: dict = None) -> bool:
-        """Generate voiceover from text using TTS"""
+        """Generate natural-sounding voiceover from text using Microsoft Edge TTS"""
         if not TTS_AVAILABLE:
             print("⚠ TTS not available - skipping voiceover generation")
             return False
@@ -130,47 +154,53 @@ class TTSGenerator:
         try:
             settings = settings or {}
 
-            # Initialize TTS engine
-            engine = pyttsx3.init()
-
-            # Configure voice settings
-            voices = engine.getProperty('voices')
-
-            # Select voice (male/female based on settings)
+            # Select voice based on gender preference
             voice_gender = settings.get('tts_voice', 'female').lower()
-            selected_voice = None
+            voice = TTSGenerator.VOICES.get(voice_gender, TTSGenerator.VOICES['female'])
 
-            for voice in voices:
-                voice_name = voice.name.lower()
-                if voice_gender == 'male' and 'david' in voice_name or 'male' in voice_name:
-                    selected_voice = voice.id
-                    break
-                elif voice_gender == 'female' and ('zira' in voice_name or 'female' in voice_name):
-                    selected_voice = voice.id
-                    break
-
-            if selected_voice:
-                engine.setProperty('voice', selected_voice)
-
-            # Set speech rate (words per minute)
-            rate = settings.get('tts_speed', 150)  # Default 150 WPM
-            engine.setProperty('rate', rate)
-
-            # Set volume (0.0 to 1.0)
-            volume = settings.get('tts_volume', 1.0)
-            engine.setProperty('volume', volume)
+            # Calculate speech rate adjustment
+            # Settings range: 100-250 (default 150)
+            # edge-tts rate format: "+0%", "-20%", "+50%"
+            speed = settings.get('tts_speed', 150)
+            rate_percent = int((speed - 150) / 150 * 100)  # Convert to percentage
+            rate = f"{rate_percent:+d}%" if rate_percent != 0 else "+0%"
 
             # Clean text for TTS (remove emojis and special characters)
-            import re
             clean_text = re.sub(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+', '', text)
             clean_text = clean_text.strip()
 
-            # Save to file
-            engine.save_to_file(clean_text, str(output_path))
-            engine.runAndWait()
+            if not clean_text:
+                print("⚠ No text to convert after cleaning")
+                return False
 
-            print(f"✓ Generated TTS voiceover: {output_path.name}")
-            return True
+            # Run async TTS generation
+            try:
+                # Try to get existing event loop
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If loop is already running, create a new one in a thread
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future = executor.submit(
+                            asyncio.run,
+                            TTSGenerator._generate_async(clean_text, output_path, voice, rate)
+                        )
+                        success = future.result(timeout=30)
+                else:
+                    success = loop.run_until_complete(
+                        TTSGenerator._generate_async(clean_text, output_path, voice, rate)
+                    )
+            except RuntimeError:
+                # No event loop, create a new one
+                success = asyncio.run(
+                    TTSGenerator._generate_async(clean_text, output_path, voice, rate)
+                )
+
+            if success:
+                print(f"✓ Generated natural TTS voiceover: {output_path.name} (voice: {voice})")
+                return True
+            else:
+                return False
 
         except Exception as e:
             print(f"⚠ TTS generation failed: {e}")
@@ -884,7 +914,7 @@ class VideoQuoteAutomation:
             tts_folder = self.output_folder / "tts_voiceovers"
             tts_folder.mkdir(exist_ok=True)
 
-            tts_filename = f"tts_{video_index + 1}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"
+            tts_filename = f"tts_{video_index + 1}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp3"
             tts_path = tts_folder / tts_filename
 
             # Generate TTS from the quote text
