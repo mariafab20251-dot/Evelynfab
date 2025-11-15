@@ -122,12 +122,65 @@ class VideoEffects:
 class TTSGenerator:
     """Text-to-Speech voiceover generator using Microsoft Edge TTS (natural voices)"""
 
-    # Natural-sounding voice options
+    # Natural-sounding voice options with descriptions
     VOICES = {
-        'female': 'en-US-AriaNeural',      # Natural female voice
-        'male': 'en-US-GuyNeural',         # Natural male voice
-        'female_alt': 'en-US-JennyNeural', # Alternative natural female
-        'male_alt': 'en-US-DavisNeural',   # Alternative natural male
+        # US English - Female
+        'aria': 'en-US-AriaNeural',           # Friendly, warm female
+        'jenny': 'en-US-JennyNeural',         # Cheerful, energetic female
+        'michelle': 'en-US-MichelleNeural',   # Professional, clear female
+        'amber': 'en-US-AmberNeural',         # Young, casual female
+        'ashley': 'en-US-AshleyNeural',       # Bright, youthful female
+        'sara': 'en-US-SaraNeural',           # Mature, calm female
+
+        # US English - Male
+        'guy': 'en-US-GuyNeural',             # Friendly, warm male
+        'davis': 'en-US-DavisNeural',         # Professional, authoritative male
+        'eric': 'en-US-EricNeural',           # Conversational, casual male
+        'christopher': 'en-US-ChristopherNeural',  # Deep, mature male
+        'roger': 'en-US-RogerNeural',         # Older, wise male
+        'steffan': 'en-US-SteffanNeural',     # Young, energetic male
+
+        # British English
+        'sonia': 'en-GB-SoniaNeural',         # British female
+        'ryan': 'en-GB-RyanNeural',           # British male
+        'libby': 'en-GB-LibbyNeural',         # British young female
+        'alfie': 'en-GB-AlfieNeural',         # British young male
+
+        # Australian English
+        'natasha': 'en-AU-NatashaNeural',     # Australian female
+        'william': 'en-AU-WilliamNeural',     # Australian male
+
+        # Indian English
+        'neerja': 'en-IN-NeerjaNeural',       # Indian female
+        'prabhat': 'en-IN-PrabhatNeural',     # Indian male
+
+        # Backward compatibility
+        'female': 'en-US-AriaNeural',         # Default female
+        'male': 'en-US-GuyNeural',            # Default male
+    }
+
+    # Voice display names for GUI
+    VOICE_NAMES = {
+        'aria': 'Aria - US Female (Friendly)',
+        'jenny': 'Jenny - US Female (Cheerful)',
+        'michelle': 'Michelle - US Female (Professional)',
+        'amber': 'Amber - US Female (Young)',
+        'ashley': 'Ashley - US Female (Bright)',
+        'sara': 'Sara - US Female (Mature)',
+        'guy': 'Guy - US Male (Friendly)',
+        'davis': 'Davis - US Male (Professional)',
+        'eric': 'Eric - US Male (Casual)',
+        'christopher': 'Christopher - US Male (Deep)',
+        'roger': 'Roger - US Male (Wise)',
+        'steffan': 'Steffan - US Male (Energetic)',
+        'sonia': 'Sonia - British Female',
+        'ryan': 'Ryan - British Male',
+        'libby': 'Libby - British Female (Young)',
+        'alfie': 'Alfie - British Male (Young)',
+        'natasha': 'Natasha - Australian Female',
+        'william': 'William - Australian Male',
+        'neerja': 'Neerja - Indian Female',
+        'prabhat': 'Prabhat - Indian Male',
     }
 
     @staticmethod
@@ -154,9 +207,9 @@ class TTSGenerator:
         try:
             settings = settings or {}
 
-            # Select voice based on gender preference
-            voice_gender = settings.get('tts_voice', 'female').lower()
-            voice = TTSGenerator.VOICES.get(voice_gender, TTSGenerator.VOICES['female'])
+            # Select voice based on preference (defaults to 'aria')
+            voice_key = settings.get('tts_voice', 'aria').lower()
+            voice = TTSGenerator.VOICES.get(voice_key, TTSGenerator.VOICES['aria'])
 
             # Calculate speech rate adjustment
             # Settings range: 100-250 (default 150)

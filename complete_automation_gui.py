@@ -19,9 +19,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # Import the video automation processor
 try:
-    from youtube_video_automation_enhanced import VideoQuoteAutomation
+    from youtube_video_automation_enhanced import VideoQuoteAutomation, TTSGenerator
 except ImportError:
     VideoQuoteAutomation = None
+    TTSGenerator = None
     print("⚠ Could not import VideoQuoteAutomation - processing will not be available")
 
 
@@ -600,7 +601,7 @@ class AudioSettingsPopup:
 
         info_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
         info_frame.pack(fill='x', padx=20, pady=(0,10))
-        tk.Label(info_frame, text="ℹ️ Automatically converts quote text to speech. \nRequires pyttsx3 library (pip install pyttsx3)",
+        tk.Label(info_frame, text="ℹ️ Automatically converts quote text to speech using natural AI voices. \nRequires edge-tts library (pip install edge-tts)",
                 bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
                 font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=10)
 
@@ -609,15 +610,43 @@ class AudioSettingsPopup:
         voice_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
         voice_frame.pack(fill='x', padx=20, pady=5)
 
-        self.tts_voice_var = tk.StringVar(value=self.settings.get('tts_voice', 'female'))
-        tk.Radiobutton(voice_frame, text="Female", variable=self.tts_voice_var, value='female',
-                      bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
-                      selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD,
-                      font=('Segoe UI', 10)).pack(side='left', padx=15, pady=10)
-        tk.Radiobutton(voice_frame, text="Male", variable=self.tts_voice_var, value='male',
-                      bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
-                      selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD,
-                      font=('Segoe UI', 10)).pack(side='left', padx=15, pady=10)
+        # Get voice options from TTSGenerator
+        voice_options = []
+        voice_keys = []
+        if TTSGenerator:
+            # Group voices by category
+            voice_keys = ['aria', 'jenny', 'michelle', 'amber', 'ashley', 'sara',  # US Female
+                         'guy', 'davis', 'eric', 'christopher', 'roger', 'steffan',  # US Male
+                         'sonia', 'libby', 'ryan', 'alfie',  # British
+                         'natasha', 'william',  # Australian
+                         'neerja', 'prabhat']  # Indian
+            voice_options = [TTSGenerator.VOICE_NAMES.get(k, k) for k in voice_keys]
+        else:
+            voice_keys = ['aria', 'guy']
+            voice_options = ['Aria - US Female (Friendly)', 'Guy - US Male (Friendly)']
+
+        # Get current voice (with backward compatibility)
+        current_voice = self.settings.get('tts_voice', 'aria')
+        # Convert old 'female'/'male' to new keys
+        if current_voice == 'female':
+            current_voice = 'aria'
+        elif current_voice == 'male':
+            current_voice = 'guy'
+
+        # Find display name for current voice
+        try:
+            current_index = voice_keys.index(current_voice)
+            current_display = voice_options[current_index]
+        except (ValueError, IndexError):
+            current_display = voice_options[0]
+
+        self.tts_voice_var = tk.StringVar(value=current_display)
+        self.tts_voice_keys = voice_keys  # Store keys for saving
+
+        voice_dropdown = ttk.Combobox(voice_frame, textvariable=self.tts_voice_var,
+                                     values=voice_options, state='readonly',
+                                     font=('Segoe UI', 10), width=35)
+        voice_dropdown.pack(side='left', padx=15, pady=10, fill='x', expand=True)
 
         # TTS Speed
         self.create_label(content, "Speech Speed (words per minute):")
@@ -678,7 +707,19 @@ class AudioSettingsPopup:
 
         # TTS settings
         self.settings['use_tts_voiceover'] = self.tts_var.get()
-        self.settings['tts_voice'] = self.tts_voice_var.get()
+
+        # Convert display name back to voice key
+        display_name = self.tts_voice_var.get()
+        if TTSGenerator:
+            voice_options = [TTSGenerator.VOICE_NAMES.get(k, k) for k in self.tts_voice_keys]
+            try:
+                voice_index = voice_options.index(display_name)
+                self.settings['tts_voice'] = self.tts_voice_keys[voice_index]
+            except (ValueError, IndexError):
+                self.settings['tts_voice'] = 'aria'  # Default
+        else:
+            self.settings['tts_voice'] = 'aria'
+
         self.settings['tts_speed'] = self.tts_speed_var.get()
 
         self.on_save(self.settings)
