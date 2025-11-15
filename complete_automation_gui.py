@@ -509,7 +509,7 @@ class AudioSettingsPopup:
 
         self.window = tk.Toplevel(parent)
         self.window.title("🔊 Audio Settings")
-        self.window.geometry("700x600")
+        self.window.geometry("750x800")
         self.window.configure(bg=ModernStyles.BG_DARK)
         self.window.transient(parent)
         self.window.grab_set()
@@ -569,6 +569,47 @@ class AudioSettingsPopup:
         tk.Button(vo_frame, text="📁 Browse", command=self.browse_voiceover,
                  bg=ModernStyles.ACCENT_GREEN, fg='white', relief='flat', cursor='hand2', padx=15).pack(side='left', padx=5)
 
+        # TTS Voiceover
+        self.create_section(content, "Text-to-Speech Voiceover (Auto-Generate)", ModernStyles.ACCENT_RED)
+
+        self.tts_var = tk.BooleanVar(value=self.settings.get('use_tts_voiceover', False))
+        self.create_checkbox(content, "Generate Voiceover from Text (TTS)", self.tts_var)
+
+        info_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        info_frame.pack(fill='x', padx=20, pady=(0,10))
+        tk.Label(info_frame, text="ℹ️ Automatically converts quote text to speech. \nRequires pyttsx3 library (pip install pyttsx3)",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+                font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=10)
+
+        # TTS Voice selection
+        self.create_label(content, "TTS Voice:")
+        voice_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        voice_frame.pack(fill='x', padx=20, pady=5)
+
+        self.tts_voice_var = tk.StringVar(value=self.settings.get('tts_voice', 'female'))
+        tk.Radiobutton(voice_frame, text="Female", variable=self.tts_voice_var, value='female',
+                      bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
+                      selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD,
+                      font=('Segoe UI', 10)).pack(side='left', padx=15, pady=10)
+        tk.Radiobutton(voice_frame, text="Male", variable=self.tts_voice_var, value='male',
+                      bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
+                      selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD,
+                      font=('Segoe UI', 10)).pack(side='left', padx=15, pady=10)
+
+        # TTS Speed
+        self.create_label(content, "Speech Speed (words per minute):")
+        speed_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        speed_frame.pack(fill='x', padx=20, pady=5)
+
+        self.tts_speed_var = tk.IntVar(value=self.settings.get('tts_speed', 150))
+        tk.Scale(speed_frame, from_=100, to=250, orient='horizontal',
+                variable=self.tts_speed_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                font=('Segoe UI', 9)).pack(side='left', fill='x', expand=True, padx=15, pady=10)
+
+        tk.Label(speed_frame, textvariable=self.tts_speed_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
+
         # Bottom buttons
         btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
         btn_frame.pack(fill='x', side='bottom')
@@ -627,6 +668,11 @@ class AudioSettingsPopup:
         self.settings['bgm_file'] = self.bgm_path_var.get()
         self.settings['add_voiceover'] = self.vo_var.get()
         self.settings['voiceover_folder'] = self.vo_path_var.get()
+
+        # TTS settings
+        self.settings['use_tts_voiceover'] = self.tts_var.get()
+        self.settings['tts_voice'] = self.tts_voice_var.get()
+        self.settings['tts_speed'] = self.tts_speed_var.get()
 
         self.on_save(self.settings)
         self.window.destroy()

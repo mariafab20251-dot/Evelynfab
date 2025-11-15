@@ -23,6 +23,14 @@ except ImportError:
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
+# Text-to-Speech
+try:
+    import pyttsx3
+    TTS_AVAILABLE = True
+except ImportError:
+    TTS_AVAILABLE = False
+    print("⚠ pyttsx3 not available - TTS voiceover generation disabled")
+
 
 def set_volume(clip, volume):
     """Compatible volume adjustment for MoviePy 1.x and 2.x"""
@@ -107,6 +115,66 @@ class VideoEffects:
     def apply_background_dim(frame, intensity=0.25):
         """Dim the background"""
         return (frame * (1 - intensity)).astype('uint8')
+
+
+class TTSGenerator:
+    """Text-to-Speech voiceover generator"""
+
+    @staticmethod
+    def generate_voiceover(text: str, output_path: Path, settings: dict = None) -> bool:
+        """Generate voiceover from text using TTS"""
+        if not TTS_AVAILABLE:
+            print("⚠ TTS not available - skipping voiceover generation")
+            return False
+
+        try:
+            settings = settings or {}
+
+            # Initialize TTS engine
+            engine = pyttsx3.init()
+
+            # Configure voice settings
+            voices = engine.getProperty('voices')
+
+            # Select voice (male/female based on settings)
+            voice_gender = settings.get('tts_voice', 'female').lower()
+            selected_voice = None
+
+            for voice in voices:
+                voice_name = voice.name.lower()
+                if voice_gender == 'male' and 'david' in voice_name or 'male' in voice_name:
+                    selected_voice = voice.id
+                    break
+                elif voice_gender == 'female' and ('zira' in voice_name or 'female' in voice_name):
+                    selected_voice = voice.id
+                    break
+
+            if selected_voice:
+                engine.setProperty('voice', selected_voice)
+
+            # Set speech rate (words per minute)
+            rate = settings.get('tts_speed', 150)  # Default 150 WPM
+            engine.setProperty('rate', rate)
+
+            # Set volume (0.0 to 1.0)
+            volume = settings.get('tts_volume', 1.0)
+            engine.setProperty('volume', volume)
+
+            # Clean text for TTS (remove emojis and special characters)
+            import re
+            clean_text = re.sub(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+', '', text)
+            clean_text = clean_text.strip()
+
+            # Save to file
+            engine.save_to_file(clean_text, str(output_path))
+            engine.runAndWait()
+
+            print(f"✓ Generated TTS voiceover: {output_path.name}")
+            return True
+
+        except Exception as e:
+            print(f"⚠ TTS generation failed: {e}")
+            return False
 
 
 class AudioProcessor:
@@ -810,7 +878,22 @@ class VideoQuoteAutomation:
 
         # Audio processing
         voiceover_file = None
-        if self.settings.get('add_voiceover', False) and self.voiceover_files:
+
+        # Option 1: Generate TTS voiceover from text
+        if self.settings.get('use_tts_voiceover', False) and TTS_AVAILABLE:
+            tts_folder = self.output_folder / "tts_voiceovers"
+            tts_folder.mkdir(exist_ok=True)
+
+            tts_filename = f"tts_{video_index + 1}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"
+            tts_path = tts_folder / tts_filename
+
+            # Generate TTS from the quote text
+            if TTSGenerator.generate_voiceover(quote, tts_path, self.settings):
+                voiceover_file = tts_path
+                print(f"✓ Using TTS voiceover: {tts_filename}")
+
+        # Option 2: Use pre-recorded voiceover files
+        elif self.settings.get('add_voiceover', False) and self.voiceover_files:
             if video_index < len(self.voiceover_files):
                 voiceover_file = self.voiceover_files[video_index]
                 print(f"✓ Using voiceover {video_index + 1}: {voiceover_file.name}")
