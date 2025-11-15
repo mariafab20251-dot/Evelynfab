@@ -131,8 +131,9 @@ class ParticleEffects:
             from moviepy.editor import VideoClip
 
         def make_frame(t):
-            # Create transparent frame
+            # Create transparent frame (explicitly writable)
             frame = np.zeros((height, width, 4), dtype=np.uint8)
+            frame.flags.writeable = True
 
             # Number of particles based on intensity
             num_particles = int(50 * intensity)
@@ -222,7 +223,10 @@ class ParticleEffects:
                     color = colors[hash(str(particle['x'])) % len(colors)]
                     draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], fill=color)
 
-            return np.array(frame_pil)
+            # Convert to numpy array and ensure it's writable
+            frame_array = np.array(frame_pil)
+            frame_array.flags.writeable = True
+            return frame_array
 
         clip = VideoClip(make_frame, duration=duration).with_fps(fps)
         return clip
