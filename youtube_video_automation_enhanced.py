@@ -727,23 +727,38 @@ class VideoQuoteAutomation:
                 crop_y = (new_h - h) // 2
                 pil_frame = pil_frame.crop((crop_x, crop_y, crop_x + w, crop_y + h))
                 return np.array(pil_frame)
-            video = video.transform(zoom_effect)
+            try:
+                video = video.transform(zoom_effect)
+            except AttributeError:
+                video = video.fl(zoom_effect)
 
         if self.settings.get('color_grade', 'none') != 'none':
             grade_type = self.settings.get('color_grade', 'warm')
-            video = video.image_transform(lambda frame: VideoEffects.apply_color_grade(frame, grade_type))
+            try:
+                video = video.image_transform(lambda frame: VideoEffects.apply_color_grade(frame, grade_type))
+            except AttributeError:
+                video = video.fl_image(lambda frame: VideoEffects.apply_color_grade(frame, grade_type))
 
         if self.settings.get('vignette', False):
             intensity = self.settings.get('vignette_intensity', 0.4)
-            video = video.image_transform(lambda frame: VideoEffects.apply_vignette(frame, intensity))
+            try:
+                video = video.image_transform(lambda frame: VideoEffects.apply_vignette(frame, intensity))
+            except AttributeError:
+                video = video.fl_image(lambda frame: VideoEffects.apply_vignette(frame, intensity))
 
         if self.settings.get('background_dim', False):
             intensity = self.settings.get('dim_intensity', 0.25)
-            video = video.image_transform(lambda frame: VideoEffects.apply_background_dim(frame, intensity))
+            try:
+                video = video.image_transform(lambda frame: VideoEffects.apply_background_dim(frame, intensity))
+            except AttributeError:
+                video = video.fl_image(lambda frame: VideoEffects.apply_background_dim(frame, intensity))
 
         if self.settings.get('film_grain', False):
             intensity = self.settings.get('grain_intensity', 0.15)
-            video = video.image_transform(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
+            try:
+                video = video.image_transform(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
+            except AttributeError:
+                video = video.fl_image(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
 
         final_video = CompositeVideoClip([video, txt_clip])
 
