@@ -320,15 +320,19 @@ class UnifiedVideoAutomationGUI:
         ttk.Checkbutton(frame, text="Add Custom BGM", variable=bgm_var,
                        command=lambda: self.update_setting('add_custom_bgm', bgm_var.get())).pack(anchor='w')
 
-        ttk.Label(frame, text="BGM File:").pack(anchor='w', padx=20, pady=(5,0))
+        ttk.Label(frame, text="BGM File/Folder:", font=('Arial', 9)).pack(anchor='w', padx=20, pady=(5,0))
+        ttk.Label(frame, text="(Single file = same BGM all videos | Folder = random BGM per video)",
+                 font=('Arial', 8), foreground='gray').pack(anchor='w', padx=20)
+
         bgm_frame = tk.Frame(frame)
         bgm_frame.pack(fill='x', padx=20, pady=5)
 
         self.bgm_var = tk.StringVar(value=self.settings.get('bgm_file', ''))
-        bgm_entry = ttk.Entry(bgm_frame, textvariable=self.bgm_var, width=50)
+        bgm_entry = ttk.Entry(bgm_frame, textvariable=self.bgm_var, width=40)
         bgm_entry.pack(side='left', fill='x', expand=True)
 
-        ttk.Button(bgm_frame, text="Browse", command=self.browse_bgm).pack(side='left', padx=5)
+        ttk.Button(bgm_frame, text="Browse File", command=self.browse_bgm_file).pack(side='left', padx=2)
+        ttk.Button(bgm_frame, text="Browse Folder", command=self.browse_bgm_folder).pack(side='left', padx=2)
 
         ttk.Label(frame, text="BGM Volume:").pack(anchor='w', padx=20)
         bgm_vol = tk.Scale(frame, from_=0.0, to=1.0, resolution=0.1, orient='horizontal',
@@ -346,12 +350,15 @@ class UnifiedVideoAutomationGUI:
         ttk.Checkbutton(frame, text="Add Voiceover", variable=vo_var,
                        command=lambda: self.update_setting('add_voiceover', vo_var.get())).pack(anchor='w')
 
-        ttk.Label(frame, text="Voiceover Folder:").pack(anchor='w', padx=20, pady=(5,0))
+        ttk.Label(frame, text="Voiceover Folder:", font=('Arial', 9)).pack(anchor='w', padx=20, pady=(5,0))
+        ttk.Label(frame, text="(Files named: 1.mp3, 2.mp3, 3.mp3... matching video order)",
+                 font=('Arial', 8), foreground='gray').pack(anchor='w', padx=20)
+
         vo_frame = tk.Frame(frame)
         vo_frame.pack(fill='x', padx=20, pady=5)
 
         self.vo_var = tk.StringVar(value=self.settings.get('voiceover_folder', ''))
-        vo_entry = ttk.Entry(vo_frame, textvariable=self.vo_var, width=50)
+        vo_entry = ttk.Entry(vo_frame, textvariable=self.vo_var, width=40)
         vo_entry.pack(side='left', fill='x', expand=True)
 
         ttk.Button(vo_frame, text="Browse", command=self.browse_voiceover).pack(side='left', padx=5)
@@ -413,11 +420,19 @@ class UnifiedVideoAutomationGUI:
         self.log_text = scrolledtext.ScrolledText(frame, height=12, width=80, wrap=tk.WORD)
         self.log_text.pack(fill='both', expand=True)
 
-    def browse_bgm(self):
-        filename = filedialog.askopenfilename(title="Select BGM", filetypes=[("Audio", "*.mp3 *.wav *.m4a")])
+    def browse_bgm_file(self):
+        """Browse for single BGM file"""
+        filename = filedialog.askopenfilename(title="Select BGM File", filetypes=[("Audio", "*.mp3 *.wav *.m4a *.aac *.ogg")])
         if filename:
             self.bgm_var.set(filename)
             self.update_setting('bgm_file', filename)
+
+    def browse_bgm_folder(self):
+        """Browse for BGM folder (random selection)"""
+        folder = filedialog.askdirectory(title="Select BGM Folder (for random BGM per video)")
+        if folder:
+            self.bgm_var.set(folder)
+            self.update_setting('bgm_file', folder)
 
     def browse_voiceover(self):
         folder = filedialog.askdirectory(title="Select Voiceover Folder")

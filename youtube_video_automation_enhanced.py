@@ -114,13 +114,42 @@ class AudioProcessor:
 
     @staticmethod
     def get_voiceover_files(folder_path: Path) -> List[Path]:
-        """Get audio files from voiceover folder"""
+        """Get audio files from voiceover folder sorted by number"""
         if not folder_path or not folder_path.exists():
             return []
         audio_extensions = {'.mp3', '.wav', '.m4a', '.aac', '.ogg'}
         files = [f for f in folder_path.iterdir()
                 if f.suffix.lower() in audio_extensions and f.is_file()]
-        return sorted(files, key=lambda x: x.stat().st_ctime)
+
+        # Sort by number in filename (1.mp3, 2.mp3, etc.)
+        def extract_number(filepath):
+            import re
+            match = re.search(r'(\d+)', filepath.stem)
+            return int(match.group(1)) if match else 999999
+
+        return sorted(files, key=extract_number)
+
+    @staticmethod
+    def get_bgm_files(bgm_path: str) -> List[Path]:
+        """Get BGM files - supports single file or folder with multiple files"""
+        bgm_path = Path(bgm_path)
+
+        if not bgm_path.exists():
+            return []
+
+        audio_extensions = {'.mp3', '.wav', '.m4a', '.aac', '.ogg'}
+
+        # Single file
+        if bgm_path.is_file() and bgm_path.suffix.lower() in audio_extensions:
+            return [bgm_path]
+
+        # Folder with multiple files
+        if bgm_path.is_dir():
+            files = [f for f in bgm_path.iterdir()
+                    if f.suffix.lower() in audio_extensions and f.is_file()]
+            return sorted(files)
+
+        return []
 
     @staticmethod
     def create_looped_audio(audio_clip, target_duration):
@@ -134,7 +163,7 @@ class AudioProcessor:
             return looped
 
     @staticmethod
-    def mix_audio_tracks(video_clip, settings, voiceover_file: Optional[Path] = None):
+    def mix_audio_tracks(video_clip, settings, voiceover_file: Optional[Path] = None, bgm_file: Optional[Path] = None):
         """Mix original audio, BGM, and voiceover"""
         audio_tracks = []
 
@@ -144,10 +173,11 @@ class AudioProcessor:
             original_audio = set_volume(video_clip.audio, original_volume)
             audio_tracks.append(original_audio)
 
-        # Custom BGM
-        if settings.get('add_custom_bgm', False) and settings.get('bgm_file'):
-            bgm_path = Path(settings['bgm_file'])
-            if bgm_path.exists():
+        # Custom BGM (use provided bgm_file or fall back to settings)
+        if settings.get('add_custom_bgm', False):
+            bgm_path = bgm_file if bgm_file else (Path(settings['bgm_file']) if settings.get('bgm_file') else None)
+
+            if bgm_path and bgm_path.exists():
                 try:
                     bgm_audio = AudioFileClip(str(bgm_path))
 
@@ -282,9 +312,25 @@ class VideoQuoteAutomation:
             voiceover_folder = Path(self.settings['voiceover_folder'])
             self.voiceover_files = AudioProcessor.get_voiceover_files(voiceover_folder)
             if self.voiceover_files:
-                print(f"✓ Loaded {len(self.voiceover_files)} voiceover files")
+                print(f"✓ Loaded {len(self.voiceover_files)} voiceover files (sorted by number)")
+                for i, vf in enumerate(self.voiceover_files[:5], 1):
+                    print(f"  {i}. {vf.name}")
             else:
                 print(f"⚠ No voiceover files found in {voiceover_folder}")
+
+        # Load BGM files if enabled
+        self.bgm_files = []
+        if self.settings.get('add_custom_bgm', False) and self.settings.get('bgm_file'):
+            self.bgm_files = AudioProcessor.get_bgm_files(self.settings['bgm_file'])
+            if self.bgm_files:
+                if len(self.bgm_files) == 1:
+                    print(f"✓ Loaded 1 BGM file: {self.bgm_files[0].name}")
+                else:
+                    print(f"✓ Loaded {len(self.bgm_files)} BGM files (will select randomly per video)")
+                    for i, bf in enumerate(self.bgm_files[:5], 1):
+                        print(f"  {i}. {bf.name}")
+            else:
+                print(f"⚠ No BGM files found")
 
     def load_settings(self) -> dict:
         """Load settings from GUI config file"""
@@ -767,10 +813,21 @@ class VideoQuoteAutomation:
         if self.settings.get('add_voiceover', False) and self.voiceover_files:
             if video_index < len(self.voiceover_files):
                 voiceover_file = self.voiceover_files[video_index]
+                print(f"✓ Using voiceover {video_index + 1}: {voiceover_file.name}")
             else:
-                print(f"⚠ No voiceover file for video index {video_index}")
+                print(f"⚠ No voiceover file for video index {video_index + 1}")
 
-        final_audio = AudioProcessor.mix_audio_tracks(video, self.settings, voiceover_file)
+        # Select BGM (random if multiple files)
+        bgm_file = None
+        if self.settings.get('add_custom_bgm', False) and self.bgm_files:
+            if len(self.bgm_files) == 1:
+                bgm_file = self.bgm_files[0]
+            else:
+                import random
+                bgm_file = random.choice(self.bgm_files)
+                print(f"🎵 Random BGM selected: {bgm_file.name}")
+
+        final_audio = AudioProcessor.mix_audio_tracks(video, self.settings, voiceover_file, bgm_file)
 
         if final_audio:
             final_video = set_audio(final_video, final_audio)

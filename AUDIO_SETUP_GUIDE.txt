@@ -1,0 +1,209 @@
+AUDIO SETUP GUIDE - Voiceover & BGM
+===================================
+
+VOICEOVER SETUP (Numbered Files)
+=================================
+
+1. CREATE FOLDER STRUCTURE:
+   E:\MyVoiceovers\
+   ├── 1.mp3          ← Voiceover for video 1
+   ├── 2.mp3          ← Voiceover for video 2
+   ├── 3.mp3          ← Voiceover for video 3
+   ├── 4.mp3          ← Voiceover for video 4
+   └── ...
+
+2. FILE NAMING RULES:
+   ✓ CORRECT:
+   - 1.mp3, 2.mp3, 3.mp3...
+   - 001.mp3, 002.mp3, 003.mp3...
+   - voiceover_1.mp3, voiceover_2.mp3...
+   - track1.mp3, track2.mp3...
+
+   ✗ WRONG:
+   - voiceover_a.mp3, voiceover_b.mp3
+   - quote_one.mp3, quote_two.mp3
+   - random_name.mp3
+
+   IMPORTANT: Files MUST contain a number (1, 2, 3...) in the filename!
+
+3. MATCHING LOGIC:
+   Video 1 + Quote 1 → Voiceover 1.mp3
+   Video 2 + Quote 2 → Voiceover 2.mp3
+   Video 3 + Quote 3 → Voiceover 3.mp3
+
+4. IN GUI:
+   - Enable "Add Voiceover" checkbox
+   - Click "Browse" next to Voiceover Folder
+   - Select: E:\MyVoiceovers
+   - Save settings
+
+5. SUPPORTED FORMATS:
+   .mp3, .wav, .m4a, .aac, .ogg
+
+
+BGM SETUP (Two Options)
+========================
+
+OPTION 1: SINGLE BGM FILE (Same music for all videos)
+------------------------------------------------------
+
+1. PREPARE:
+   E:\MyMusic\background.mp3
+
+2. IN GUI:
+   - Enable "Add Custom BGM"
+   - Click "Browse File"
+   - Select: E:\MyMusic\background.mp3
+   - Adjust "BGM Volume" slider
+   - Enable "Loop BGM" (recommended)
+   - Save settings
+
+3. RESULT:
+   All videos use the same background music
+
+
+OPTION 2: MULTIPLE BGM FILES (Random music per video)
+------------------------------------------------------
+
+1. CREATE FOLDER:
+   E:\MyMusic\BGM_Collection\
+   ├── upbeat.mp3
+   ├── calm.mp3
+   ├── energetic.mp3
+   ├── chill.mp3
+   └── motivational.mp3
+
+2. IN GUI:
+   - Enable "Add Custom BGM"
+   - Click "Browse Folder"
+   - Select: E:\MyMusic\BGM_Collection
+   - Adjust "BGM Volume" slider
+   - Enable "Loop BGM" (recommended)
+   - Save settings
+
+3. RESULT:
+   Each video gets a RANDOM BGM from the folder
+   - Video 1 → upbeat.mp3 (random)
+   - Video 2 → chill.mp3 (random)
+   - Video 3 → energetic.mp3 (random)
+
+4. SUPPORTED FORMATS:
+   .mp3, .wav, .m4a, .aac, .ogg
+
+
+AUDIO MIXING SCENARIOS
+=======================
+
+Scenario 1: Voiceover + BGM (No Original Audio)
+------------------------------------------------
+Settings:
+✓ Mute Original Video Audio
+✓ Add Custom BGM
+✓ Add Voiceover
+BGM Volume: 0.2-0.3
+Voiceover Volume: 1.0
+
+Result: Pure voiceover + background music
+
+
+Scenario 2: Original Audio + BGM
+---------------------------------
+Settings:
+✗ Mute Original Video Audio
+✓ Add Custom BGM
+✗ Add Voiceover
+Original Audio Volume: 0.4
+BGM Volume: 0.3
+
+Result: Video's original sound + background music
+
+
+Scenario 3: All Three Mixed
+----------------------------
+Settings:
+✗ Mute Original Video Audio
+✓ Add Custom BGM
+✓ Add Voiceover
+Original Audio Volume: 0.3
+BGM Volume: 0.2
+Voiceover Volume: 1.0
+
+Result: Original + BGM + Voiceover (all mixed)
+
+
+Scenario 4: Voiceover Only
+---------------------------
+Settings:
+✓ Mute Original Video Audio
+✗ Add Custom BGM
+✓ Add Voiceover
+Voiceover Volume: 1.0
+
+Result: Only voiceover, no music, no original audio
+
+
+VOLUME RECOMMENDATIONS
+======================
+
+Voiceover (Main Audio):     1.0 (100%)
+BGM (Background):           0.2-0.3 (20-30%)
+Original Video Audio:       0.3-0.5 (30-50%)
+
+Rule: Voiceover should always be loudest!
+
+
+COMPLETE EXAMPLE SETUP
+======================
+
+FOLDER STRUCTURE:
+E:\
+├── MyVoiceovers\
+│   ├── 1.mp3
+│   ├── 2.mp3
+│   ├── 3.mp3
+│   └── ...
+│
+├── MyMusic\
+│   └── BGM_Collection\
+│       ├── track1.mp3
+│       ├── track2.mp3
+│       └── track3.mp3
+│
+└── MyAutomations\ScriptAutomations\VideoFolder\
+    ├── SourceVideosToEdit\Libriana8\
+    │   ├── video1.mp4
+    │   ├── video2.mp4
+    │   └── video3.mp4
+    │
+    ├── Quotes.txt
+    │   1. First quote here
+    │   2. Second quote here
+    │   3. Third quote here
+    │
+    └── FinalVideos\
+        (Output videos appear here)
+
+PROCESSING:
+Video 1 + Quote 1 + Voiceover 1.mp3 + Random BGM → Output 1
+Video 2 + Quote 2 + Voiceover 2.mp3 + Random BGM → Output 2
+Video 3 + Quote 3 + Voiceover 3.mp3 + Random BGM → Output 3
+
+
+TROUBLESHOOTING
+===============
+
+Q: Voiceover not matching quotes?
+A: Check file numbering: 1.mp3, 2.mp3, 3.mp3...
+
+Q: Same BGM on all videos when I want random?
+A: Browse FOLDER, not FILE for BGM
+
+Q: No audio in output video?
+A: Check "Mute Original Audio" is OFF if you want original sound
+
+Q: Voiceover too quiet?
+A: Increase "Voiceover Volume" to 1.0
+   Decrease "BGM Volume" to 0.2
+
+Q: Can I skip BGM for some videos?
+A: Uncheck "Add Custom BGM" before processing
