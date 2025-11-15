@@ -126,9 +126,9 @@ class ParticleEffects:
     def create_glitter_overlay(width, height, duration, fps, intensity=0.5):
         """Create glitter/sparkle particle effect"""
         try:
-            from moviepy import ImageClip
+            from moviepy import VideoClip
         except ImportError:
-            from moviepy.editor import ImageClip
+            from moviepy.editor import VideoClip
 
         def make_frame(t):
             # Create transparent frame
@@ -138,6 +138,7 @@ class ParticleEffects:
             num_particles = int(50 * intensity)
 
             # Generate random sparkles
+            np.random.seed(int(t * 1000) % 10000)  # Different random seed per frame
             for _ in range(num_particles):
                 x = np.random.randint(0, width)
                 y = np.random.randint(0, height)
@@ -155,16 +156,16 @@ class ParticleEffects:
 
             return frame
 
-        clip = ImageClip(make_frame, duration=duration)
+        clip = VideoClip(make_frame, duration=duration).with_fps(fps)
         return clip
 
     @staticmethod
     def create_stars_overlay(width, height, duration, fps, particle_type='star'):
         """Create falling stars/hearts/emojis effect"""
         try:
-            from moviepy import ImageClip
+            from moviepy import VideoClip
         except ImportError:
-            from moviepy.editor import ImageClip
+            from moviepy.editor import VideoClip
 
         # Create particles with random positions and speeds
         num_particles = 20
@@ -173,7 +174,7 @@ class ParticleEffects:
         for i in range(num_particles):
             particles.append({
                 'x': np.random.randint(0, width),
-                'y': -np.random.randint(0, height),  # Start above screen
+                'y_start': -np.random.randint(0, height),  # Start above screen
                 'speed': np.random.uniform(50, 150),  # Pixels per second
                 'size': np.random.randint(15, 40),
                 'rotation': np.random.uniform(0, 360),
@@ -187,12 +188,11 @@ class ParticleEffects:
 
             for particle in particles:
                 # Update position
-                y = int(particle['y'] + particle['speed'] * t)
+                y = int(particle['y_start'] + particle['speed'] * t)
 
                 # Wrap around when particle goes off bottom
                 if y > height + 50:
-                    y = -50
-                    particle['y'] = -50 - particle['speed'] * t
+                    y = y % (height + 100) - 50
 
                 x = int(particle['x'])
                 size = particle['size']
@@ -224,7 +224,7 @@ class ParticleEffects:
 
             return np.array(frame_pil)
 
-        clip = ImageClip(make_frame, duration=duration)
+        clip = VideoClip(make_frame, duration=duration).with_fps(fps)
         return clip
 
     @staticmethod
@@ -426,20 +426,25 @@ class CaptionRenderer:
     def create_word_captions(word_timings, video_width, video_height, settings):
         """Create synchronized caption clips for each word"""
         try:
-            from moviepy import TextClip
+            from moviepy import ImageClip
         except ImportError:
-            from moviepy.editor import TextClip
+            from moviepy.editor import ImageClip
 
         caption_clips = []
 
         # Caption settings
         font_size = settings.get('caption_font_size', 60)
-        font_family = settings.get('caption_font', 'Arial-Bold')
-        text_color = settings.get('caption_text_color', 'white')
-        bg_color = settings.get('caption_bg_color', 'black')
-        bg_opacity = settings.get('caption_bg_opacity', 0.7)
+        text_color = (255, 255, 255)  # White
+        bg_color = (0, 0, 0)  # Black
         position = settings.get('caption_position', 'bottom')  # top, center, bottom
         words_per_caption = settings.get('caption_words_per_line', 3)  # How many words to show at once
+
+        # Load font
+        try:
+            font_path = str(Path(r"C:\Windows\Fonts") / 'arialbd.ttf')
+            font = ImageFont.truetype(font_path, font_size)
+        except:
+            font = ImageFont.load_default()
 
         # Group words into caption segments
         caption_segments = []
@@ -466,34 +471,52 @@ class CaptionRenderer:
         # Create caption clips
         for segment in caption_segments:
             try:
-                # Create text clip
-                txt_clip = TextClip(
-                    segment['text'],
-                    fontsize=font_size,
-                    font=font_family,
-                    color=text_color,
-                    bg_color=bg_color,
-                    method='caption',
-                    size=(int(video_width * 0.9), None),
-                    align='center'
-                )
+                text = segment['text']
 
-                # Set duration and position
-                txt_clip = txt_clip.set_start(segment['start'])
-                txt_clip = txt_clip.set_duration(segment['end'] - segment['start'])
+                # Create PIL image with text
+                # First, get text size
+                dummy_img = Image.new('RGBA', (1, 1))
+                dummy_draw = ImageDraw.Draw(dummy_img)
+                bbox = dummy_draw.textbbox((0, 0), text, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+
+                # Add padding
+                padding = 20
+                img_width = min(text_width + padding * 2, int(video_width * 0.9))
+                img_height = text_height + padding * 2
+
+                # Create image with background
+                img = Image.new('RGBA', (img_width, img_height), bg_color + (180,))  # Semi-transparent black
+                draw = ImageDraw.Draw(img)
+
+                # Draw text centered
+                text_x = (img_width - text_width) // 2
+                text_y = padding
+                draw.text((text_x, text_y), text, font=font, fill=text_color + (255,))
+
+                # Convert to numpy array
+                frame = np.array(img)
+
+                # Create ImageClip
+                clip = ImageClip(frame)
+                clip = clip.with_duration(segment['end'] - segment['start'])
+                clip = clip.with_start(segment['start'])
 
                 # Position based on settings
                 if position == 'top':
-                    txt_clip = txt_clip.set_position(('center', int(video_height * 0.1)))
+                    clip = clip.with_position(('center', int(video_height * 0.1)))
                 elif position == 'center':
-                    txt_clip = txt_clip.set_position('center')
+                    clip = clip.with_position('center')
                 else:  # bottom
-                    txt_clip = txt_clip.set_position(('center', int(video_height * 0.75)))
+                    clip = clip.with_position(('center', int(video_height * 0.75)))
 
-                caption_clips.append(txt_clip)
+                caption_clips.append(clip)
 
             except Exception as e:
                 print(f"⚠ Error creating caption for '{segment['text']}': {e}")
+                import traceback
+                traceback.print_exc()
                 continue
 
         return caption_clips
