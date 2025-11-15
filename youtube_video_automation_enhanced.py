@@ -11,10 +11,57 @@ import json
 from datetime import datetime
 import numpy as np
 
-from moviepy import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
-from moviepy.video.fx import Resize
-from moviepy.audio.fx import MultiplyVolume, AudioLoop
+try:
+    from moviepy import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
+    from moviepy.video.fx import Resize
+    from moviepy.audio.fx import MultiplyVolume, AudioLoop
+except ImportError:
+    from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
+    from moviepy.video.fx.resize import resize as Resize
+    from moviepy.audio.fx.volumex import volumex as MultiplyVolume
+    AudioLoop = None
+
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
+
+
+def set_volume(clip, volume):
+    """Compatible volume adjustment for MoviePy 1.x and 2.x"""
+    try:
+        return clip.with_effects([MultiplyVolume(volume)])
+    except:
+        return clip.volumex(volume)
+
+
+def set_duration(clip, duration):
+    """Compatible duration setting for MoviePy 1.x and 2.x"""
+    try:
+        return clip.with_duration(duration)
+    except:
+        return clip.set_duration(duration)
+
+
+def subclip(clip, start, end):
+    """Compatible subclipping for MoviePy 1.x and 2.x"""
+    try:
+        return clip.subclipped(start, end)
+    except:
+        return clip.subclip(start, end)
+
+
+def set_audio(clip, audio):
+    """Compatible audio setting for MoviePy 1.x and 2.x"""
+    try:
+        return clip.with_audio(audio)
+    except:
+        return clip.set_audio(audio)
+
+
+def set_position(clip, position):
+    """Compatible position setting for MoviePy 1.x and 2.x"""
+    try:
+        return clip.with_position(position)
+    except:
+        return clip.set_position(position)
 
 
 class VideoEffects:
@@ -79,11 +126,11 @@ class AudioProcessor:
     def create_looped_audio(audio_clip, target_duration):
         """Loop audio to match video duration"""
         if audio_clip.duration >= target_duration:
-            return audio_clip.subclipped(0, target_duration)
+            return subclip(audio_clip, 0, target_duration)
         else:
             loops_needed = int(np.ceil(target_duration / audio_clip.duration))
             clips = [audio_clip] * loops_needed
-            looped = CompositeAudioClip(clips).with_duration(target_duration)
+            looped = set_duration(CompositeAudioClip(clips), target_duration)
             return looped
 
     @staticmethod
@@ -94,7 +141,7 @@ class AudioProcessor:
         # Original audio
         if video_clip.audio and not settings.get('mute_original_audio', False):
             original_volume = settings.get('original_audio_volume', 0.5) if settings.get('mix_audio', True) else 1.0
-            original_audio = video_clip.audio.with_effects([MultiplyVolume(original_volume)])
+            original_audio = set_volume(video_clip.audio, original_volume)
             audio_tracks.append(original_audio)
 
         # Custom BGM
@@ -107,10 +154,10 @@ class AudioProcessor:
                     if settings.get('bgm_loop', True):
                         bgm_audio = AudioProcessor.create_looped_audio(bgm_audio, video_clip.duration)
                     else:
-                        bgm_audio = bgm_audio.subclipped(0, min(bgm_audio.duration, video_clip.duration))
+                        bgm_audio = subclip(bgm_audio, 0, min(bgm_audio.duration, video_clip.duration))
 
                     bgm_volume = settings.get('bgm_volume', 0.3)
-                    bgm_audio = bgm_audio.with_effects([MultiplyVolume(bgm_volume)])
+                    bgm_audio = set_volume(bgm_audio, bgm_volume)
                     audio_tracks.append(bgm_audio)
                     print(f"✓ Added BGM: {bgm_path.name}")
                 except Exception as e:
@@ -123,11 +170,14 @@ class AudioProcessor:
                 voiceover_volume = settings.get('voiceover_volume', 1.0)
                 voiceover_delay = settings.get('voiceover_delay', 0.0)
 
-                voiceover_audio = voiceover_audio.with_effects([MultiplyVolume(voiceover_volume)])
+                voiceover_audio = set_volume(voiceover_audio, voiceover_volume)
 
                 if voiceover_delay > 0:
-                    silence = AudioFileClip(str(voiceover_file)).with_duration(voiceover_delay).with_effects([MultiplyVolume(0)])
-                    voiceover_audio = CompositeAudioClip([silence, voiceover_audio.with_start(voiceover_delay)])
+                    silence = set_volume(set_duration(AudioFileClip(str(voiceover_file)), voiceover_delay), 0)
+                    try:
+                        voiceover_audio = CompositeAudioClip([silence, voiceover_audio.set_start(voiceover_delay)])
+                    except:
+                        voiceover_audio = CompositeAudioClip([silence, voiceover_audio.with_start(voiceover_delay)])
 
                 audio_tracks.append(voiceover_audio)
                 print(f"✓ Added voiceover: {voiceover_file.name}")
@@ -634,11 +684,11 @@ class VideoQuoteAutomation:
         img = self.create_text_overlay_image(video.w, video.h, main_text, emoji_line, cta_text)
         img_array = np.array(img)
 
-        txt_clip = ImageClip(img_array).with_duration(video.duration)
+        txt_clip = set_duration(ImageClip(img_array), video.duration)
 
         if self.settings.get('text_fade_in', False):
             fade_duration = self.settings.get('text_fade_duration', 0.4)
-            txt_clip = txt_clip.with_effects([lambda clip: clip.fadein(fade_duration)])
+            txt_clip = txt_clip.fadein(fade_duration)
 
         if self.settings.get('text_slide_up', False):
             slide_distance = self.settings.get('text_slide_distance', 50)
@@ -653,14 +703,14 @@ class VideoQuoteAutomation:
                         return ('center', 'center')
                     else:
                         return ('center', video.h - txt_clip.h)
-            txt_clip = txt_clip.with_position(slide_position)
+            txt_clip = set_position(txt_clip, slide_position)
         else:
             if self.settings['position'] == 'top':
-                txt_clip = txt_clip.with_position(('center', 0))
+                txt_clip = set_position(txt_clip, ('center', 0))
             elif self.settings['position'] == 'center':
-                txt_clip = txt_clip.with_position(('center', 'center'))
+                txt_clip = set_position(txt_clip, ('center', 'center'))
             else:
-                txt_clip = txt_clip.with_position(('center', video.h - txt_clip.h))
+                txt_clip = set_position(txt_clip, ('center', video.h - txt_clip.h))
 
         if self.settings.get('video_zoom', False):
             zoom_scale = self.settings.get('zoom_scale', 1.08)
@@ -708,7 +758,7 @@ class VideoQuoteAutomation:
         final_audio = AudioProcessor.mix_audio_tracks(video, self.settings, voiceover_file)
 
         if final_audio:
-            final_video = final_video.with_audio(final_audio)
+            final_video = set_audio(final_video, final_audio)
         elif self.settings.get('mute_original_audio', False):
             final_video = final_video.without_audio()
             print("✓ Original audio muted")
