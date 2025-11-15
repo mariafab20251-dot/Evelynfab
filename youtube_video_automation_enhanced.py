@@ -137,12 +137,15 @@ class TTSGenerator:
         'davis': 'en-US-DavisNeural',         # Professional, authoritative male
         'eric': 'en-US-EricNeural',           # Conversational, casual male
         'christopher': 'en-US-ChristopherNeural',  # Deep, mature male
+        'jason': 'en-US-JasonNeural',         # Deep, powerful male (HEAVY)
+        'tony': 'en-US-TonyNeural',           # News anchor, deep authoritative (HEAVY)
         'roger': 'en-US-RogerNeural',         # Older, wise male
         'steffan': 'en-US-SteffanNeural',     # Young, energetic male
 
         # British English
         'sonia': 'en-GB-SoniaNeural',         # British female
         'ryan': 'en-GB-RyanNeural',           # British male
+        'thomas': 'en-GB-ThomasNeural',       # British deep, serious male (HEAVY)
         'libby': 'en-GB-LibbyNeural',         # British young female
         'alfie': 'en-GB-AlfieNeural',         # British young male
 
@@ -171,10 +174,13 @@ class TTSGenerator:
         'davis': 'Davis - US Male (Professional)',
         'eric': 'Eric - US Male (Casual)',
         'christopher': 'Christopher - US Male (Deep)',
+        'jason': 'Jason - US Male (Deep & Powerful) 🔥',
+        'tony': 'Tony - US Male (News Anchor, Heavy) 🔥',
         'roger': 'Roger - US Male (Wise)',
         'steffan': 'Steffan - US Male (Energetic)',
         'sonia': 'Sonia - British Female',
         'ryan': 'Ryan - British Male',
+        'thomas': 'Thomas - British Male (Deep & Serious) 🔥',
         'libby': 'Libby - British Female (Young)',
         'alfie': 'Alfie - British Male (Young)',
         'natasha': 'Natasha - Australian Female',
