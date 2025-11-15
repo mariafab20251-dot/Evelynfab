@@ -508,19 +508,30 @@ class CaptionRenderer:
                 # Convert to numpy array (writable copy)
                 frame = np.array(img).copy()
 
+                print(f"  Caption frame shape: {frame.shape}, dtype: {frame.dtype}")
+                print(f"  Caption text: '{text}' ({segment['start']:.2f}s - {segment['end']:.2f}s)")
+
                 # Create ImageClip
-                clip = ImageClip(frame)
+                try:
+                    clip = ImageClip(frame, ismask=False, transparent=True)
+                except:
+                    # Fallback for older MoviePy versions
+                    clip = ImageClip(frame)
+
                 clip = clip.with_duration(segment['end'] - segment['start'])
                 clip = clip.with_start(segment['start'])
 
                 # Position based on settings
                 if position == 'top':
-                    clip = clip.with_position(('center', int(video_height * 0.1)))
+                    y_pos = int(video_height * 0.1)
+                    clip = clip.with_position(('center', y_pos))
                 elif position == 'center':
-                    clip = clip.with_position('center')
+                    clip = clip.with_position(('center', 'center'))
                 else:  # bottom
-                    clip = clip.with_position(('center', int(video_height * 0.75)))
+                    y_pos = int(video_height * 0.75)
+                    clip = clip.with_position(('center', y_pos))
 
+                print(f"  Caption positioned at: {clip.pos}, size: {clip.size}")
                 caption_clips.append(clip)
 
             except Exception as e:
@@ -1283,6 +1294,9 @@ class VideoQuoteAutomation:
         voiceover_file = None
         word_timings = []
 
+        # Debug: Check caption and TTS settings
+        print(f"DEBUG: enable_captions={self.settings.get('enable_captions', False)}, use_tts_voiceover={self.settings.get('use_tts_voiceover', False)}, TTS_AVAILABLE={TTS_AVAILABLE}")
+
         # Option 1: Generate TTS voiceover from text
         if self.settings.get('use_tts_voiceover', False) and TTS_AVAILABLE:
             tts_folder = self.output_folder / "tts_voiceovers"
@@ -1333,7 +1347,7 @@ class VideoQuoteAutomation:
         # Add synchronized captions if enabled and we have word timings
         if self.settings.get('enable_captions', False) and word_timings:
             try:
-                print("Adding synchronized captions...")
+                print(f"Adding synchronized captions... (word_timings: {len(word_timings)} words)")
                 caption_clips = CaptionRenderer.create_word_captions(
                     word_timings,
                     video.w,
@@ -1342,10 +1356,17 @@ class VideoQuoteAutomation:
                 )
 
                 if caption_clips:
+                    print(f"Compositing {len(caption_clips)} caption clips with video...")
+                    print(f"Video size: {final_video.size}, duration: {final_video.duration}")
+                    for i, cap_clip in enumerate(caption_clips):
+                        print(f"  Caption {i+1}: size={cap_clip.size}, start={cap_clip.start}, duration={cap_clip.duration}, pos={cap_clip.pos}")
+
                     # Composite video with captions
                     all_clips = [final_video] + caption_clips
                     final_video = CompositeVideoClip(all_clips)
                     print(f"✓ Added {len(caption_clips)} synchronized caption segments")
+                else:
+                    print("⚠ No caption clips were created")
 
             except Exception as e:
                 print(f"⚠ Caption rendering failed: {e}")
