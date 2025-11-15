@@ -198,8 +198,36 @@ class TTSGenerator:
     }
 
     @staticmethod
+    async def _generate_async_with_timing(text: str, output_path: Path, voice: str, rate: str):
+        """Async TTS generation with word-level timing data"""
+        try:
+            # Create TTS communicator
+            communicate = edge_tts.Communicate(text, voice, rate=rate)
+
+            # Collect word timings
+            word_timings = []
+
+            # Generate and save audio with word boundaries
+            with open(str(output_path), 'wb') as audio_file:
+                async for chunk in communicate.stream():
+                    if chunk["type"] == "audio":
+                        audio_file.write(chunk["data"])
+                    elif chunk["type"] == "WordBoundary":
+                        # Word timing info from edge-tts
+                        word_timings.append({
+                            'word': chunk['text'],
+                            'offset': chunk['offset'] / 10000000.0,  # Convert to seconds
+                            'duration': chunk['duration'] / 10000000.0  # Convert to seconds
+                        })
+
+            return True, word_timings
+        except Exception as e:
+            print(f"⚠ Async TTS generation error: {e}")
+            return False, []
+
+    @staticmethod
     async def _generate_async(text: str, output_path: Path, voice: str, rate: str) -> bool:
-        """Async TTS generation using edge-tts"""
+        """Async TTS generation using edge-tts (legacy - no timing)"""
         try:
             # Create TTS communicator
             communicate = edge_tts.Communicate(text, voice, rate=rate)
@@ -212,11 +240,13 @@ class TTSGenerator:
             return False
 
     @staticmethod
-    def generate_voiceover(text: str, output_path: Path, settings: dict = None) -> bool:
-        """Generate natural-sounding voiceover from text using Microsoft Edge TTS"""
+    def generate_voiceover(text: str, output_path: Path, settings: dict = None):
+        """Generate natural-sounding voiceover from text using Microsoft Edge TTS
+        Returns: (success: bool, word_timings: list)
+        """
         if not TTS_AVAILABLE:
             print("⚠ TTS not available - skipping voiceover generation")
-            return False
+            return False, []
 
         try:
             settings = settings or {}
@@ -238,9 +268,9 @@ class TTSGenerator:
 
             if not clean_text:
                 print("⚠ No text to convert after cleaning")
-                return False
+                return False, []
 
-            # Run async TTS generation
+            # Run async TTS generation with word timing
             try:
                 # Try to get existing event loop
                 loop = asyncio.get_event_loop()
@@ -250,28 +280,109 @@ class TTSGenerator:
                     with concurrent.futures.ThreadPoolExecutor() as executor:
                         future = executor.submit(
                             asyncio.run,
-                            TTSGenerator._generate_async(clean_text, output_path, voice, rate)
+                            TTSGenerator._generate_async_with_timing(clean_text, output_path, voice, rate)
                         )
-                        success = future.result(timeout=30)
+                        success, word_timings = future.result(timeout=30)
                 else:
-                    success = loop.run_until_complete(
-                        TTSGenerator._generate_async(clean_text, output_path, voice, rate)
+                    success, word_timings = loop.run_until_complete(
+                        TTSGenerator._generate_async_with_timing(clean_text, output_path, voice, rate)
                     )
             except RuntimeError:
                 # No event loop, create a new one
-                success = asyncio.run(
-                    TTSGenerator._generate_async(clean_text, output_path, voice, rate)
+                success, word_timings = asyncio.run(
+                    TTSGenerator._generate_async_with_timing(clean_text, output_path, voice, rate)
                 )
 
             if success:
                 print(f"✓ Generated natural TTS voiceover: {output_path.name} (voice: {voice})")
-                return True
+                print(f"  {len(word_timings)} words with timing data")
+                return True, word_timings
             else:
-                return False
+                return False, []
 
         except Exception as e:
             print(f"⚠ TTS generation failed: {e}")
-            return False
+            return False, []
+
+
+class CaptionRenderer:
+    """Render synchronized captions/subtitles"""
+
+    @staticmethod
+    def create_word_captions(word_timings, video_width, video_height, settings):
+        """Create synchronized caption clips for each word"""
+        try:
+            from moviepy import TextClip
+        except ImportError:
+            from moviepy.editor import TextClip
+
+        caption_clips = []
+
+        # Caption settings
+        font_size = settings.get('caption_font_size', 60)
+        font_family = settings.get('caption_font', 'Arial-Bold')
+        text_color = settings.get('caption_text_color', 'white')
+        bg_color = settings.get('caption_bg_color', 'black')
+        bg_opacity = settings.get('caption_bg_opacity', 0.7)
+        position = settings.get('caption_position', 'bottom')  # top, center, bottom
+        words_per_caption = settings.get('caption_words_per_line', 3)  # How many words to show at once
+
+        # Group words into caption segments
+        caption_segments = []
+        for i in range(0, len(word_timings), words_per_caption):
+            segment_words = word_timings[i:i+words_per_caption]
+            if not segment_words:
+                continue
+
+            # Calculate start and end time for this segment
+            start_time = segment_words[0]['offset']
+            end_time = segment_words[-1]['offset'] + segment_words[-1]['duration']
+
+            # Combine words
+            text = ' '.join([w['word'] for w in segment_words])
+
+            caption_segments.append({
+                'text': text,
+                'start': start_time,
+                'end': end_time
+            })
+
+        print(f"✓ Creating {len(caption_segments)} caption segments")
+
+        # Create caption clips
+        for segment in caption_segments:
+            try:
+                # Create text clip
+                txt_clip = TextClip(
+                    segment['text'],
+                    fontsize=font_size,
+                    font=font_family,
+                    color=text_color,
+                    bg_color=bg_color,
+                    method='caption',
+                    size=(int(video_width * 0.9), None),
+                    align='center'
+                )
+
+                # Set duration and position
+                txt_clip = txt_clip.set_start(segment['start'])
+                txt_clip = txt_clip.set_duration(segment['end'] - segment['start'])
+
+                # Position based on settings
+                if position == 'top':
+                    txt_clip = txt_clip.set_position(('center', int(video_height * 0.1)))
+                elif position == 'center':
+                    txt_clip = txt_clip.set_position('center')
+                else:  # bottom
+                    txt_clip = txt_clip.set_position(('center', int(video_height * 0.75)))
+
+                caption_clips.append(txt_clip)
+
+            except Exception as e:
+                print(f"⚠ Error creating caption for '{segment['text']}': {e}")
+                continue
+
+        return caption_clips
 
 
 class AudioProcessor:
@@ -978,6 +1089,7 @@ class VideoQuoteAutomation:
 
         # Audio processing
         voiceover_file = None
+        word_timings = []
 
         # Option 1: Generate TTS voiceover from text
         if self.settings.get('use_tts_voiceover', False) and TTS_AVAILABLE:
@@ -988,9 +1100,17 @@ class VideoQuoteAutomation:
             tts_path = tts_folder / tts_filename
 
             # Generate TTS from the quote text
-            if TTSGenerator.generate_voiceover(quote, tts_path, self.settings):
+            success, word_timings = TTSGenerator.generate_voiceover(quote, tts_path, self.settings)
+            if success:
                 voiceover_file = tts_path
                 print(f"✓ Using TTS voiceover: {tts_filename}")
+
+                # Save word timings for caption generation
+                if word_timings:
+                    timing_file = tts_path.with_suffix('.json')
+                    with open(timing_file, 'w') as f:
+                        json.dump(word_timings, f, indent=2)
+                    print(f"✓ Saved {len(word_timings)} word timings")
 
         # Option 2: Use pre-recorded voiceover files
         elif self.settings.get('add_voiceover', False) and self.voiceover_files:
@@ -1017,6 +1137,27 @@ class VideoQuoteAutomation:
         elif self.settings.get('mute_original_audio', False):
             final_video = final_video.without_audio()
             print("✓ Original audio muted")
+
+        # Add synchronized captions if enabled and we have word timings
+        if self.settings.get('enable_captions', False) and word_timings:
+            try:
+                print("Adding synchronized captions...")
+                caption_clips = CaptionRenderer.create_word_captions(
+                    word_timings,
+                    video.w,
+                    video.h,
+                    self.settings
+                )
+
+                if caption_clips:
+                    # Composite video with captions
+                    all_clips = [final_video] + caption_clips
+                    final_video = CompositeVideoClip(all_clips)
+                    print(f"✓ Added {len(caption_clips)} synchronized caption segments")
+
+            except Exception as e:
+                print(f"⚠ Caption rendering failed: {e}")
+                print("  Continuing without captions...")
 
         output_path = self.output_folder / output_filename
         counter = 1

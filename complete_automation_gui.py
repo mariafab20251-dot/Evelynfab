@@ -844,6 +844,58 @@ class AudioSettingsPopup:
         tk.Label(speed_frame, textvariable=self.tts_speed_var, bg=ModernStyles.BG_CARD,
                 fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
 
+        # Synchronized Captions (NEW!)
+        self.create_section(content, "Synchronized Captions (with TTS)", ModernStyles.ACCENT_ORANGE)
+
+        self.captions_var = tk.BooleanVar(value=self.settings.get('enable_captions', False))
+        self.create_checkbox(content, "Enable Word-by-Word Captions (Synced with Voiceover)", self.captions_var)
+
+        info_frame2 = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        info_frame2.pack(fill='x', padx=20, pady=(0,10))
+        tk.Label(info_frame2, text="ℹ️ Captions appear word-by-word synchronized with TTS audio. \nLike TikTok/YouTube auto-captions!",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+                font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=10)
+
+        # Caption font size
+        self.create_label(content, "Caption Font Size:")
+        caption_size_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        caption_size_frame.pack(fill='x', padx=20, pady=5)
+
+        self.caption_size_var = tk.IntVar(value=self.settings.get('caption_font_size', 60))
+        tk.Scale(caption_size_frame, from_=30, to=100, orient='horizontal',
+                variable=self.caption_size_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                font=('Segoe UI', 9)).pack(side='left', fill='x', expand=True, padx=15, pady=10)
+
+        tk.Label(caption_size_frame, textvariable=self.caption_size_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
+
+        # Caption position
+        self.create_label(content, "Caption Position:")
+        caption_pos_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        caption_pos_frame.pack(fill='x', padx=20, pady=5)
+
+        self.caption_position_var = tk.StringVar(value=self.settings.get('caption_position', 'bottom'))
+        for pos in ['top', 'center', 'bottom']:
+            tk.Radiobutton(caption_pos_frame, text=pos.capitalize(), variable=self.caption_position_var,
+                          value=pos, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
+                          selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD,
+                          font=('Segoe UI', 10)).pack(side='left', padx=15, pady=10)
+
+        # Words per caption line
+        self.create_label(content, "Words Per Caption Line:")
+        words_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        words_frame.pack(fill='x', padx=20, pady=5)
+
+        self.caption_words_var = tk.IntVar(value=self.settings.get('caption_words_per_line', 3))
+        tk.Scale(words_frame, from_=1, to=5, orient='horizontal',
+                variable=self.caption_words_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                font=('Segoe UI', 9)).pack(side='left', fill='x', expand=True, padx=15, pady=10)
+
+        tk.Label(words_frame, textvariable=self.caption_words_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
+
     def create_section(self, parent, title, color):
         header = tk.Frame(parent, bg=color, height=3)
         header.pack(fill='x', pady=(20,0))
@@ -904,6 +956,12 @@ class AudioSettingsPopup:
             self.settings['tts_voice'] = 'aria'
 
         self.settings['tts_speed'] = self.tts_speed_var.get()
+
+        # Caption settings
+        self.settings['enable_captions'] = self.captions_var.get()
+        self.settings['caption_font_size'] = self.caption_size_var.get()
+        self.settings['caption_position'] = self.caption_position_var.get()
+        self.settings['caption_words_per_line'] = self.caption_words_var.get()
 
         self.on_save(self.settings)
         self.window.destroy()
