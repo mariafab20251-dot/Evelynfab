@@ -408,7 +408,23 @@ class EffectsSettingsPopup:
                 bg=ModernStyles.ACCENT_PURPLE, fg='white',
                 font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
 
-        # Scrollable content
+        # Bottom buttons - PACK FIRST before scrollable content
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
+        btn_frame.pack(fill='x', side='bottom')
+        btn_frame.pack_propagate(False)
+
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
+        buttons.pack(expand=True)
+
+        tk.Button(buttons, text="💾  Save Changes", command=self.save_settings,
+                 bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
+
+        tk.Button(buttons, text="✕  Cancel", command=self.window.destroy,
+                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
+
+        # Scrollable content - pack AFTER buttons
         canvas = tk.Canvas(self.window, bg=ModernStyles.BG_DARK, highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.window, orient="vertical", command=canvas.yview)
         content = tk.Frame(canvas, bg=ModernStyles.BG_DARK)
@@ -454,22 +470,6 @@ class EffectsSettingsPopup:
             tk.Radiobutton(grade_frame, text=text, variable=self.grade_var, value=value,
                           bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
                           selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD).pack(side='left', padx=15)
-
-        # Bottom buttons
-        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
-        btn_frame.pack(fill='x', side='bottom')
-        btn_frame.pack_propagate(False)
-
-        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
-        buttons.pack(expand=True)
-
-        tk.Button(buttons, text="💾  Save Changes", command=self.save_settings,
-                 bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 11, 'bold'),
-                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
-
-        tk.Button(buttons, text="✕  Cancel", command=self.window.destroy,
-                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 11, 'bold'),
-                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
 
     def create_section(self, parent, title, color):
         header = tk.Frame(parent, bg=color, height=3)
