@@ -128,6 +128,8 @@ class TTSGenerator:
         'aria': 'en-US-AriaNeural',           # Friendly, warm female
         'jenny': 'en-US-JennyNeural',         # Cheerful, energetic female
         'michelle': 'en-US-MichelleNeural',   # Professional, clear female
+        'monica': 'en-US-MonicaNeural',       # Deep, mature female (DEEP)
+        'nancy': 'en-US-NancyNeural',         # News anchor female, authoritative (DEEP)
         'amber': 'en-US-AmberNeural',         # Young, casual female
         'ashley': 'en-US-AshleyNeural',       # Bright, youthful female
         'sara': 'en-US-SaraNeural',           # Mature, calm female
@@ -144,6 +146,7 @@ class TTSGenerator:
 
         # British English
         'sonia': 'en-GB-SoniaNeural',         # British female
+        'mia': 'en-GB-MiaNeural',             # British deeper, mature female (DEEP)
         'ryan': 'en-GB-RyanNeural',           # British male
         'thomas': 'en-GB-ThomasNeural',       # British deep, serious male (HEAVY)
         'libby': 'en-GB-LibbyNeural',         # British young female
@@ -151,6 +154,7 @@ class TTSGenerator:
 
         # Australian English
         'natasha': 'en-AU-NatashaNeural',     # Australian female
+        'annette': 'en-AU-AnnetteNeural',     # Australian deeper, professional female (DEEP)
         'william': 'en-AU-WilliamNeural',     # Australian male
 
         # Indian English
@@ -167,6 +171,8 @@ class TTSGenerator:
         'aria': 'Aria - US Female (Friendly)',
         'jenny': 'Jenny - US Female (Cheerful)',
         'michelle': 'Michelle - US Female (Professional)',
+        'monica': 'Monica - US Female (Deep & Mature) 💎',
+        'nancy': 'Nancy - US Female (News Anchor, Deep) 💎',
         'amber': 'Amber - US Female (Young)',
         'ashley': 'Ashley - US Female (Bright)',
         'sara': 'Sara - US Female (Mature)',
@@ -179,11 +185,13 @@ class TTSGenerator:
         'roger': 'Roger - US Male (Wise)',
         'steffan': 'Steffan - US Male (Energetic)',
         'sonia': 'Sonia - British Female',
+        'mia': 'Mia - British Female (Deep & Mature) 💎',
         'ryan': 'Ryan - British Male',
         'thomas': 'Thomas - British Male (Deep & Serious) 🔥',
         'libby': 'Libby - British Female (Young)',
         'alfie': 'Alfie - British Male (Young)',
         'natasha': 'Natasha - Australian Female',
+        'annette': 'Annette - Australian Female (Deep & Professional) 💎',
         'william': 'William - Australian Male',
         'neerja': 'Neerja - Indian Female',
         'prabhat': 'Prabhat - Indian Male',
