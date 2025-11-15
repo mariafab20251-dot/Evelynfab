@@ -1,591 +1,657 @@
 """
-Complete Video Automation GUI - Professional Modern Design
-All Settings + Processing in One Window
+Video Automation Studio - Professional Dashboard with Live Preview
+Single dashboard with popup settings for each feature
 """
 
 import tkinter as tk
-from tkinter import ttk, colorchooser, messagebox, filedialog, scrolledtext
+from tkinter import ttk, colorchooser, messagebox, filedialog, scrolledtext, font
 import json
 from pathlib import Path
 import threading
 import sys
 import os
+from PIL import Image, ImageDraw, ImageFont, ImageTk
+import numpy as np
+import queue
+from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+# Import the video automation processor
+try:
+    from youtube_video_automation_enhanced import VideoQuoteAutomation
+except ImportError:
+    VideoQuoteAutomation = None
+    print("⚠ Could not import VideoQuoteAutomation - processing will not be available")
+
 
 class ModernStyles:
-    """Modern color scheme and styling"""
-    # Colors
-    BG_PRIMARY = '#1e293b'        # Dark slate
-    BG_SECONDARY = '#334155'      # Lighter slate
-    BG_CARD = '#475569'           # Card background
-    TEXT_PRIMARY = '#f8fafc'      # White
-    TEXT_SECONDARY = '#cbd5e1'    # Light gray
-    ACCENT_BLUE = '#3b82f6'       # Blue
-    ACCENT_GREEN = '#10b981'      # Green
-    ACCENT_RED = '#ef4444'        # Red
-    ACCENT_PURPLE = '#8b5cf6'     # Purple
-    ACCENT_ORANGE = '#f59e0b'     # Orange
-
-    # Fonts
-    FONT_TITLE = ('Segoe UI', 14, 'bold')
-    FONT_HEADING = ('Segoe UI', 11, 'bold')
-    FONT_NORMAL = ('Segoe UI', 10)
-    FONT_SMALL = ('Segoe UI', 9)
+    """Professional color scheme"""
+    BG_DARK = '#0f172a'
+    BG_CARD = '#1e293b'
+    BG_CARD_HOVER = '#334155'
+    ACCENT_BLUE = '#3b82f6'
+    ACCENT_GREEN = '#10b981'
+    ACCENT_PURPLE = '#8b5cf6'
+    ACCENT_ORANGE = '#f59e0b'
+    ACCENT_RED = '#ef4444'
+    TEXT_WHITE = '#f8fafc'
+    TEXT_GRAY = '#cbd5e1'
+    BORDER = '#475569'
 
 
-class UnifiedVideoAutomationGUI:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("🎬 Video Automation Studio - Professional Edition")
-        self.root.geometry("1100x850")
-        self.root.configure(bg=ModernStyles.BG_PRIMARY)
+class TextSettingsPopup:
+    """Popup window for text settings with live preview"""
 
-        self.settings = self.load_settings()
-        self.available_fonts = self.get_system_fonts()
-        self.processing = False
+    def __init__(self, parent, settings, on_save):
+        self.settings = settings.copy()
+        self.on_save = on_save
 
-        self.setup_styles()
+        self.window = tk.Toplevel(parent)
+        self.window.title("📝 Text & Font Settings")
+        self.window.geometry("900x700")
+        self.window.configure(bg=ModernStyles.BG_DARK)
+        self.window.transient(parent)
+        self.window.grab_set()
+
         self.setup_ui()
-
-    def setup_styles(self):
-        """Setup modern ttk styles"""
-        style = ttk.Style()
-        style.theme_use('clam')
-
-        # Configure notebook
-        style.configure('TNotebook', background=ModernStyles.BG_PRIMARY, borderwidth=0)
-        style.configure('TNotebook.Tab',
-                       background=ModernStyles.BG_SECONDARY,
-                       foreground=ModernStyles.TEXT_SECONDARY,
-                       padding=[20, 10],
-                       font=ModernStyles.FONT_NORMAL)
-        style.map('TNotebook.Tab',
-                 background=[('selected', ModernStyles.BG_CARD)],
-                 foreground=[('selected', ModernStyles.TEXT_PRIMARY)])
-
-        # Configure frames
-        style.configure('Card.TFrame', background=ModernStyles.BG_CARD)
-        style.configure('TFrame', background=ModernStyles.BG_SECONDARY)
-
-        # Configure labels
-        style.configure('TLabel',
-                       background=ModernStyles.BG_SECONDARY,
-                       foreground=ModernStyles.TEXT_PRIMARY,
-                       font=ModernStyles.FONT_NORMAL)
-        style.configure('Heading.TLabel',
-                       font=ModernStyles.FONT_HEADING,
-                       foreground=ModernStyles.ACCENT_BLUE)
-        style.configure('Small.TLabel',
-                       font=ModernStyles.FONT_SMALL,
-                       foreground=ModernStyles.TEXT_SECONDARY)
-
-        # Configure checkbuttons
-        style.configure('TCheckbutton',
-                       background=ModernStyles.BG_SECONDARY,
-                       foreground=ModernStyles.TEXT_PRIMARY,
-                       font=ModernStyles.FONT_NORMAL)
-
-        # Configure radiobuttons
-        style.configure('TRadiobutton',
-                       background=ModernStyles.BG_SECONDARY,
-                       foreground=ModernStyles.TEXT_PRIMARY,
-                       font=ModernStyles.FONT_NORMAL)
-
-        # Configure entry
-        style.configure('TEntry',
-                       fieldbackground='#1e293b',
-                       foreground=ModernStyles.TEXT_PRIMARY,
-                       borderwidth=1)
-
-        # Configure combobox
-        style.configure('TCombobox',
-                       fieldbackground='#1e293b',
-                       background=ModernStyles.BG_SECONDARY,
-                       foreground=ModernStyles.TEXT_PRIMARY)
-
-    def get_system_fonts(self):
-        """Get available system fonts"""
-        fonts_dict = {}
-        fonts_folder = Path(r"C:\Windows\Fonts")
-
-        if not fonts_folder.exists():
-            return {'Arial': 'arial.ttf', 'Arial Bold': 'arialbd.ttf'}
-
-        try:
-            for font_file in fonts_folder.glob("*.ttf"):
-                font_name = font_file.stem
-                display_name = font_name
-
-                if font_name.endswith('bd'):
-                    display_name = font_name[:-2] + ' Bold'
-                elif font_name.endswith('bi'):
-                    display_name = font_name[:-2] + ' Bold Italic'
-                elif font_name.endswith('i'):
-                    display_name = font_name[:-1] + ' Italic'
-
-                display_name = ' '.join(word.capitalize() for word in display_name.split())
-                fonts_dict[display_name] = str(font_file)
-
-            return fonts_dict if fonts_dict else {'Arial': 'arial.ttf'}
-        except:
-            return {'Arial': 'arial.ttf', 'Arial Bold': 'arialbd.ttf'}
-
-    def load_settings(self):
-        """Load settings from JSON"""
-        settings_file = Path('overlay_settings.json')
-        if settings_file.exists():
-            with open(settings_file, 'r') as f:
-                return json.load(f)
-        return {}
-
-    def save_settings(self):
-        """Save all settings to JSON"""
-        with open('overlay_settings.json', 'w') as f:
-            json.dump(self.settings, f, indent=2)
-        self.log("✅ Settings saved successfully\n", ModernStyles.ACCENT_GREEN)
-
-    def create_section_header(self, parent, text, emoji, color):
-        """Create a modern section header"""
-        header_frame = tk.Frame(parent, bg=color, height=3)
-        header_frame.pack(fill='x', pady=(0, 15))
-
-        label = tk.Label(header_frame, text=f"{emoji}  {text}",
-                        bg=color, fg=ModernStyles.TEXT_PRIMARY,
-                        font=ModernStyles.FONT_HEADING, pady=10)
-        label.pack(fill='x', padx=15)
+        self.update_preview()
 
     def setup_ui(self):
-        """Create the complete UI"""
         # Header
-        header = tk.Frame(self.root, bg=ModernStyles.ACCENT_BLUE, height=70)
-        header.pack(fill='x', side='top')
+        header = tk.Frame(self.window, bg=ModernStyles.ACCENT_BLUE, height=60)
+        header.pack(fill='x')
         header.pack_propagate(False)
 
-        title = tk.Label(header, text="🎬 Video Automation Studio",
-                        bg=ModernStyles.ACCENT_BLUE, fg='white',
-                        font=('Segoe UI', 18, 'bold'))
-        title.pack(side='left', padx=20, pady=15)
+        tk.Label(header, text="📝 Text & Font Configuration",
+                bg=ModernStyles.ACCENT_BLUE, fg='white',
+                font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
 
-        subtitle = tk.Label(header, text="Professional Video Processing & Effects",
-                           bg=ModernStyles.ACCENT_BLUE, fg='#e0f2fe',
-                           font=ModernStyles.FONT_NORMAL)
-        subtitle.pack(side='left', padx=5, pady=15)
+        # Main container
+        main = tk.Frame(self.window, bg=ModernStyles.BG_DARK)
+        main.pack(fill='both', expand=True, padx=20, pady=20)
 
-        # Main notebook
-        notebook = ttk.Notebook(self.root)
-        notebook.pack(fill='both', expand=True, padx=5, pady=5)
+        # Left: Settings
+        left = tk.Frame(main, bg=ModernStyles.BG_CARD, width=450)
+        left.pack(side='left', fill='both', expand=True, padx=(0,10))
 
-        # Tab 1: Text Settings
-        tab1 = tk.Frame(notebook, bg=ModernStyles.BG_SECONDARY)
-        notebook.add(tab1, text="📝 Text & Style")
-        self.setup_text_settings(tab1)
-
-        # Tab 2: Effects
-        tab2 = tk.Frame(notebook, bg=ModernStyles.BG_SECONDARY)
-        notebook.add(tab2, text="✨ Visual Effects")
-        self.setup_effects(tab2)
-
-        # Tab 3: Audio
-        tab3 = tk.Frame(notebook, bg=ModernStyles.BG_SECONDARY)
-        notebook.add(tab3, text="🔊 Audio & Music")
-        self.setup_audio_settings(tab3)
-
-        # Tab 4: Processing
-        tab4 = tk.Frame(notebook, bg=ModernStyles.BG_SECONDARY)
-        notebook.add(tab4, text="▶️ Process Videos")
-        self.setup_processing(tab4)
-
-        # Bottom control bar
-        control_frame = tk.Frame(self.root, bg=ModernStyles.BG_PRIMARY, height=70)
-        control_frame.pack(fill='x', side='bottom')
-        control_frame.pack_propagate(False)
-
-        # Buttons with modern styling
-        btn_frame = tk.Frame(control_frame, bg=ModernStyles.BG_PRIMARY)
-        btn_frame.pack(expand=True)
-
-        save_btn = tk.Button(btn_frame, text="💾  Save Settings",
-                            command=self.save_settings,
-                            bg=ModernStyles.ACCENT_BLUE, fg='white',
-                            font=ModernStyles.FONT_HEADING,
-                            relief='flat', cursor='hand2',
-                            padx=30, pady=12)
-        save_btn.pack(side='left', padx=5)
-        save_btn.bind('<Enter>', lambda e: e.widget.config(bg='#2563eb'))
-        save_btn.bind('<Leave>', lambda e: e.widget.config(bg=ModernStyles.ACCENT_BLUE))
-
-        self.process_btn = tk.Button(btn_frame, text="▶️  Start Processing",
-                                     command=self.start_processing,
-                                     bg=ModernStyles.ACCENT_GREEN, fg='white',
-                                     font=ModernStyles.FONT_HEADING,
-                                     relief='flat', cursor='hand2',
-                                     padx=30, pady=12)
-        self.process_btn.pack(side='left', padx=5)
-        self.process_btn.bind('<Enter>', lambda e: e.widget.config(bg='#059669'))
-        self.process_btn.bind('<Leave>', lambda e: e.widget.config(bg=ModernStyles.ACCENT_GREEN))
-
-        stop_btn = tk.Button(btn_frame, text="⏹️  Stop",
-                            command=self.stop_processing,
-                            bg=ModernStyles.ACCENT_RED, fg='white',
-                            font=ModernStyles.FONT_HEADING,
-                            relief='flat', cursor='hand2',
-                            padx=30, pady=12)
-        stop_btn.pack(side='left', padx=5)
-        stop_btn.bind('<Enter>', lambda e: e.widget.config(bg='#dc2626'))
-        stop_btn.bind('<Leave>', lambda e: e.widget.config(bg=ModernStyles.ACCENT_RED))
-
-    def setup_text_settings(self, parent):
-        """Text and style settings with modern design"""
-        canvas = tk.Canvas(parent, bg=ModernStyles.BG_SECONDARY, highlightthickness=0)
-        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
-        frame = tk.Frame(canvas, bg=ModernStyles.BG_SECONDARY)
+        # Scrollable settings
+        canvas = tk.Canvas(left, bg=ModernStyles.BG_CARD, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(left, orient="vertical", command=canvas.yview)
+        settings_frame = tk.Frame(canvas, bg=ModernStyles.BG_CARD)
 
         canvas.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
         canvas.pack(side="left", fill="both", expand=True)
-        canvas.create_window((0, 0), window=frame, anchor="nw")
-        frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=settings_frame, anchor="nw")
+        settings_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 
-        # Main Text Section
-        self.create_section_header(frame, "Main Text Settings", "📝", ModernStyles.ACCENT_BLUE)
-
-        # Font selection
-        font_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat', bd=0)
-        font_card.pack(fill='x', padx=20, pady=5)
-
-        tk.Label(font_card, text="Font Family", bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_PRIMARY, font=ModernStyles.FONT_NORMAL).pack(anchor='w', padx=15, pady=(15,5))
-
-        font_combo = ttk.Combobox(font_card, values=list(self.available_fonts.keys()), width=50)
-        font_combo.set(self.settings.get('font_style', 'Arial Bold'))
-        font_combo.bind('<<ComboboxSelected>>', lambda e: self.update_font('font_style', 'font_file', font_combo.get()))
-        font_combo.pack(anchor='w', padx=15, pady=(0,15))
+        # Font settings
+        self.create_label(settings_frame, "Font Family", pady=(15,5))
+        self.font_var = tk.StringVar(value=self.settings.get('font_style', 'Arial Bold'))
+        font_combo = ttk.Combobox(settings_frame, textvariable=self.font_var, width=40)
+        font_combo['values'] = self.get_fonts()
+        font_combo.pack(padx=15, pady=(0,10))
+        font_combo.bind('<<ComboboxSelected>>', lambda e: self.update_preview())
 
         # Font size
-        size_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat')
-        size_card.pack(fill='x', padx=20, pady=5)
+        self.create_label(settings_frame, "Font Size")
+        self.font_size_var = tk.IntVar(value=self.settings.get('font_size', 45))
+        size_frame = tk.Frame(settings_frame, bg=ModernStyles.BG_CARD)
+        size_frame.pack(fill='x', padx=15, pady=(0,10))
 
-        tk.Label(size_card, text="Font Size", bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_PRIMARY, font=ModernStyles.FONT_NORMAL).pack(anchor='w', padx=15, pady=(15,5))
+        tk.Scale(size_frame, from_=20, to=100, orient='horizontal',
+                variable=self.font_size_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                command=lambda v: self.update_preview()).pack(side='left', fill='x', expand=True)
 
-        size_scale = tk.Scale(size_card, from_=20, to=100, orient='horizontal',
-                             bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
-                             highlightthickness=0, troughcolor=ModernStyles.BG_SECONDARY,
-                             activebackground=ModernStyles.ACCENT_BLUE,
-                             command=lambda v: self.update_setting('font_size', int(v)))
-        size_scale.set(self.settings.get('font_size', 45))
-        size_scale.pack(fill='x', padx=15, pady=(0,15))
+        tk.Label(size_frame, textvariable=self.font_size_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, width=3).pack(side='left', padx=5)
 
         # Colors
-        color_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat')
-        color_card.pack(fill='x', padx=20, pady=5)
+        self.create_label(settings_frame, "Text Color")
+        self.text_color = self.settings.get('text_color', '#000000')
+        tk.Button(settings_frame, text=f"  {self.text_color}  ",
+                 bg=self.text_color, fg='white', width=20,
+                 command=lambda: self.pick_color('text_color')).pack(padx=15, pady=(0,10))
 
-        tk.Label(color_card, text="Colors", bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_PRIMARY, font=ModernStyles.FONT_NORMAL).pack(anchor='w', padx=15, pady=(15,5))
+        self.create_label(settings_frame, "Background Color")
+        self.bg_color = self.settings.get('bg_color', '#ffffff')
+        tk.Button(settings_frame, text=f"  {self.bg_color}  ",
+                 bg=self.bg_color, width=20,
+                 command=lambda: self.pick_color('bg_color')).pack(padx=15, pady=(0,10))
 
-        colors_row = tk.Frame(color_card, bg=ModernStyles.BG_CARD)
-        colors_row.pack(fill='x', padx=15, pady=(0,15))
+        # Background opacity
+        self.create_label(settings_frame, "Background Opacity (%)")
+        self.bg_opacity_var = tk.IntVar(value=self.settings.get('bg_opacity', 90))
+        opacity_frame = tk.Frame(settings_frame, bg=ModernStyles.BG_CARD)
+        opacity_frame.pack(fill='x', padx=15, pady=(0,10))
 
-        tk.Label(colors_row, text="Text:", bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY).pack(side='left')
-        self.text_color_btn = tk.Button(colors_row, text="  ", bg=self.settings.get('text_color', '#000000'),
-                                       width=8, relief='flat', cursor='hand2',
-                                       command=lambda: self.pick_color('text_color', self.text_color_btn))
-        self.text_color_btn.pack(side='left', padx=10)
+        tk.Scale(opacity_frame, from_=0, to=100, orient='horizontal',
+                variable=self.bg_opacity_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                command=lambda v: self.update_preview()).pack(side='left', fill='x', expand=True)
 
-        tk.Label(colors_row, text="Background:", bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY).pack(side='left', padx=(20,0))
-        self.bg_color_btn = tk.Button(colors_row, text="  ", bg=self.settings.get('bg_color', '#ffffff'),
-                                     width=8, relief='flat', cursor='hand2',
-                                     command=lambda: self.pick_color('bg_color', self.bg_color_btn))
-        self.bg_color_btn.pack(side='left', padx=10)
-
-        # CTA Section
-        self.create_section_header(frame, "Call-to-Action (CTA)", "🎯", ModernStyles.ACCENT_PURPLE)
-
-        cta_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat')
-        cta_card.pack(fill='x', padx=20, pady=5)
-
-        cta_var = tk.BooleanVar(value=self.settings.get('cta_enabled', True))
-        ttk.Checkbutton(cta_card, text="Enable CTA", variable=cta_var,
-                       command=lambda: self.update_setting('cta_enabled', cta_var.get())).pack(anchor='w', padx=15, pady=15)
+        tk.Label(opacity_frame, textvariable=self.bg_opacity_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, width=3).pack(side='left', padx=5)
 
         # Position
-        self.create_section_header(frame, "Text Position", "📍", ModernStyles.ACCENT_ORANGE)
-
-        pos_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat')
-        pos_card.pack(fill='x', padx=20, pady=5)
-
-        pos_var = tk.StringVar(value=self.settings.get('position', 'top'))
-        pos_frame = tk.Frame(pos_card, bg=ModernStyles.BG_CARD)
-        pos_frame.pack(pady=15, padx=15)
+        self.create_label(settings_frame, "Text Position")
+        self.position_var = tk.StringVar(value=self.settings.get('position', 'top'))
+        pos_frame = tk.Frame(settings_frame, bg=ModernStyles.BG_CARD)
+        pos_frame.pack(padx=15, pady=(0,15))
 
         for pos in ['top', 'center', 'bottom']:
-            rb = ttk.Radiobutton(pos_frame, text=pos.capitalize(), variable=pos_var, value=pos,
-                               command=lambda: self.update_setting('position', pos_var.get()))
-            rb.pack(side='left', padx=15)
+            tk.Radiobutton(pos_frame, text=pos.capitalize(), variable=self.position_var,
+                          value=pos, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
+                          selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD,
+                          command=self.update_preview).pack(side='left', padx=10)
 
-        # Spacer
-        tk.Frame(frame, bg=ModernStyles.BG_SECONDARY, height=20).pack()
+        # Right: Preview
+        right = tk.Frame(main, bg=ModernStyles.BG_CARD, width=400)
+        right.pack(side='right', fill='both')
 
-    def setup_effects(self, parent):
-        """Visual effects with modern cards"""
-        canvas = tk.Canvas(parent, bg=ModernStyles.BG_SECONDARY, highlightthickness=0)
-        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
-        frame = tk.Frame(canvas, bg=ModernStyles.BG_SECONDARY)
+        tk.Label(right, text="🎬 Live Preview", bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, font=('Segoe UI', 12, 'bold')).pack(pady=15)
+
+        self.preview_label = tk.Label(right, bg='#000000', width=360, height=640)
+        self.preview_label.pack(padx=15, pady=(0,15))
+
+        # Bottom buttons
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
+        btn_frame.pack(fill='x', side='bottom')
+        btn_frame.pack_propagate(False)
+
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
+        buttons.pack(expand=True)
+
+        tk.Button(buttons, text="💾  Save Changes", command=self.save_settings,
+                 bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
+
+        tk.Button(buttons, text="✕  Cancel", command=self.window.destroy,
+                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
+
+    def create_label(self, parent, text, pady=(10,5)):
+        tk.Label(parent, text=text, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 10)).pack(anchor='w', padx=15, pady=pady)
+
+    def get_fonts(self):
+        return ['Arial', 'Arial Bold', 'Arial Italic', 'Impact', 'Verdana', 'Calibri', 'Times New Roman']
+
+    def pick_color(self, color_type):
+        color = colorchooser.askcolor(title=f"Choose {color_type}")[1]
+        if color:
+            if color_type == 'text_color':
+                self.text_color = color
+            else:
+                self.bg_color = color
+            self.update_preview()
+
+    def update_preview(self):
+        """Generate live preview of text overlay"""
+        try:
+            # Create preview image
+            width, height = 360, 640
+            img = Image.new('RGB', (width, height), '#000000')
+            draw = ImageDraw.Draw(img, 'RGBA')
+
+            # Sample text
+            text = "Sample Quote\nWith Multiple Lines"
+
+            # Get font
+            font_size = self.font_size_var.get()
+            try:
+                font_obj = ImageFont.truetype("arial.ttf", font_size)
+            except:
+                font_obj = ImageFont.load_default()
+
+            # Calculate text size
+            bbox = draw.multiline_textbbox((0, 0), text, font=font_obj, align='center')
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+
+            # Background
+            padding = 30
+            bg_width = text_width + padding * 2
+            bg_height = text_height + padding * 2
+
+            # Position
+            if self.position_var.get() == 'top':
+                bg_y = 50
+            elif self.position_var.get() == 'center':
+                bg_y = (height - bg_height) // 2
+            else:
+                bg_y = height - bg_height - 50
+
+            bg_x = (width - bg_width) // 2
+
+            # Draw background with opacity
+            bg_rgb = self.hex_to_rgb(self.bg_color)
+            opacity = int(255 * (self.bg_opacity_var.get() / 100))
+            draw.rounded_rectangle(
+                [(bg_x, bg_y), (bg_x + bg_width, bg_y + bg_height)],
+                radius=15,
+                fill=bg_rgb + (opacity,)
+            )
+
+            # Draw text
+            text_x = width // 2
+            text_y = bg_y + padding
+            draw.multiline_text(
+                (text_x, text_y),
+                text,
+                font=font_obj,
+                fill=self.text_color,
+                align='center',
+                anchor='ma'
+            )
+
+            # Convert to PhotoImage
+            img_tk = ImageTk.PhotoImage(img)
+            self.preview_label.config(image=img_tk)
+            self.preview_label.image = img_tk
+
+        except Exception as e:
+            print(f"Preview error: {e}")
+
+    def hex_to_rgb(self, hex_color):
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+    def save_settings(self):
+        self.settings['font_style'] = self.font_var.get()
+        self.settings['font_size'] = self.font_size_var.get()
+        self.settings['text_color'] = self.text_color
+        self.settings['bg_color'] = self.bg_color
+        self.settings['bg_opacity'] = self.bg_opacity_var.get()
+        self.settings['position'] = self.position_var.get()
+
+        self.on_save(self.settings)
+        self.window.destroy()
+
+
+class EffectsSettingsPopup:
+    """Popup for visual effects settings"""
+
+    def __init__(self, parent, settings, on_save):
+        self.settings = settings.copy()
+        self.on_save = on_save
+
+        self.window = tk.Toplevel(parent)
+        self.window.title("✨ Visual Effects")
+        self.window.geometry("700x650")
+        self.window.configure(bg=ModernStyles.BG_DARK)
+        self.window.transient(parent)
+        self.window.grab_set()
+
+        self.setup_ui()
+
+    def setup_ui(self):
+        # Header
+        header = tk.Frame(self.window, bg=ModernStyles.ACCENT_PURPLE, height=60)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+
+        tk.Label(header, text="✨ Visual Effects Configuration",
+                bg=ModernStyles.ACCENT_PURPLE, fg='white',
+                font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
+
+        # Scrollable content
+        canvas = tk.Canvas(self.window, bg=ModernStyles.BG_DARK, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self.window, orient="vertical", command=canvas.yview)
+        content = tk.Frame(canvas, bg=ModernStyles.BG_DARK)
 
         canvas.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True)
-        canvas.create_window((0, 0), window=frame, anchor="nw")
-        frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.pack(side="left", fill="both", expand=True, padx=20, pady=20)
+        canvas.create_window((0, 0), window=content, anchor="nw")
+        content.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 
-        # Text Animations
-        self.create_section_header(frame, "Text Animations", "✨", ModernStyles.ACCENT_PURPLE)
+        # Text animations
+        self.create_section(content, "Text Animations", ModernStyles.ACCENT_PURPLE)
 
-        anim_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat')
-        anim_card.pack(fill='x', padx=20, pady=5)
+        self.fade_var = tk.BooleanVar(value=self.settings.get('text_fade_in', True))
+        self.create_checkbox(content, "Fade In Animation", self.fade_var)
 
-        fade_var = tk.BooleanVar(value=self.settings.get('text_fade_in', True))
-        ttk.Checkbutton(anim_card, text="Fade In Animation", variable=fade_var,
-                       command=lambda: self.update_setting('text_fade_in', fade_var.get())).pack(anchor='w', padx=15, pady=(15,5))
+        self.glow_var = tk.BooleanVar(value=self.settings.get('text_glow', True))
+        self.create_checkbox(content, "Text Glow Effect", self.glow_var)
 
-        glow_var = tk.BooleanVar(value=self.settings.get('text_glow', True))
-        ttk.Checkbutton(anim_card, text="Text Glow Effect", variable=glow_var,
-                       command=lambda: self.update_setting('text_glow', glow_var.get())).pack(anchor='w', padx=15, pady=5)
+        self.shadow_var = tk.BooleanVar(value=self.settings.get('drop_shadow', True))
+        self.create_checkbox(content, "Drop Shadow", self.shadow_var)
 
-        shadow_var = tk.BooleanVar(value=self.settings.get('drop_shadow', True))
-        ttk.Checkbutton(anim_card, text="Drop Shadow", variable=shadow_var,
-                       command=lambda: self.update_setting('drop_shadow', shadow_var.get())).pack(anchor='w', padx=15, pady=(5,15))
+        # Video effects
+        self.create_section(content, "Video Effects", ModernStyles.ACCENT_BLUE)
 
-        # Video Effects
-        self.create_section_header(frame, "Video Effects", "🎬", ModernStyles.ACCENT_BLUE)
+        self.vignette_var = tk.BooleanVar(value=self.settings.get('vignette', True))
+        self.create_checkbox(content, "Vignette (darkened edges)", self.vignette_var)
 
-        video_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat')
-        video_card.pack(fill='x', padx=20, pady=5)
+        self.dim_var = tk.BooleanVar(value=self.settings.get('background_dim', True))
+        self.create_checkbox(content, "Background Dimming", self.dim_var)
 
-        vig_var = tk.BooleanVar(value=self.settings.get('vignette', True))
-        ttk.Checkbutton(video_card, text="Vignette (darkened edges)", variable=vig_var,
-                       command=lambda: self.update_setting('vignette', vig_var.get())).pack(anchor='w', padx=15, pady=(15,5))
+        self.zoom_var = tk.BooleanVar(value=self.settings.get('video_zoom', True))
+        self.create_checkbox(content, "Slow Zoom Effect", self.zoom_var)
 
-        dim_var = tk.BooleanVar(value=self.settings.get('background_dim', True))
-        ttk.Checkbutton(video_card, text="Background Dimming", variable=dim_var,
-                       command=lambda: self.update_setting('background_dim', dim_var.get())).pack(anchor='w', padx=15, pady=5)
+        # Color grading
+        self.create_section(content, "Color Grading", ModernStyles.ACCENT_ORANGE)
 
-        zoom_var = tk.BooleanVar(value=self.settings.get('video_zoom', True))
-        ttk.Checkbutton(video_card, text="Slow Zoom Effect", variable=zoom_var,
-                       command=lambda: self.update_setting('video_zoom', zoom_var.get())).pack(anchor='w', padx=15, pady=(5,15))
-
-        # Color Grading
-        self.create_section_header(frame, "Color Grading", "🎨", ModernStyles.ACCENT_ORANGE)
-
-        grade_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat')
-        grade_card.pack(fill='x', padx=20, pady=5)
-
-        grade_var = tk.StringVar(value=self.settings.get('color_grade', 'warm'))
-        grade_frame = tk.Frame(grade_card, bg=ModernStyles.BG_CARD)
-        grade_frame.pack(pady=15, padx=15)
+        self.grade_var = tk.StringVar(value=self.settings.get('color_grade', 'warm'))
+        grade_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        grade_frame.pack(fill='x', padx=20, pady=10)
 
         for text, value in [('None', 'none'), ('Warm', 'warm'), ('Cold', 'cold'), ('Cinematic', 'cinematic')]:
-            rb = ttk.Radiobutton(grade_frame, text=text, variable=grade_var, value=value,
-                               command=lambda: self.update_setting('color_grade', grade_var.get()))
-            rb.pack(side='left', padx=10)
+            tk.Radiobutton(grade_frame, text=text, variable=self.grade_var, value=value,
+                          bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
+                          selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD).pack(side='left', padx=15)
 
-        tk.Frame(frame, bg=ModernStyles.BG_SECONDARY, height=20).pack()
+        # Bottom buttons
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
+        btn_frame.pack(fill='x', side='bottom')
+        btn_frame.pack_propagate(False)
 
-    def setup_audio_settings(self, parent):
-        """Audio settings with modern design"""
-        canvas = tk.Canvas(parent, bg=ModernStyles.BG_SECONDARY, highlightthickness=0)
-        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
-        frame = tk.Frame(canvas, bg=ModernStyles.BG_SECONDARY)
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
+        buttons.pack(expand=True)
 
-        canvas.configure(yscrollcommand=scrollbar.set)
-        scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True)
-        canvas.create_window((0, 0), window=frame, anchor="nw")
-        frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        tk.Button(buttons, text="💾  Save Changes", command=self.save_settings,
+                 bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
 
-        # Original Audio
-        self.create_section_header(frame, "Original Audio", "🎵", ModernStyles.ACCENT_BLUE)
+        tk.Button(buttons, text="✕  Cancel", command=self.window.destroy,
+                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
 
-        orig_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat')
-        orig_card.pack(fill='x', padx=20, pady=5)
+    def create_section(self, parent, title, color):
+        header = tk.Frame(parent, bg=color, height=3)
+        header.pack(fill='x', pady=(20,0))
 
-        mute_var = tk.BooleanVar(value=self.settings.get('mute_original_audio', False))
-        ttk.Checkbutton(orig_card, text="Mute Original Video Audio", variable=mute_var,
-                       command=lambda: self.update_setting('mute_original_audio', mute_var.get())).pack(anchor='w', padx=15, pady=15)
+        tk.Label(header, text=title, bg=color, fg='white',
+                font=('Segoe UI', 12, 'bold'), pady=8).pack(padx=15)
+
+    def create_checkbox(self, parent, text, variable):
+        frame = tk.Frame(parent, bg=ModernStyles.BG_CARD)
+        frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Checkbutton(frame, text=text, variable=variable,
+                      bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
+                      selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD,
+                      font=('Segoe UI', 10)).pack(anchor='w', padx=15, pady=10)
+
+    def save_settings(self):
+        self.settings['text_fade_in'] = self.fade_var.get()
+        self.settings['text_glow'] = self.glow_var.get()
+        self.settings['drop_shadow'] = self.shadow_var.get()
+        self.settings['vignette'] = self.vignette_var.get()
+        self.settings['background_dim'] = self.dim_var.get()
+        self.settings['video_zoom'] = self.zoom_var.get()
+        self.settings['color_grade'] = self.grade_var.get()
+
+        self.on_save(self.settings)
+        self.window.destroy()
+
+
+class AudioSettingsPopup:
+    """Popup for audio settings"""
+
+    def __init__(self, parent, settings, on_save):
+        self.settings = settings.copy()
+        self.on_save = on_save
+
+        self.window = tk.Toplevel(parent)
+        self.window.title("🔊 Audio Settings")
+        self.window.geometry("700x600")
+        self.window.configure(bg=ModernStyles.BG_DARK)
+        self.window.transient(parent)
+        self.window.grab_set()
+
+        self.setup_ui()
+
+    def setup_ui(self):
+        # Header
+        header = tk.Frame(self.window, bg=ModernStyles.ACCENT_GREEN, height=60)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+
+        tk.Label(header, text="🔊 Audio Configuration",
+                bg=ModernStyles.ACCENT_GREEN, fg='white',
+                font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
+
+        # Content
+        content = tk.Frame(self.window, bg=ModernStyles.BG_DARK)
+        content.pack(fill='both', expand=True, padx=20, pady=20)
+
+        # Mute original
+        self.create_section(content, "Original Audio", ModernStyles.ACCENT_BLUE)
+        self.mute_var = tk.BooleanVar(value=self.settings.get('mute_original_audio', False))
+        self.create_checkbox(content, "Mute Original Video Audio", self.mute_var)
 
         # BGM
-        self.create_section_header(frame, "Background Music (BGM)", "🎶", ModernStyles.ACCENT_PURPLE)
+        self.create_section(content, "Background Music", ModernStyles.ACCENT_PURPLE)
+        self.bgm_var = tk.BooleanVar(value=self.settings.get('add_custom_bgm', False))
+        self.create_checkbox(content, "Enable Background Music", self.bgm_var)
 
-        bgm_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat')
-        bgm_card.pack(fill='x', padx=20, pady=5)
+        self.create_label(content, "BGM File/Folder:")
+        self.bgm_path_var = tk.StringVar(value=self.settings.get('bgm_file', ''))
+        path_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        path_frame.pack(fill='x', padx=20, pady=5)
 
-        bgm_var = tk.BooleanVar(value=self.settings.get('add_custom_bgm', False))
-        ttk.Checkbutton(bgm_card, text="Enable Background Music", variable=bgm_var,
-                       command=lambda: self.update_setting('add_custom_bgm', bgm_var.get())).pack(anchor='w', padx=15, pady=(15,10))
+        tk.Entry(path_frame, textvariable=self.bgm_path_var, width=40,
+                bg='#0f172a', fg=ModernStyles.TEXT_WHITE, relief='flat').pack(side='left', fill='x', expand=True, padx=10, pady=10)
 
-        tk.Label(bgm_card, text="📂 BGM Source:", bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_SECONDARY, font=ModernStyles.FONT_SMALL).pack(anchor='w', padx=15)
-        tk.Label(bgm_card, text="Single file = same BGM | Folder = random BGM per video",
-                fg='#94a3b8', bg=ModernStyles.BG_CARD, font=('Segoe UI', 8)).pack(anchor='w', padx=15)
-
-        bgm_path_frame = tk.Frame(bgm_card, bg=ModernStyles.BG_CARD)
-        bgm_path_frame.pack(fill='x', padx=15, pady=10)
-
-        self.bgm_var = tk.StringVar(value=self.settings.get('bgm_file', ''))
-        bgm_entry = tk.Entry(bgm_path_frame, textvariable=self.bgm_var, width=45,
-                            bg='#1e293b', fg=ModernStyles.TEXT_PRIMARY,
-                            relief='flat', font=ModernStyles.FONT_SMALL)
-        bgm_entry.pack(side='left', fill='x', expand=True, ipady=5)
-
-        btn_frame = tk.Frame(bgm_card, bg=ModernStyles.BG_CARD)
-        btn_frame.pack(fill='x', padx=15, pady=(0,15))
-
-        tk.Button(btn_frame, text="📄 Browse File", command=self.browse_bgm_file,
-                 bg=ModernStyles.ACCENT_BLUE, fg='white', relief='flat',
-                 cursor='hand2', font=ModernStyles.FONT_SMALL, padx=15, pady=5).pack(side='left', padx=5)
-
-        tk.Button(btn_frame, text="📁 Browse Folder", command=self.browse_bgm_folder,
-                 bg=ModernStyles.ACCENT_PURPLE, fg='white', relief='flat',
-                 cursor='hand2', font=ModernStyles.FONT_SMALL, padx=15, pady=5).pack(side='left')
+        tk.Button(path_frame, text="📄 File", command=self.browse_bgm_file,
+                 bg=ModernStyles.ACCENT_BLUE, fg='white', relief='flat', cursor='hand2', padx=10).pack(side='left', padx=2)
+        tk.Button(path_frame, text="📁 Folder", command=self.browse_bgm_folder,
+                 bg=ModernStyles.ACCENT_PURPLE, fg='white', relief='flat', cursor='hand2', padx=10).pack(side='left', padx=2)
 
         # Voiceover
-        self.create_section_header(frame, "Voiceover", "🎤", ModernStyles.ACCENT_GREEN)
+        self.create_section(content, "Voiceover", ModernStyles.ACCENT_ORANGE)
+        self.vo_var = tk.BooleanVar(value=self.settings.get('add_voiceover', False))
+        self.create_checkbox(content, "Enable Voiceover", self.vo_var)
 
-        vo_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat')
-        vo_card.pack(fill='x', padx=20, pady=5)
+        self.create_label(content, "Voiceover Folder (Files: 1.mp3, 2.mp3...):")
+        self.vo_path_var = tk.StringVar(value=self.settings.get('voiceover_folder', ''))
+        vo_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        vo_frame.pack(fill='x', padx=20, pady=5)
 
-        vo_var = tk.BooleanVar(value=self.settings.get('add_voiceover', False))
-        ttk.Checkbutton(vo_card, text="Enable Voiceover", variable=vo_var,
-                       command=lambda: self.update_setting('add_voiceover', vo_var.get())).pack(anchor='w', padx=15, pady=(15,10))
+        tk.Entry(vo_frame, textvariable=self.vo_path_var, width=40,
+                bg='#0f172a', fg=ModernStyles.TEXT_WHITE, relief='flat').pack(side='left', fill='x', expand=True, padx=10, pady=10)
 
-        tk.Label(vo_card, text="📂 Voiceover Folder (Files: 1.mp3, 2.mp3, 3.mp3...)",
-                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
-                font=ModernStyles.FONT_SMALL).pack(anchor='w', padx=15)
+        tk.Button(vo_frame, text="📁 Browse", command=self.browse_voiceover,
+                 bg=ModernStyles.ACCENT_GREEN, fg='white', relief='flat', cursor='hand2', padx=15).pack(side='left', padx=5)
 
-        vo_path_frame = tk.Frame(vo_card, bg=ModernStyles.BG_CARD)
-        vo_path_frame.pack(fill='x', padx=15, pady=10)
+        # Bottom buttons
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
+        btn_frame.pack(fill='x', side='bottom')
+        btn_frame.pack_propagate(False)
 
-        self.vo_var = tk.StringVar(value=self.settings.get('voiceover_folder', ''))
-        vo_entry = tk.Entry(vo_path_frame, textvariable=self.vo_var, width=45,
-                           bg='#1e293b', fg=ModernStyles.TEXT_PRIMARY,
-                           relief='flat', font=ModernStyles.FONT_SMALL)
-        vo_entry.pack(side='left', fill='x', expand=True, ipady=5)
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
+        buttons.pack(expand=True)
 
-        tk.Button(vo_path_frame, text="📁 Browse", command=self.browse_voiceover,
-                 bg=ModernStyles.ACCENT_GREEN, fg='white', relief='flat',
-                 cursor='hand2', font=ModernStyles.FONT_SMALL, padx=15, pady=5).pack(side='left', padx=5)
+        tk.Button(buttons, text="💾  Save Changes", command=self.save_settings,
+                 bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
 
-        tk.Frame(vo_card, height=15, bg=ModernStyles.BG_CARD).pack()
+        tk.Button(buttons, text="✕  Cancel", command=self.window.destroy,
+                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
 
-        tk.Frame(frame, bg=ModernStyles.BG_SECONDARY, height=20).pack()
+    def create_section(self, parent, title, color):
+        header = tk.Frame(parent, bg=color, height=3)
+        header.pack(fill='x', pady=(20,0))
 
-    def setup_processing(self, parent):
-        """Processing tab with modern design"""
-        frame = tk.Frame(parent, bg=ModernStyles.BG_SECONDARY)
-        frame.pack(fill='both', expand=True, padx=20, pady=20)
+        tk.Label(header, text=title, bg=color, fg='white',
+                font=('Segoe UI', 11, 'bold'), pady=6).pack(padx=15)
 
-        # Title
-        title_frame = tk.Frame(frame, bg=ModernStyles.ACCENT_GREEN, height=60)
-        title_frame.pack(fill='x', pady=(0, 20))
-        title_frame.pack_propagate(False)
+    def create_checkbox(self, parent, text, variable):
+        frame = tk.Frame(parent, bg=ModernStyles.BG_CARD)
+        frame.pack(fill='x', padx=20, pady=5)
 
-        tk.Label(title_frame, text="▶️ Video Processing Center",
-                bg=ModernStyles.ACCENT_GREEN, fg='white',
-                font=('Segoe UI', 16, 'bold')).pack(pady=15, padx=20)
+        tk.Checkbutton(frame, text=text, variable=variable,
+                      bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
+                      selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD,
+                      font=('Segoe UI', 10)).pack(anchor='w', padx=15, pady=10)
 
-        # Paths section
-        paths_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat')
-        paths_card.pack(fill='x', pady=10)
-
-        # Video folder
-        tk.Label(paths_card, text="📁 Video Folder", bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_PRIMARY, font=ModernStyles.FONT_HEADING).pack(anchor='w', padx=15, pady=(15,5))
-
-        video_frame = tk.Frame(paths_card, bg=ModernStyles.BG_CARD)
-        video_frame.pack(fill='x', padx=15, pady=(0,10))
-
-        self.video_folder_var = tk.StringVar(value=r"E:\MyAutomations\ScriptAutomations\VideoFolder\SourceVideosToEdit\Libriana8")
-        tk.Entry(video_frame, textvariable=self.video_folder_var, width=60,
-                bg='#1e293b', fg=ModernStyles.TEXT_PRIMARY, relief='flat',
-                font=ModernStyles.FONT_SMALL).pack(side='left', fill='x', expand=True, ipady=6)
-
-        tk.Button(video_frame, text="Browse", command=self.browse_video_folder,
-                 bg=ModernStyles.ACCENT_BLUE, fg='white', relief='flat',
-                 font=ModernStyles.FONT_SMALL, padx=15, pady=5, cursor='hand2').pack(side='left', padx=5)
-
-        # Quotes file
-        tk.Label(paths_card, text="📝 Quotes File", bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_PRIMARY, font=ModernStyles.FONT_HEADING).pack(anchor='w', padx=15, pady=(10,5))
-
-        quotes_frame = tk.Frame(paths_card, bg=ModernStyles.BG_CARD)
-        quotes_frame.pack(fill='x', padx=15, pady=(0,10))
-
-        self.quotes_file_var = tk.StringVar(value=r"E:\MyAutomations\ScriptAutomations\VideoFolder\Quotes.txt")
-        tk.Entry(quotes_frame, textvariable=self.quotes_file_var, width=60,
-                bg='#1e293b', fg=ModernStyles.TEXT_PRIMARY, relief='flat',
-                font=ModernStyles.FONT_SMALL).pack(side='left', fill='x', expand=True, ipady=6)
-
-        tk.Button(quotes_frame, text="Browse", command=self.browse_quotes_file,
-                 bg=ModernStyles.ACCENT_BLUE, fg='white', relief='flat',
-                 font=ModernStyles.FONT_SMALL, padx=15, pady=5, cursor='hand2').pack(side='left', padx=5)
-
-        # Output folder
-        tk.Label(paths_card, text="💾 Output Folder", bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_PRIMARY, font=ModernStyles.FONT_HEADING).pack(anchor='w', padx=15, pady=(10,5))
-
-        output_frame = tk.Frame(paths_card, bg=ModernStyles.BG_CARD)
-        output_frame.pack(fill='x', padx=15, pady=(0,15))
-
-        self.output_folder_var = tk.StringVar(value=r"E:\MyAutomations\ScriptAutomations\VideoFolder\FinalVideos")
-        tk.Entry(output_frame, textvariable=self.output_folder_var, width=60,
-                bg='#1e293b', fg=ModernStyles.TEXT_PRIMARY, relief='flat',
-                font=ModernStyles.FONT_SMALL).pack(side='left', fill='x', expand=True, ipady=6)
-
-        tk.Button(output_frame, text="Browse", command=self.browse_output_folder,
-                 bg=ModernStyles.ACCENT_BLUE, fg='white', relief='flat',
-                 font=ModernStyles.FONT_SMALL, padx=15, pady=5, cursor='hand2').pack(side='left', padx=5)
-
-        # Progress section
-        progress_card = tk.Frame(frame, bg=ModernStyles.BG_CARD, relief='flat')
-        progress_card.pack(fill='both', expand=True, pady=10)
-
-        tk.Label(progress_card, text="⏱️ Progress", bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_PRIMARY, font=ModernStyles.FONT_HEADING).pack(anchor='w', padx=15, pady=(15,10))
-
-        self.progress_var = tk.StringVar(value="Ready to process")
-        tk.Label(progress_card, textvariable=self.progress_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_SECONDARY, font=ModernStyles.FONT_NORMAL).pack(anchor='w', padx=15)
-
-        self.progress_bar = ttk.Progressbar(progress_card, mode='determinate', length=400)
-        self.progress_bar.pack(fill='x', padx=15, pady=10)
-
-        tk.Label(progress_card, text="📋 Processing Log", bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_PRIMARY, font=ModernStyles.FONT_HEADING).pack(anchor='w', padx=15, pady=(10,5))
-
-        self.log_text = scrolledtext.ScrolledText(progress_card, height=10, width=80, wrap=tk.WORD,
-                                                  bg='#0f172a', fg='#e2e8f0',
-                                                  font=('Consolas', 9), relief='flat')
-        self.log_text.pack(fill='both', expand=True, padx=15, pady=(0,15))
+    def create_label(self, parent, text):
+        tk.Label(parent, text=text, bg=ModernStyles.BG_DARK,
+                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 9)).pack(anchor='w', padx=20, pady=(10,2))
 
     def browse_bgm_file(self):
-        filename = filedialog.askopenfilename(title="Select BGM File", filetypes=[("Audio", "*.mp3 *.wav *.m4a *.aac *.ogg")])
+        filename = filedialog.askopenfilename(title="Select BGM File",
+                                             filetypes=[("Audio", "*.mp3 *.wav *.m4a *.aac *.ogg")])
         if filename:
-            self.bgm_var.set(filename)
-            self.update_setting('bgm_file', filename)
+            self.bgm_path_var.set(filename)
 
     def browse_bgm_folder(self):
         folder = filedialog.askdirectory(title="Select BGM Folder")
         if folder:
-            self.bgm_var.set(folder)
-            self.update_setting('bgm_file', folder)
+            self.bgm_path_var.set(folder)
 
     def browse_voiceover(self):
         folder = filedialog.askdirectory(title="Select Voiceover Folder")
         if folder:
-            self.vo_var.set(folder)
-            self.update_setting('voiceover_folder', folder)
+            self.vo_path_var.set(folder)
+
+    def save_settings(self):
+        self.settings['mute_original_audio'] = self.mute_var.get()
+        self.settings['add_custom_bgm'] = self.bgm_var.get()
+        self.settings['bgm_file'] = self.bgm_path_var.get()
+        self.settings['add_voiceover'] = self.vo_var.get()
+        self.settings['voiceover_folder'] = self.vo_path_var.get()
+
+        self.on_save(self.settings)
+        self.window.destroy()
+
+
+class ProcessingPopup:
+    """Popup for video processing with live progress"""
+
+    def __init__(self, parent, settings):
+        self.settings = settings
+        self.processing = False
+        self.automation = None
+        self.log_queue = queue.Queue()
+
+        self.window = tk.Toplevel(parent)
+        self.window.title("⚙️ Video Processing")
+        self.window.geometry("900x700")
+        self.window.configure(bg=ModernStyles.BG_DARK)
+        self.window.transient(parent)
+        self.window.grab_set()
+
+        self.setup_ui()
+        self.load_paths()
+
+    def setup_ui(self):
+        # Header
+        header = tk.Frame(self.window, bg=ModernStyles.ACCENT_ORANGE, height=60)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+
+        tk.Label(header, text="⚙️ Video Processing Configuration",
+                bg=ModernStyles.ACCENT_ORANGE, fg='white',
+                font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
+
+        # Content
+        content = tk.Frame(self.window, bg=ModernStyles.BG_DARK)
+        content.pack(fill='both', expand=True, padx=20, pady=20)
+
+        # Path configurations
+        self.create_section(content, "File Paths", ModernStyles.ACCENT_BLUE)
+
+        # Video folder
+        self.create_label(content, "Video Folder (source videos):")
+        self.video_folder_var = tk.StringVar()
+        self.create_path_selector(content, self.video_folder_var, self.browse_video_folder)
+
+        # Quotes file
+        self.create_label(content, "Quotes File (.txt):")
+        self.quotes_file_var = tk.StringVar()
+        self.create_path_selector(content, self.quotes_file_var, self.browse_quotes_file, is_file=True)
+
+        # Output folder
+        self.create_label(content, "Output Folder (final videos):")
+        self.output_folder_var = tk.StringVar()
+        self.create_path_selector(content, self.output_folder_var, self.browse_output_folder)
+
+        # Processing section
+        self.create_section(content, "Processing", ModernStyles.ACCENT_PURPLE)
+
+        # Progress bar
+        progress_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        progress_frame.pack(fill='x', padx=20, pady=10)
+
+        tk.Label(progress_frame, text="Progress:", bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 10)).pack(anchor='w', padx=15, pady=(10,5))
+
+        self.progress_var = tk.StringVar(value="Ready to process")
+        tk.Label(progress_frame, textvariable=self.progress_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, font=('Segoe UI', 10, 'bold')).pack(anchor='w', padx=15, pady=(0,5))
+
+        self.progress = ttk.Progressbar(progress_frame, mode='determinate', length=800)
+        self.progress.pack(fill='x', padx=15, pady=(0,10))
+
+        # Live log
+        log_label = tk.Label(content, text="Live Processing Log:", bg=ModernStyles.BG_DARK,
+                           fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 10))
+        log_label.pack(anchor='w', padx=20, pady=(10,5))
+
+        log_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        log_frame.pack(fill='both', expand=True, padx=20, pady=(0,10))
+
+        self.log_text = scrolledtext.ScrolledText(log_frame, height=12, bg='#0f172a',
+                                                  fg=ModernStyles.TEXT_WHITE, font=('Consolas', 9),
+                                                  relief='flat', padx=10, pady=10)
+        self.log_text.pack(fill='both', expand=True, padx=2, pady=2)
+        self.log_text.config(state='disabled')
+
+        # Bottom buttons
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
+        btn_frame.pack(fill='x', side='bottom')
+        btn_frame.pack_propagate(False)
+
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
+        buttons.pack(expand=True)
+
+        self.start_btn = tk.Button(buttons, text="▶️  Start Processing", command=self.start_processing,
+                                   bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 11, 'bold'),
+                                   relief='flat', padx=30, pady=12, cursor='hand2')
+        self.start_btn.pack(side='left', padx=5)
+
+        self.stop_btn = tk.Button(buttons, text="⏹️  Stop", command=self.stop_processing,
+                                  bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 11, 'bold'),
+                                  relief='flat', padx=30, pady=12, cursor='hand2', state='disabled')
+        self.stop_btn.pack(side='left', padx=5)
+
+        tk.Button(buttons, text="✕  Close", command=self.window.destroy,
+                 bg=ModernStyles.BORDER, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
+
+        # Start log updater
+        self.update_log()
+
+    def create_section(self, parent, title, color):
+        header = tk.Frame(parent, bg=color, height=3)
+        header.pack(fill='x', pady=(20,0))
+
+        tk.Label(header, text=title, bg=color, fg='white',
+                font=('Segoe UI', 11, 'bold'), pady=6).pack(padx=15)
+
+    def create_label(self, parent, text):
+        tk.Label(parent, text=text, bg=ModernStyles.BG_DARK,
+                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 9)).pack(anchor='w', padx=20, pady=(10,2))
+
+    def create_path_selector(self, parent, var, browse_cmd, is_file=False):
+        frame = tk.Frame(parent, bg=ModernStyles.BG_CARD)
+        frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Entry(frame, textvariable=var, width=60,
+                bg='#0f172a', fg=ModernStyles.TEXT_WHITE, relief='flat', font=('Segoe UI', 9)).pack(
+            side='left', fill='x', expand=True, padx=10, pady=10)
+
+        icon = "📄" if is_file else "📁"
+        tk.Button(frame, text=f"{icon} Browse", command=browse_cmd,
+                 bg=ModernStyles.ACCENT_BLUE, fg='white', relief='flat', cursor='hand2', padx=15).pack(
+            side='left', padx=5)
 
     def browse_video_folder(self):
         folder = filedialog.askdirectory(title="Select Video Folder")
@@ -593,7 +659,8 @@ class UnifiedVideoAutomationGUI:
             self.video_folder_var.set(folder)
 
     def browse_quotes_file(self):
-        filename = filedialog.askopenfilename(title="Select Quotes File", filetypes=[("Text", "*.txt")])
+        filename = filedialog.askopenfilename(title="Select Quotes File",
+                                             filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
         if filename:
             self.quotes_file_var.set(filename)
 
@@ -602,118 +669,337 @@ class UnifiedVideoAutomationGUI:
         if folder:
             self.output_folder_var.set(folder)
 
-    def update_setting(self, key, value):
-        self.settings[key] = value
+    def load_paths(self):
+        """Load previously saved paths"""
+        paths_file = Path('processing_paths.json')
+        if paths_file.exists():
+            try:
+                with open(paths_file, 'r') as f:
+                    paths = json.load(f)
+                    self.video_folder_var.set(paths.get('video_folder', ''))
+                    self.quotes_file_var.set(paths.get('quotes_file', ''))
+                    self.output_folder_var.set(paths.get('output_folder', ''))
+            except:
+                pass
 
-    def update_font(self, style_key, file_key, font_name):
-        self.settings[style_key] = font_name
-        if font_name in self.available_fonts:
-            self.settings[file_key] = self.available_fonts[font_name]
+    def save_paths(self):
+        """Save paths for next time"""
+        paths = {
+            'video_folder': self.video_folder_var.get(),
+            'quotes_file': self.quotes_file_var.get(),
+            'output_folder': self.output_folder_var.get()
+        }
+        with open('processing_paths.json', 'w') as f:
+            json.dump(paths, f, indent=2)
 
-    def pick_color(self, key, button):
-        color = colorchooser.askcolor(title=f"Choose {key}")[1]
-        if color:
-            self.settings[key] = color
-            button.config(bg=color)
+    def log(self, message):
+        """Add message to log queue"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        self.log_queue.put(f"[{timestamp}] {message}")
 
-    def log(self, message, color=None):
-        """Add colored message to log"""
-        self.log_text.insert(tk.END, message + '\n')
-        self.log_text.see(tk.END)
-        self.root.update()
+    def update_log(self):
+        """Update log display from queue"""
+        try:
+            while True:
+                message = self.log_queue.get_nowait()
+                self.log_text.config(state='normal')
+                self.log_text.insert(tk.END, message + '\n')
+                self.log_text.see(tk.END)
+                self.log_text.config(state='disabled')
+        except queue.Empty:
+            pass
+        self.window.after(100, self.update_log)
 
     def start_processing(self):
-        """Start processing"""
-        if self.processing:
-            messagebox.showwarning("Processing", "Already processing videos!")
+        """Start video processing in background thread"""
+        if VideoQuoteAutomation is None:
+            messagebox.showerror("Error", "Video automation module not available!")
             return
 
-        self.save_settings()
+        # Validate paths
+        video_folder = self.video_folder_var.get()
+        quotes_file = self.quotes_file_var.get()
+        output_folder = self.output_folder_var.get()
+
+        if not video_folder or not Path(video_folder).exists():
+            messagebox.showerror("Error", "Please select a valid video folder!")
+            return
+
+        if not quotes_file or not Path(quotes_file).exists():
+            messagebox.showerror("Error", "Please select a valid quotes file!")
+            return
+
+        if not output_folder:
+            messagebox.showerror("Error", "Please select an output folder!")
+            return
+
+        # Save paths
+        self.save_paths()
+
+        # Disable start button
+        self.start_btn.config(state='disabled')
+        self.stop_btn.config(state='normal')
         self.processing = True
-        self.process_btn.config(state='disabled', bg='#6b7280')
+
+        # Clear log
+        self.log_text.config(state='normal')
+        self.log_text.delete(1.0, tk.END)
+        self.log_text.config(state='disabled')
+
+        # Start processing thread
         thread = threading.Thread(target=self.process_videos, daemon=True)
         thread.start()
 
-    def stop_processing(self):
-        """Stop processing"""
-        self.processing = False
-        self.process_btn.config(state='normal', bg=ModernStyles.ACCENT_GREEN)
-        self.log("⏹️ Processing stopped by user\n")
-
     def process_videos(self):
-        """Process videos"""
+        """Process videos in background thread"""
         try:
-            from youtube_video_automation_enhanced import VideoQuoteAutomation
+            self.log("=" * 70)
+            self.log("Starting Video Processing...")
+            self.log("=" * 70)
 
-            self.log("="*70 + "\n")
-            self.log("🚀 Starting Enhanced Video Processing\n")
-            self.log("="*70 + "\n")
+            # Create custom automation instance with user-specified paths
+            video_folder = Path(self.video_folder_var.get())
+            quotes_file = Path(self.quotes_file_var.get())
+            output_folder = Path(self.output_folder_var.get())
 
+            self.log(f"Video folder: {video_folder}")
+            self.log(f"Quotes file: {quotes_file}")
+            self.log(f"Output folder: {output_folder}")
+            self.log("")
+
+            # Create output folder if it doesn't exist
+            output_folder.mkdir(parents=True, exist_ok=True)
+
+            # Create automation instance
             automation = VideoQuoteAutomation()
-            automation.video_folder = Path(self.video_folder_var.get())
-            automation.quotes_file = Path(self.quotes_file_var.get())
-            automation.output_folder = Path(self.output_folder_var.get())
-            automation.output_folder.mkdir(parents=True, exist_ok=True)
-            automation.settings = self.settings
+            automation.video_folder = video_folder
+            automation.quotes_file = quotes_file
+            automation.output_folder = output_folder
 
-            videos = automation.get_video_files()
+            # Get videos and quotes
+            videos = automation.get_video_files(sort_by='created')
             quotes = automation.read_quotes()
 
             if not videos:
-                self.log("✗ No videos found!\n")
-                self.processing = False
-                self.process_btn.config(state='normal', bg=ModernStyles.ACCENT_GREEN)
+                self.log("✗ No videos found!")
+                self.progress_var.set("Error: No videos found")
                 return
 
             if not quotes:
-                self.log("✗ No quotes found!\n")
-                self.processing = False
-                self.process_btn.config(state='normal', bg=ModernStyles.ACCENT_GREEN)
+                self.log("✗ No quotes found!")
+                self.progress_var.set("Error: No quotes found")
                 return
 
             num_to_process = min(len(videos), len(quotes))
-            self.progress_bar['maximum'] = num_to_process
+            self.log(f"Processing {num_to_process} videos...")
+            self.log("")
 
-            self.log(f"\n📊 Found {len(videos)} videos and {len(quotes)} quotes\n")
-            self.log(f"🎬 Processing {num_to_process} videos...\n\n")
+            # Set progress bar maximum
+            self.progress['maximum'] = num_to_process
 
+            # Process each video
+            success_count = 0
             for i in range(num_to_process):
                 if not self.processing:
+                    self.log("⏹️ Processing stopped by user")
                     break
 
                 video_path = videos[i]
                 quote = quotes[i]
 
+                self.log(f"Processing {i+1}/{num_to_process}: {video_path.name}")
                 self.progress_var.set(f"Processing {i+1}/{num_to_process}: {video_path.name}")
-                self.progress_bar['value'] = i
-
-                self.log(f"▶️ Video {i+1}/{num_to_process}: {video_path.name}\n")
-                self.log(f"📝 Quote: {quote[:60]}...\n")
+                self.progress['value'] = i
 
                 try:
                     output_path, filename = automation.add_quote_to_video(video_path, quote, video_index=i)
-                    self.log(f"✅ Saved: {filename}\n\n")
+                    self.log(f"✓ Success: {filename}")
+                    success_count += 1
                 except Exception as e:
-                    self.log(f"❌ Error: {str(e)}\n\n")
+                    self.log(f"✗ Error: {str(e)}")
 
-            self.progress_bar['value'] = num_to_process
-            self.progress_var.set("✅ Processing complete!")
-            self.log("="*70 + "\n")
-            self.log("🎉 ALL PROCESSING COMPLETE!\n")
-            self.log("="*70 + "\n")
+                self.log("")
 
-            messagebox.showinfo("Success", f"Processed {num_to_process} videos successfully!")
+            # Complete
+            self.progress['value'] = num_to_process
+            self.progress_var.set(f"Complete: {success_count}/{num_to_process} videos processed")
+            self.log("=" * 70)
+            self.log(f"Processing Complete! {success_count}/{num_to_process} successful")
+            self.log(f"Output folder: {output_folder}")
+            self.log("=" * 70)
+
+            # Re-enable buttons
+            self.window.after(0, lambda: self.start_btn.config(state='normal'))
+            self.window.after(0, lambda: self.stop_btn.config(state='disabled'))
+
+            # Show completion message
+            self.window.after(0, lambda: messagebox.showinfo(
+                "Complete",
+                f"Processing complete!\n\n{success_count}/{num_to_process} videos processed successfully.\n\nOutput: {output_folder}"
+            ))
 
         except Exception as e:
-            self.log(f"❌ Critical Error: {str(e)}\n")
-            messagebox.showerror("Error", f"Processing failed: {str(e)}")
+            self.log(f"✗ Fatal error: {str(e)}")
+            self.progress_var.set("Error occurred")
+            self.window.after(0, lambda: messagebox.showerror("Error", f"Processing error:\n{str(e)}"))
+            self.window.after(0, lambda: self.start_btn.config(state='normal'))
+            self.window.after(0, lambda: self.stop_btn.config(state='disabled'))
 
-        finally:
-            self.processing = False
-            self.process_btn.config(state='normal', bg=ModernStyles.ACCENT_GREEN)
+    def stop_processing(self):
+        """Stop processing"""
+        self.processing = False
+        self.stop_btn.config(state='disabled')
+        self.log("⏹️ Stopping after current video...")
+
+
+class DashboardGUI:
+    """Main dashboard interface"""
+
+    def __init__(self, root):
+        self.root = root
+        self.root.title("🎬 Video Automation Studio - Dashboard")
+        self.root.geometry("1200x800")
+        self.root.configure(bg=ModernStyles.BG_DARK)
+
+        self.settings = self.load_settings()
+        self.processing = False
+
+        self.setup_ui()
+
+    def load_settings(self):
+        settings_file = Path('overlay_settings.json')
+        if settings_file.exists():
+            with open(settings_file, 'r') as f:
+                return json.load(f)
+        return {}
+
+    def save_settings(self):
+        with open('overlay_settings.json', 'w') as f:
+            json.dump(self.settings, f, indent=2)
+        messagebox.showinfo("Success", "Settings saved successfully!")
+
+    def setup_ui(self):
+        # Top header
+        header = tk.Frame(self.root, bg=ModernStyles.ACCENT_BLUE, height=80)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+
+        tk.Label(header, text="🎬 Video Automation Studio",
+                bg=ModernStyles.ACCENT_BLUE, fg='white',
+                font=('Segoe UI', 24, 'bold')).pack(side='left', padx=30, pady=20)
+
+        tk.Label(header, text="Professional Dashboard",
+                bg=ModernStyles.ACCENT_BLUE, fg='#e0f2fe',
+                font=('Segoe UI', 12)).pack(side='left', padx=10)
+
+        # Main dashboard
+        dashboard = tk.Frame(self.root, bg=ModernStyles.BG_DARK)
+        dashboard.pack(fill='both', expand=True, padx=30, pady=30)
+
+        # Feature cards grid
+        cards_frame = tk.Frame(dashboard, bg=ModernStyles.BG_DARK)
+        cards_frame.pack(fill='both', expand=True)
+
+        # Row 1
+        row1 = tk.Frame(cards_frame, bg=ModernStyles.BG_DARK)
+        row1.pack(fill='both', expand=True, pady=(0,15))
+
+        self.create_card(row1, "📝", "Text & Fonts", "Configure text style, fonts, colors and position",
+                        ModernStyles.ACCENT_BLUE, lambda: self.open_text_settings()).pack(side='left', fill='both', expand=True, padx=(0,15))
+
+        self.create_card(row1, "✨", "Visual Effects", "Add animations, glow, shadows and color grading",
+                        ModernStyles.ACCENT_PURPLE, lambda: self.open_effects_settings()).pack(side='left', fill='both', expand=True)
+
+        # Row 2
+        row2 = tk.Frame(cards_frame, bg=ModernStyles.BG_DARK)
+        row2.pack(fill='both', expand=True, pady=(0,15))
+
+        self.create_card(row2, "🔊", "Audio & Music", "BGM, voiceover and audio mixing settings",
+                        ModernStyles.ACCENT_GREEN, lambda: self.open_audio_settings()).pack(side='left', fill='both', expand=True, padx=(0,15))
+
+        self.create_card(row2, "⚙️", "Processing", "Configure paths and process videos",
+                        ModernStyles.ACCENT_ORANGE, lambda: self.show_processing()).pack(side='left', fill='both', expand=True)
+
+        # Processing panel (initially hidden)
+        self.processing_panel = tk.Frame(dashboard, bg=ModernStyles.BG_CARD)
+
+        # Control buttons at bottom
+        controls = tk.Frame(self.root, bg=ModernStyles.BG_DARK, height=80)
+        controls.pack(fill='x', side='bottom')
+        controls.pack_propagate(False)
+
+        btn_frame = tk.Frame(controls, bg=ModernStyles.BG_DARK)
+        btn_frame.pack(expand=True)
+
+        tk.Button(btn_frame, text="💾  Save All Settings", command=self.save_settings,
+                 bg=ModernStyles.ACCENT_BLUE, fg='white', font=('Segoe UI', 12, 'bold'),
+                 relief='flat', padx=40, pady=15, cursor='hand2').pack(side='left', padx=10)
+
+        self.process_btn = tk.Button(btn_frame, text="▶️  Start Processing", command=self.start_processing,
+                                     bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 12, 'bold'),
+                                     relief='flat', padx=40, pady=15, cursor='hand2')
+        self.process_btn.pack(side='left', padx=10)
+
+        tk.Button(btn_frame, text="⏹️  Stop", command=self.stop_processing,
+                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 12, 'bold'),
+                 relief='flat', padx=40, pady=15, cursor='hand2').pack(side='left', padx=10)
+
+    def create_card(self, parent, emoji, title, description, color, command):
+        card = tk.Frame(parent, bg=ModernStyles.BG_CARD, relief='flat', bd=0, cursor='hand2')
+
+        # Hover effect
+        def on_enter(e):
+            card.config(bg=ModernStyles.BG_CARD_HOVER)
+
+        def on_leave(e):
+            card.config(bg=ModernStyles.BG_CARD)
+
+        card.bind('<Enter>', on_enter)
+        card.bind('<Leave>', on_leave)
+        card.bind('<Button-1>', lambda e: command())
+
+        # Content
+        tk.Label(card, text=emoji, bg=ModernStyles.BG_CARD,
+                font=('Segoe UI', 48)).pack(pady=(30,10))
+
+        tk.Label(card, text=title, bg=ModernStyles.BG_CARD, fg=color,
+                font=('Segoe UI', 16, 'bold')).pack(pady=(0,10))
+
+        tk.Label(card, text=description, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+                font=('Segoe UI', 10), wraplength=250).pack(pady=(0,30), padx=20)
+
+        # Border
+        border = tk.Frame(card, bg=color, height=4)
+        border.pack(fill='x', side='bottom')
+
+        return card
+
+    def open_text_settings(self):
+        TextSettingsPopup(self.root, self.settings, self.update_settings)
+
+    def open_effects_settings(self):
+        EffectsSettingsPopup(self.root, self.settings, self.update_settings)
+
+    def open_audio_settings(self):
+        AudioSettingsPopup(self.root, self.settings, self.update_settings)
+
+    def show_processing(self):
+        """Open processing popup"""
+        ProcessingPopup(self.root, self.settings)
+
+    def update_settings(self, new_settings):
+        self.settings.update(new_settings)
+        self.save_settings()
+
+    def start_processing(self):
+        """Open processing popup directly"""
+        ProcessingPopup(self.root, self.settings)
+
+    def stop_processing(self):
+        self.processing = False
 
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = UnifiedVideoAutomationGUI(root)
+    app = DashboardGUI(root)
     root.mainloop()
