@@ -686,17 +686,14 @@ class AudioSettingsPopup:
 
 
 class ProcessingPopup:
-    """Popup for video processing with live progress"""
+    """Popup for configuring processing paths"""
 
     def __init__(self, parent, settings):
         self.settings = settings
-        self.processing = False
-        self.automation = None
-        self.log_queue = queue.Queue()
 
         self.window = tk.Toplevel(parent)
-        self.window.title("⚙️ Video Processing")
-        self.window.geometry("900x700")
+        self.window.title("⚙️ Processing Configuration")
+        self.window.geometry("700x500")
         self.window.configure(bg=ModernStyles.BG_DARK)
         self.window.transient(parent)
         self.window.grab_set()
@@ -741,37 +738,6 @@ class ProcessingPopup:
         self.archive_folder_var = tk.StringVar()
         self.create_path_selector(content, self.archive_folder_var, self.browse_archive_folder)
 
-        # Processing section
-        self.create_section(content, "Processing", ModernStyles.ACCENT_PURPLE)
-
-        # Progress bar
-        progress_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
-        progress_frame.pack(fill='x', padx=20, pady=10)
-
-        tk.Label(progress_frame, text="Progress:", bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 10)).pack(anchor='w', padx=15, pady=(10,5))
-
-        self.progress_var = tk.StringVar(value="Ready to process")
-        tk.Label(progress_frame, textvariable=self.progress_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, font=('Segoe UI', 10, 'bold')).pack(anchor='w', padx=15, pady=(0,5))
-
-        self.progress = ttk.Progressbar(progress_frame, mode='determinate', length=800)
-        self.progress.pack(fill='x', padx=15, pady=(0,10))
-
-        # Live log
-        log_label = tk.Label(content, text="Live Processing Log:", bg=ModernStyles.BG_DARK,
-                           fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 10))
-        log_label.pack(anchor='w', padx=20, pady=(10,5))
-
-        log_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
-        log_frame.pack(fill='both', expand=True, padx=20, pady=(0,10))
-
-        self.log_text = scrolledtext.ScrolledText(log_frame, height=12, bg='#0f172a',
-                                                  fg=ModernStyles.TEXT_WHITE, font=('Consolas', 9),
-                                                  relief='flat', padx=10, pady=10)
-        self.log_text.pack(fill='both', expand=True, padx=2, pady=2)
-        self.log_text.config(state='disabled')
-
         # Bottom buttons
         btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
         btn_frame.pack(fill='x', side='bottom')
@@ -780,22 +746,13 @@ class ProcessingPopup:
         buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
         buttons.pack(expand=True)
 
-        self.start_btn = tk.Button(buttons, text="▶️  Start Processing", command=self.start_processing,
-                                   bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 11, 'bold'),
-                                   relief='flat', padx=30, pady=12, cursor='hand2')
-        self.start_btn.pack(side='left', padx=5)
-
-        self.stop_btn = tk.Button(buttons, text="⏹️  Stop", command=self.stop_processing,
-                                  bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 11, 'bold'),
-                                  relief='flat', padx=30, pady=12, cursor='hand2', state='disabled')
-        self.stop_btn.pack(side='left', padx=5)
-
-        tk.Button(buttons, text="✕  Close", command=self.window.destroy,
-                 bg=ModernStyles.BORDER, fg='white', font=('Segoe UI', 11, 'bold'),
+        tk.Button(buttons, text="💾  Save Paths", command=self.save_paths_only,
+                 bg=ModernStyles.ACCENT_BLUE, fg='white', font=('Segoe UI', 11, 'bold'),
                  relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
 
-        # Start log updater
-        self.update_log()
+        tk.Button(buttons, text="✕  Close", command=self.window.destroy,
+                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
 
     def create_section(self, parent, title, color):
         header = tk.Frame(parent, bg=color, height=3)
@@ -867,164 +824,10 @@ class ProcessingPopup:
         with open('processing_paths.json', 'w') as f:
             json.dump(paths, f, indent=2)
 
-    def log(self, message):
-        """Add message to log queue"""
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        self.log_queue.put(f"[{timestamp}] {message}")
-
-    def update_log(self):
-        """Update log display from queue"""
-        try:
-            while True:
-                message = self.log_queue.get_nowait()
-                self.log_text.config(state='normal')
-                self.log_text.insert(tk.END, message + '\n')
-                self.log_text.see(tk.END)
-                self.log_text.config(state='disabled')
-        except queue.Empty:
-            pass
-        self.window.after(100, self.update_log)
-
-    def start_processing(self):
-        """Start video processing in background thread"""
-        if VideoQuoteAutomation is None:
-            messagebox.showerror("Error", "Video automation module not available!")
-            return
-
-        # Validate paths
-        video_folder = self.video_folder_var.get()
-        quotes_file = self.quotes_file_var.get()
-        output_folder = self.output_folder_var.get()
-
-        if not video_folder or not Path(video_folder).exists():
-            messagebox.showerror("Error", "Please select a valid video folder!")
-            return
-
-        if not quotes_file or not Path(quotes_file).exists():
-            messagebox.showerror("Error", "Please select a valid quotes file!")
-            return
-
-        if not output_folder:
-            messagebox.showerror("Error", "Please select an output folder!")
-            return
-
-        # Save paths
+    def save_paths_only(self):
+        """Save paths and show confirmation"""
         self.save_paths()
-
-        # Disable start button
-        self.start_btn.config(state='disabled')
-        self.stop_btn.config(state='normal')
-        self.processing = True
-
-        # Clear log
-        self.log_text.config(state='normal')
-        self.log_text.delete(1.0, tk.END)
-        self.log_text.config(state='disabled')
-
-        # Start processing thread
-        thread = threading.Thread(target=self.process_videos, daemon=True)
-        thread.start()
-
-    def process_videos(self):
-        """Process videos in background thread"""
-        try:
-            self.log("=" * 70)
-            self.log("Starting Video Processing...")
-            self.log("=" * 70)
-
-            # Create custom automation instance with user-specified paths
-            video_folder = Path(self.video_folder_var.get())
-            quotes_file = Path(self.quotes_file_var.get())
-            output_folder = Path(self.output_folder_var.get())
-
-            self.log(f"Video folder: {video_folder}")
-            self.log(f"Quotes file: {quotes_file}")
-            self.log(f"Output folder: {output_folder}")
-            self.log("")
-
-            # Create output folder if it doesn't exist
-            output_folder.mkdir(parents=True, exist_ok=True)
-
-            # Create automation instance
-            automation = VideoQuoteAutomation()
-            automation.video_folder = video_folder
-            automation.quotes_file = quotes_file
-            automation.output_folder = output_folder
-
-            # Get videos and quotes
-            videos = automation.get_video_files(sort_by='created')
-            quotes = automation.read_quotes()
-
-            if not videos:
-                self.log("✗ No videos found!")
-                self.progress_var.set("Error: No videos found")
-                return
-
-            if not quotes:
-                self.log("✗ No quotes found!")
-                self.progress_var.set("Error: No quotes found")
-                return
-
-            num_to_process = min(len(videos), len(quotes))
-            self.log(f"Processing {num_to_process} videos...")
-            self.log("")
-
-            # Set progress bar maximum
-            self.progress['maximum'] = num_to_process
-
-            # Process each video
-            success_count = 0
-            for i in range(num_to_process):
-                if not self.processing:
-                    self.log("⏹️ Processing stopped by user")
-                    break
-
-                video_path = videos[i]
-                quote = quotes[i]
-
-                self.log(f"Processing {i+1}/{num_to_process}: {video_path.name}")
-                self.progress_var.set(f"Processing {i+1}/{num_to_process}: {video_path.name}")
-                self.progress['value'] = i
-
-                try:
-                    output_path, filename = automation.add_quote_to_video(video_path, quote, video_index=i)
-                    self.log(f"✓ Success: {filename}")
-                    success_count += 1
-                except Exception as e:
-                    self.log(f"✗ Error: {str(e)}")
-
-                self.log("")
-
-            # Complete
-            self.progress['value'] = num_to_process
-            self.progress_var.set(f"Complete: {success_count}/{num_to_process} videos processed")
-            self.log("=" * 70)
-            self.log(f"Processing Complete! {success_count}/{num_to_process} successful")
-            self.log(f"Output folder: {output_folder}")
-            self.log("=" * 70)
-
-            # Re-enable buttons
-            self.window.after(0, lambda: self.start_btn.config(state='normal'))
-            self.window.after(0, lambda: self.stop_btn.config(state='disabled'))
-
-            # Show completion message
-            self.window.after(0, lambda: messagebox.showinfo(
-                "Complete",
-                f"Processing complete!\n\n{success_count}/{num_to_process} videos processed successfully.\n\nOutput: {output_folder}"
-            ))
-
-        except Exception as e:
-            self.log(f"✗ Fatal error: {str(e)}")
-            self.progress_var.set("Error occurred")
-            self.window.after(0, lambda: messagebox.showerror("Error", f"Processing error:\n{str(e)}"))
-            self.window.after(0, lambda: self.start_btn.config(state='normal'))
-            self.window.after(0, lambda: self.stop_btn.config(state='disabled'))
-
-    def stop_processing(self):
-        """Stop processing"""
-        self.processing = False
-        self.stop_btn.config(state='disabled')
-        self.log("⏹️ Stopping after current video...")
+        messagebox.showinfo("Saved", "Processing paths saved successfully!")
 
 
 class DashboardGUI:
