@@ -164,7 +164,11 @@ class ParticleEffects:
 
             return frame.copy()
 
-        clip = VideoClip(make_frame, duration=duration).with_fps(fps)
+        clip = VideoClip(make_frame, duration=duration)
+        try:
+            clip = clip.set_fps(fps)
+        except AttributeError:
+            clip = clip.with_fps(fps)
         return clip
 
     @staticmethod
@@ -234,7 +238,11 @@ class ParticleEffects:
             frame_array = np.array(frame_pil).copy()
             return frame_array
 
-        clip = VideoClip(make_frame, duration=duration).with_fps(fps)
+        clip = VideoClip(make_frame, duration=duration)
+        try:
+            clip = clip.set_fps(fps)
+        except AttributeError:
+            clip = clip.with_fps(fps)
         return clip
 
     @staticmethod
@@ -330,23 +338,38 @@ class TTSGenerator:
 
             # Collect word timings
             word_timings = []
+            chunk_count = 0
+            audio_chunks = 0
+            word_boundary_chunks = 0
 
             # Generate and save audio with word boundaries
             with open(str(output_path), 'wb') as audio_file:
                 async for chunk in communicate.stream():
-                    if chunk["type"] == "audio":
-                        audio_file.write(chunk["data"])
-                    elif chunk["type"] == "WordBoundary":
-                        # Word timing info from edge-tts
-                        word_timings.append({
-                            'word': chunk['text'],
-                            'offset': chunk['offset'] / 10000000.0,  # Convert to seconds
-                            'duration': chunk['duration'] / 10000000.0  # Convert to seconds
-                        })
+                    chunk_count += 1
+                    chunk_type = chunk.get("type", "unknown")
 
+                    if chunk_type == "audio":
+                        audio_file.write(chunk["data"])
+                        audio_chunks += 1
+                    elif chunk_type == "WordBoundary":
+                        word_boundary_chunks += 1
+                        # Word timing info from edge-tts
+                        word_info = {
+                            'word': chunk.get('text', ''),
+                            'offset': chunk.get('offset', 0) / 10000000.0,  # Convert to seconds
+                            'duration': chunk.get('duration', 0) / 10000000.0  # Convert to seconds
+                        }
+                        word_timings.append(word_info)
+                        print(f"    Word {len(word_timings)}: '{word_info['word']}' @ {word_info['offset']:.2f}s")
+                    else:
+                        print(f"    Chunk type: {chunk_type}")
+
+            print(f"  TTS Debug: {chunk_count} total chunks, {audio_chunks} audio, {word_boundary_chunks} word boundaries")
             return True, word_timings
         except Exception as e:
             print(f"⚠ Async TTS generation error: {e}")
+            import traceback
+            traceback.print_exc()
             return False, []
 
     @staticmethod
