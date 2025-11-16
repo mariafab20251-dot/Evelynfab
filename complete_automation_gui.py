@@ -145,10 +145,9 @@ class TextSettingsPopup:
 
         self.window = tk.Toplevel(parent)
         self.window.title("📝 Text & Font Settings")
-        self.window.geometry("900x700")
+        self.window.geometry("850x680")
         self.window.configure(bg=ModernStyles.BG_DARK)
-        self.window.transient(parent)
-        self.window.grab_set()
+        # Removed grab_set to allow minimize
 
         self.setup_ui()
         self.update_preview()
@@ -560,10 +559,9 @@ class EffectsSettingsPopup:
 
         self.window = tk.Toplevel(parent)
         self.window.title("✨ Visual Effects")
-        self.window.geometry("700x650")
+        self.window.geometry("680x630")
         self.window.configure(bg=ModernStyles.BG_DARK)
-        self.window.transient(parent)
-        self.window.grab_set()
+        # Removed grab_set to allow minimize
 
         self.setup_ui()
 
@@ -723,10 +721,9 @@ class AudioSettingsPopup:
 
         self.window = tk.Toplevel(parent)
         self.window.title("🔊 Audio Settings")
-        self.window.geometry("750x800")
+        self.window.geometry("720x780")
         self.window.configure(bg=ModernStyles.BG_DARK)
-        self.window.transient(parent)
-        self.window.grab_set()
+        # Removed grab_set to allow minimize
 
         self.setup_ui()
 
@@ -1022,10 +1019,11 @@ class VideoProcessingWindow:
 
         self.window = tk.Toplevel(parent)
         self.window.title("▶️ Video Processing")
-        self.window.geometry("900x650")
+        self.window.geometry("950x700")
         self.window.configure(bg=ModernStyles.BG_DARK)
-        self.window.transient(parent)
-        self.window.grab_set()
+        # Removed transient and grab_set to allow minimize button
+        # self.window.transient(parent)
+        # self.window.grab_set()
 
         self.setup_ui()
         self.load_paths()
@@ -1295,10 +1293,9 @@ class ProcessingPopup:
 
         self.window = tk.Toplevel(parent)
         self.window.title("⚙️ Processing Configuration")
-        self.window.geometry("700x500")
+        self.window.geometry("680x480")
         self.window.configure(bg=ModernStyles.BG_DARK)
-        self.window.transient(parent)
-        self.window.grab_set()
+        # Removed grab_set to allow minimize
 
         self.setup_ui()
         self.load_paths()
@@ -1438,8 +1435,10 @@ class DashboardGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("🎬 Video Automation Studio - Dashboard")
-        self.root.geometry("1200x800")
+        self.root.geometry("1100x700")  # More compact
         self.root.configure(bg=ModernStyles.BG_DARK)
+        self.root.resizable(True, True)
+        self.root.minsize(900, 600)  # Minimum window size
 
         self.settings = self.load_settings()
         self.processing = False
@@ -1459,33 +1458,33 @@ class DashboardGUI:
         messagebox.showinfo("Success", "Settings saved successfully!")
 
     def setup_ui(self):
-        # Top header
-        header = tk.Frame(self.root, bg=ModernStyles.ACCENT_BLUE, height=90)
+        # Top header - more compact
+        header = tk.Frame(self.root, bg=ModernStyles.ACCENT_BLUE, height=65)
         header.pack(fill='x')
         header.pack_propagate(False)
 
         header_content = tk.Frame(header, bg=ModernStyles.ACCENT_BLUE)
-        header_content.pack(expand=True, fill='both', padx=40, pady=20)
+        header_content.pack(expand=True, fill='both', padx=30, pady=12)
 
         tk.Label(header_content, text="🎬 Video Automation Studio",
                 bg=ModernStyles.ACCENT_BLUE, fg='white',
-                font=('Segoe UI', 26, 'bold')).pack(side='left')
+                font=('Segoe UI', 20, 'bold')).pack(side='left')
 
-        tk.Label(header_content, text=" | Professional Dashboard",
+        tk.Label(header_content, text="Professional Dashboard",
                 bg=ModernStyles.ACCENT_BLUE, fg='#e0f2fe',
-                font=('Segoe UI', 14)).pack(side='left', padx=(10,0))
+                font=('Segoe UI', 11)).pack(side='left', padx=(12,0))
 
-        # Main dashboard
+        # Main dashboard - reduced padding
         dashboard = tk.Frame(self.root, bg=ModernStyles.BG_DARK)
-        dashboard.pack(fill='both', expand=True, padx=40, pady=30)
+        dashboard.pack(fill='both', expand=True, padx=25, pady=20)
 
-        # Feature cards grid - centered with equal spacing
+        # Feature cards grid - more compact layout
         cards_container = tk.Frame(dashboard, bg=ModernStyles.BG_DARK)
         cards_container.pack(expand=True, fill='both')
 
-        # Row 1
+        # Row 1 - reduced spacing
         row1 = tk.Frame(cards_container, bg=ModernStyles.BG_DARK)
-        row1.pack(fill='both', expand=True, pady=(0,20))
+        row1.pack(fill='both', expand=True, pady=(0,15))
 
         # Configure grid for equal spacing
         row1.grid_columnconfigure(0, weight=1)
@@ -1495,12 +1494,12 @@ class DashboardGUI:
         card1 = self.create_card(row1, "📝", "Text & Fonts",
                                 "Configure text style, fonts, colors and position",
                                 ModernStyles.ACCENT_BLUE, lambda: self.open_text_settings())
-        card1.grid(row=0, column=0, sticky='nsew', padx=(0,10))
+        card1.grid(row=0, column=0, sticky='nsew', padx=(0,8))
 
         card2 = self.create_card(row1, "✨", "Visual Effects",
                                 "Add animations, glow, shadows and color grading",
                                 ModernStyles.ACCENT_PURPLE, lambda: self.open_effects_settings())
-        card2.grid(row=0, column=1, sticky='nsew', padx=(10,0))
+        card2.grid(row=0, column=1, sticky='nsew', padx=(8,0))
 
         # Row 2
         row2 = tk.Frame(cards_container, bg=ModernStyles.BG_DARK)
@@ -1513,16 +1512,16 @@ class DashboardGUI:
         card3 = self.create_card(row2, "🔊", "Audio & Music",
                                 "BGM, voiceover and audio mixing settings",
                                 ModernStyles.ACCENT_GREEN, lambda: self.open_audio_settings())
-        card3.grid(row=0, column=0, sticky='nsew', padx=(0,10))
+        card3.grid(row=0, column=0, sticky='nsew', padx=(0,8))
 
         card4 = self.create_card(row2, "⚙️", "Processing",
                                 "Configure paths and process videos",
                                 ModernStyles.ACCENT_ORANGE, lambda: self.show_processing())
-        card4.grid(row=0, column=1, sticky='nsew', padx=(10,0))
+        card4.grid(row=0, column=1, sticky='nsew', padx=(8,0))
 
-        # Control buttons at bottom
-        controls = tk.Frame(self.root, bg=ModernStyles.BG_DARK, height=90)
-        controls.pack(fill='x', side='bottom', pady=(20,0))
+        # Control buttons at bottom - more compact
+        controls = tk.Frame(self.root, bg=ModernStyles.BG_DARK, height=70)
+        controls.pack(fill='x', side='bottom', pady=(15,0))
         controls.pack_propagate(False)
 
         btn_frame = tk.Frame(controls, bg=ModernStyles.BG_DARK)
@@ -1560,15 +1559,15 @@ class DashboardGUI:
         card.bind('<Leave>', on_leave)
         card.bind('<Button-1>', lambda e: command())
 
-        # Content container for better alignment
+        # Content container - more compact
         content = tk.Frame(card, bg=ModernStyles.BG_CARD)
-        content.pack(expand=True, fill='both', pady=40, padx=30)
+        content.pack(expand=True, fill='both', pady=25, padx=25)
 
         tk.Label(content, text=emoji, bg=ModernStyles.BG_CARD,
-                font=('Segoe UI', 56)).pack(pady=(0,15))
+                font=('Segoe UI', 48)).pack(pady=(0,10))
 
         tk.Label(content, text=title, bg=ModernStyles.BG_CARD, fg=color,
-                font=('Segoe UI', 18, 'bold')).pack(pady=(0,12))
+                font=('Segoe UI', 16, 'bold')).pack(pady=(0,8))
 
         tk.Label(content, text=description, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
                 font=('Segoe UI', 11), wraplength=280, justify='center').pack(pady=(0,0))
