@@ -139,7 +139,7 @@ class ParticleEffects:
             from moviepy.editor import VideoClip
 
         def make_frame(t):
-            # Create black frame (RGB, not RGBA)
+            # Create black frame (RGB)
             frame = np.zeros((height, width, 3), dtype=np.uint8).copy()
 
             # Number of particles based on intensity
@@ -163,11 +163,25 @@ class ParticleEffects:
 
             return frame.copy()
 
+        def make_mask(t):
+            # Create mask where white sparkles are opaque and black is transparent
+            frame = make_frame(t)
+            # Convert to grayscale for mask (bright areas = opaque, dark = transparent)
+            mask = frame[:, :, 0].astype('uint8')  # Use any channel since it's grayscale
+            return mask
+
         clip = VideoClip(make_frame, duration=duration)
+        mask_clip = VideoClip(make_mask, duration=duration, ismask=True)
+
         try:
             clip = clip.set_fps(fps)
+            mask_clip = mask_clip.set_fps(fps)
+            clip = clip.set_mask(mask_clip)
         except AttributeError:
             clip = clip.with_fps(fps)
+            mask_clip = mask_clip.with_fps(fps)
+            clip = clip.with_mask(mask_clip)
+
         return clip
 
     @staticmethod
@@ -233,19 +247,55 @@ class ParticleEffects:
                     color = colors[hash(str(particle['x'])) % len(colors)]
                     draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], fill=color)
 
-            # Convert RGBA to RGB (blend with black background)
+            # Convert RGBA to RGB for video, and create separate mask
             frame_rgb = Image.new('RGB', (width, height), (0, 0, 0))
-            frame_rgb.paste(frame_rgba, mask=frame_rgba.split()[3])  # Use alpha channel as mask
+            frame_rgb.paste(frame_rgba, mask=frame_rgba.split()[3])
+            return np.array(frame_rgb).copy()
 
-            # Convert to numpy array with writable copy
-            frame_array = np.array(frame_rgb).copy()
-            return frame_array
+        def make_mask(t):
+            # Extract alpha channel as mask
+            frame_rgba = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(frame_rgba)
+
+            for particle in particles:
+                y = int(particle['y_start'] + particle['speed'] * t)
+                if y > height + 50:
+                    y = y % (height + 100) - 50
+                x = int(particle['x'])
+                size = particle['size']
+
+                if particle_type == 'star':
+                    points = []
+                    for i in range(10):
+                        angle = (i * 36) * np.pi / 180
+                        r = size if i % 2 == 0 else size // 2
+                        px = x + r * np.cos(angle)
+                        py = y + r * np.sin(angle)
+                        points.append((px, py))
+                    draw.polygon(points, fill=(255, 255, 255, 255))
+                elif particle_type == 'heart':
+                    draw.ellipse([x-size//2, y-size//2, x, y+size//2], fill=(255, 255, 255, 255))
+                    draw.ellipse([x, y-size//2, x+size//2, y+size//2], fill=(255, 255, 255, 255))
+                    draw.polygon([(x-size//2, y), (x+size//2, y), (x, y+size)], fill=(255, 255, 255, 255))
+                elif particle_type == 'circle':
+                    draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], fill=(255, 255, 255, 255))
+
+            # Return alpha channel as grayscale mask
+            alpha = frame_rgba.split()[3]
+            return np.array(alpha).copy()
 
         clip = VideoClip(make_frame, duration=duration)
+        mask_clip = VideoClip(make_mask, duration=duration, ismask=True)
+
         try:
             clip = clip.set_fps(fps)
+            mask_clip = mask_clip.set_fps(fps)
+            clip = clip.set_mask(mask_clip)
         except AttributeError:
             clip = clip.with_fps(fps)
+            mask_clip = mask_clip.with_fps(fps)
+            clip = clip.with_mask(mask_clip)
+
         return clip
 
     @staticmethod
@@ -484,6 +534,10 @@ class CaptionRenderer:
         # Estimate time per word
         time_per_word = audio_duration / len(words)
 
+        # Caption timing offset - start captions slightly early for better sync
+        # This compensates for reaction time and makes captions feel more natural
+        timing_offset = 0.15  # seconds
+
         # Load font
         try:
             font_path = str(Path(r"C:\Windows\Fonts") / 'arialbd.ttf')
@@ -497,8 +551,8 @@ class CaptionRenderer:
             segment_words = words[i:i+words_per_caption]
             text_content = ' '.join(segment_words)
 
-            # Calculate timing
-            start_time = current_time
+            # Calculate timing - start slightly early for better sync
+            start_time = max(0, current_time - timing_offset)  # Don't go negative
             duration = len(segment_words) * time_per_word
             current_time += duration
 
@@ -526,6 +580,9 @@ class CaptionRenderer:
                 img_rgb = Image.new('RGB', img_rgba.size, (0, 0, 0))
                 img_rgb.paste(img_rgba, mask=img_rgba.split()[3])  # Use alpha channel as mask
 
+                # Extract alpha channel as mask for transparency
+                mask_array = np.array(img_rgba.split()[3]).copy()
+
                 # Create clip
                 frame = np.array(img_rgb).copy()
 
@@ -534,13 +591,17 @@ class CaptionRenderer:
                 except ImportError:
                     from moviepy.editor import ImageClip
 
-                clip = ImageClip(frame)
+                clip = ImageClip(frame, ismask=False)
+                mask_clip = ImageClip(mask_array, ismask=True)
+
                 try:
                     clip = clip.set_duration(duration)
                     clip = clip.set_start(start_time)
+                    clip = clip.set_mask(mask_clip.set_duration(duration))
                 except AttributeError:
                     clip = clip.with_duration(duration)
                     clip = clip.with_start(start_time)
+                    clip = clip.with_mask(mask_clip.with_duration(duration))
 
                 # Position
                 if position == 'top':
@@ -640,31 +701,46 @@ class CaptionRenderer:
                 img_rgb = Image.new('RGB', img_rgba.size, bg_color)
                 img_rgb.paste(img_rgba, mask=img_rgba.split()[3])  # Use alpha channel as mask
 
+                # Extract alpha channel as mask for transparency
+                mask_array = np.array(img_rgba.split()[3]).copy()
+
                 # Convert to numpy array (writable copy)
                 frame = np.array(img_rgb).copy()
 
                 print(f"  Caption frame shape: {frame.shape}, dtype: {frame.dtype}")
                 print(f"  Caption text: '{text}' ({segment['start']:.2f}s - {segment['end']:.2f}s)")
 
-                # Create ImageClip
+                # Create ImageClip with mask
                 try:
-                    clip = ImageClip(frame, ismask=False, transparent=True)
-                except:
-                    # Fallback for older MoviePy versions
-                    clip = ImageClip(frame)
+                    from moviepy import ImageClip
+                except ImportError:
+                    from moviepy.editor import ImageClip
 
-                clip = clip.with_duration(segment['end'] - segment['start'])
-                clip = clip.with_start(segment['start'])
+                clip = ImageClip(frame, ismask=False)
+                mask_clip = ImageClip(mask_array, ismask=True)
+
+                duration = segment['end'] - segment['start']
+                try:
+                    clip = clip.with_duration(duration)
+                    clip = clip.with_start(segment['start'])
+                    clip = clip.with_mask(mask_clip.with_duration(duration))
+                except AttributeError:
+                    clip = clip.set_duration(duration)
+                    clip = clip.set_start(segment['start'])
+                    clip = clip.set_mask(mask_clip.set_duration(duration))
 
                 # Position based on settings
                 if position == 'top':
                     y_pos = int(video_height * 0.1)
-                    clip = clip.with_position(('center', y_pos))
                 elif position == 'center':
-                    clip = clip.with_position(('center', 'center'))
+                    y_pos = 'center'
                 else:  # bottom
                     y_pos = int(video_height * 0.75)
+
+                try:
                     clip = clip.with_position(('center', y_pos))
+                except AttributeError:
+                    clip = clip.set_position(('center', y_pos))
 
                 print(f"  Caption positioned at: {clip.pos}, size: {clip.size}")
                 caption_clips.append(clip)
