@@ -456,6 +456,107 @@ class CaptionRenderer:
     """Render synchronized captions/subtitles"""
 
     @staticmethod
+    def create_estimated_captions(text, audio_duration, video_width, video_height, settings):
+        """Create captions with estimated timing when word-level timing is unavailable"""
+        caption_clips = []
+
+        # Remove emojis and clean text
+        import re
+        clean_text = re.sub(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+', '', text)
+        clean_text = clean_text.strip()
+
+        if not clean_text or audio_duration <= 0:
+            return []
+
+        # Split into words
+        words = clean_text.split()
+        if not words:
+            return []
+
+        # Caption settings
+        words_per_caption = settings.get('caption_words_per_line', 3)
+        font_size = settings.get('caption_font_size', 60)
+        position = settings.get('caption_position', 'bottom')
+
+        # Estimate time per word
+        time_per_word = audio_duration / len(words)
+
+        # Load font
+        try:
+            font_path = str(Path(r"C:\Windows\Fonts") / 'arialbd.ttf')
+            font = ImageFont.truetype(font_path, font_size)
+        except:
+            font = ImageFont.load_default()
+
+        # Create caption segments
+        current_time = 0.0
+        for i in range(0, len(words), words_per_caption):
+            segment_words = words[i:i+words_per_caption]
+            text_content = ' '.join(segment_words)
+
+            # Calculate timing
+            start_time = current_time
+            duration = len(segment_words) * time_per_word
+            current_time += duration
+
+            try:
+                # Create PIL image
+                dummy_img = Image.new('RGBA', (1, 1))
+                dummy_draw = ImageDraw.Draw(dummy_img)
+                bbox = dummy_draw.textbbox((0, 0), text_content, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+
+                padding = 20
+                img_width = min(text_width + padding * 2, int(video_width * 0.9))
+                img_height = text_height + padding * 2
+
+                # Create caption image
+                img = Image.new('RGBA', (img_width, img_height), (0, 0, 0, 180))
+                draw = ImageDraw.Draw(img)
+
+                text_x = (img_width - text_width) // 2
+                text_y = padding
+                draw.text((text_x, text_y), text_content, font=font, fill=(255, 255, 255, 255))
+
+                # Create clip
+                frame = np.array(img).copy()
+
+                try:
+                    from moviepy import ImageClip
+                except ImportError:
+                    from moviepy.editor import ImageClip
+
+                clip = ImageClip(frame)
+                try:
+                    clip = clip.set_duration(duration)
+                    clip = clip.set_start(start_time)
+                except AttributeError:
+                    clip = clip.with_duration(duration)
+                    clip = clip.with_start(start_time)
+
+                # Position
+                if position == 'top':
+                    y_pos = int(video_height * 0.1)
+                elif position == 'center':
+                    y_pos = 'center'
+                else:  # bottom
+                    y_pos = int(video_height * 0.75)
+
+                try:
+                    clip = clip.set_position(('center', y_pos))
+                except AttributeError:
+                    clip = clip.with_position(('center', y_pos))
+
+                caption_clips.append(clip)
+
+            except Exception as e:
+                print(f"⚠ Error creating caption segment: {e}")
+
+        print(f"✓ Created {len(caption_clips)} estimated caption segments")
+        return caption_clips
+
+    @staticmethod
     def create_word_captions(word_timings, video_width, video_height, settings):
         """Create synchronized caption clips for each word"""
         try:
@@ -1367,32 +1468,52 @@ class VideoQuoteAutomation:
             final_video = final_video.without_audio()
             print("✓ Original audio muted")
 
-        # Add synchronized captions if enabled and we have word timings
-        if self.settings.get('enable_captions', False) and word_timings:
+        # Add synchronized captions if enabled
+        if self.settings.get('enable_captions', False):
             try:
-                print(f"Adding synchronized captions... (word_timings: {len(word_timings)} words)")
-                caption_clips = CaptionRenderer.create_word_captions(
-                    word_timings,
-                    video.w,
-                    video.h,
-                    self.settings
-                )
+                caption_clips = []
+
+                # Try word-level timing if available
+                if word_timings:
+                    print(f"Adding synchronized captions... (word_timings: {len(word_timings)} words)")
+                    caption_clips = CaptionRenderer.create_word_captions(
+                        word_timings,
+                        video.w,
+                        video.h,
+                        self.settings
+                    )
+                # Fallback to estimated timing if TTS voiceover was generated
+                elif voiceover_file and voiceover_file.exists():
+                    print(f"Using estimated caption timing (no word boundaries from TTS)")
+                    from moviepy.editor import AudioFileClip
+                    try:
+                        tts_audio = AudioFileClip(str(voiceover_file))
+                        audio_duration = tts_audio.duration
+                        tts_audio.close()
+
+                        caption_clips = CaptionRenderer.create_estimated_captions(
+                            quote,
+                            audio_duration,
+                            video.w,
+                            video.h,
+                            self.settings
+                        )
+                    except Exception as e:
+                        print(f"⚠ Could not get TTS audio duration: {e}")
 
                 if caption_clips:
                     print(f"Compositing {len(caption_clips)} caption clips with video...")
-                    print(f"Video size: {final_video.size}, duration: {final_video.duration}")
-                    for i, cap_clip in enumerate(caption_clips):
-                        print(f"  Caption {i+1}: size={cap_clip.size}, start={cap_clip.start}, duration={cap_clip.duration}, pos={cap_clip.pos}")
-
                     # Composite video with captions
                     all_clips = [final_video] + caption_clips
                     final_video = CompositeVideoClip(all_clips)
-                    print(f"✓ Added {len(caption_clips)} synchronized caption segments")
+                    print(f"✓ Added {len(caption_clips)} caption segments")
                 else:
                     print("⚠ No caption clips were created")
 
             except Exception as e:
                 print(f"⚠ Caption rendering failed: {e}")
+                import traceback
+                traceback.print_exc()
                 print("  Continuing without captions...")
 
         output_path = self.output_folder / output_filename
@@ -1403,16 +1524,25 @@ class VideoQuoteAutomation:
             output_path = self.output_folder / f"{stem}_{counter}.mp4"
             counter += 1
 
-        print(f"Rendering with effects... This may take a few minutes.")
-        final_video.write_videofile(
-            str(output_path),
-            codec='libx264',
-            audio_codec='aac',
-            fps=video.fps,
-            preset='medium',
-            threads=4,
-            logger=None
-        )
+        print(f"Rendering with effects to: {output_path.name}")
+        print(f"Video details: size={final_video.size}, duration={final_video.duration:.2f}s, fps={video.fps}")
+
+        try:
+            final_video.write_videofile(
+                str(output_path),
+                codec='libx264',
+                audio_codec='aac',
+                fps=video.fps,
+                preset='medium',
+                threads=4,
+                logger='bar'  # Show progress bar
+            )
+            print(f"✓ Rendering complete!")
+        except Exception as e:
+            print(f"✗ Rendering failed: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
         video.close()
         txt_clip.close()
