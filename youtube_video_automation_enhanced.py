@@ -139,8 +139,8 @@ class ParticleEffects:
             from moviepy.editor import VideoClip
 
         def make_frame(t):
-            # Create transparent frame as writable copy
-            frame = np.zeros((height, width, 4), dtype=np.uint8).copy()
+            # Create black frame (RGB, not RGBA)
+            frame = np.zeros((height, width, 3), dtype=np.uint8).copy()
 
             # Number of particles based on intensity
             num_particles = int(50 * intensity)
@@ -155,12 +155,11 @@ class ParticleEffects:
                 # Twinkling effect using sine wave
                 brightness = int(255 * abs(np.sin(t * 5 + np.random.random() * 10)))
 
-                # Draw sparkle (white with alpha)
+                # Draw sparkle (white with brightness)
                 y1, y2 = max(0, y-size), min(height, y+size)
                 x1, x2 = max(0, x-size), min(width, x+size)
 
-                frame[y1:y2, x1:x2, :3] = [255, 255, 255]  # White
-                frame[y1:y2, x1:x2, 3] = brightness  # Alpha (twinkling)
+                frame[y1:y2, x1:x2, :] = [brightness, brightness, brightness]  # White sparkle
 
             return frame.copy()
 
@@ -194,9 +193,9 @@ class ParticleEffects:
             })
 
         def make_frame(t):
-            # Create transparent frame
-            frame_pil = Image.new('RGBA', (width, height), (0, 0, 0, 0))
-            draw = ImageDraw.Draw(frame_pil)
+            # Create transparent RGBA frame
+            frame_rgba = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(frame_rgba)
 
             for particle in particles:
                 # Update position
@@ -219,23 +218,27 @@ class ParticleEffects:
                         px = x + r * np.cos(angle)
                         py = y + r * np.sin(angle)
                         points.append((px, py))
-                    draw.polygon(points, fill=(255, 255, 100, 200))  # Yellow
+                    draw.polygon(points, fill=(255, 255, 100, 255))  # Yellow
 
                 elif particle_type == 'heart':
                     # Draw heart (simplified circle-based)
-                    draw.ellipse([x-size//2, y-size//2, x, y+size//2], fill=(255, 50, 50, 200))
-                    draw.ellipse([x, y-size//2, x+size//2, y+size//2], fill=(255, 50, 50, 200))
-                    draw.polygon([(x-size//2, y), (x+size//2, y), (x, y+size)], fill=(255, 50, 50, 200))
+                    draw.ellipse([x-size//2, y-size//2, x, y+size//2], fill=(255, 50, 50, 255))
+                    draw.ellipse([x, y-size//2, x+size//2, y+size//2], fill=(255, 50, 50, 255))
+                    draw.polygon([(x-size//2, y), (x+size//2, y), (x, y+size)], fill=(255, 50, 50, 255))
 
                 elif particle_type == 'circle':
                     # Simple colorful circles
-                    colors = [(255, 100, 100, 200), (100, 255, 100, 200),
-                             (100, 100, 255, 200), (255, 255, 100, 200)]
+                    colors = [(255, 100, 100, 255), (100, 255, 100, 255),
+                             (100, 100, 255, 255), (255, 255, 100, 255)]
                     color = colors[hash(str(particle['x'])) % len(colors)]
                     draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], fill=color)
 
+            # Convert RGBA to RGB (blend with black background)
+            frame_rgb = Image.new('RGB', (width, height), (0, 0, 0))
+            frame_rgb.paste(frame_rgba, mask=frame_rgba.split()[3])  # Use alpha channel as mask
+
             # Convert to numpy array with writable copy
-            frame_array = np.array(frame_pil).copy()
+            frame_array = np.array(frame_rgb).copy()
             return frame_array
 
         clip = VideoClip(make_frame, duration=duration)
@@ -511,16 +514,20 @@ class CaptionRenderer:
                 img_width = min(text_width + padding * 2, int(video_width * 0.9))
                 img_height = text_height + padding * 2
 
-                # Create caption image
-                img = Image.new('RGBA', (img_width, img_height), (0, 0, 0, 180))
-                draw = ImageDraw.Draw(img)
+                # Create caption image (RGBA with transparency)
+                img_rgba = Image.new('RGBA', (img_width, img_height), (0, 0, 0, 180))
+                draw = ImageDraw.Draw(img_rgba)
 
                 text_x = (img_width - text_width) // 2
                 text_y = padding
                 draw.text((text_x, text_y), text_content, font=font, fill=(255, 255, 255, 255))
 
+                # Convert RGBA to RGB (blend with black background)
+                img_rgb = Image.new('RGB', img_rgba.size, (0, 0, 0))
+                img_rgb.paste(img_rgba, mask=img_rgba.split()[3])  # Use alpha channel as mask
+
                 # Create clip
-                frame = np.array(img).copy()
+                frame = np.array(img_rgb).copy()
 
                 try:
                     from moviepy import ImageClip
@@ -620,17 +627,21 @@ class CaptionRenderer:
                 img_width = min(text_width + padding * 2, int(video_width * 0.9))
                 img_height = text_height + padding * 2
 
-                # Create image with background
-                img = Image.new('RGBA', (img_width, img_height), bg_color + (180,))  # Semi-transparent black
-                draw = ImageDraw.Draw(img)
+                # Create image with background (RGBA)
+                img_rgba = Image.new('RGBA', (img_width, img_height), bg_color + (180,))  # Semi-transparent black
+                draw = ImageDraw.Draw(img_rgba)
 
                 # Draw text centered
                 text_x = (img_width - text_width) // 2
                 text_y = padding
                 draw.text((text_x, text_y), text, font=font, fill=text_color + (255,))
 
+                # Convert RGBA to RGB (blend with black background)
+                img_rgb = Image.new('RGB', img_rgba.size, bg_color)
+                img_rgb.paste(img_rgba, mask=img_rgba.split()[3])  # Use alpha channel as mask
+
                 # Convert to numpy array (writable copy)
-                frame = np.array(img).copy()
+                frame = np.array(img_rgb).copy()
 
                 print(f"  Caption frame shape: {frame.shape}, dtype: {frame.dtype}")
                 print(f"  Caption text: '{text}' ({segment['start']:.2f}s - {segment['end']:.2f}s)")
