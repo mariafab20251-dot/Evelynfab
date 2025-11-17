@@ -28,7 +28,7 @@
   "text_slide_distance": 50,
   "text_bounce": false,
   "text_bounce_intensity": 1.15,
-  "text_kinetic": false,
+  "text_kinetic": true,
   "text_kinetic_word_delay": 0.08,
   "text_glitch": false,
 
@@ -79,10 +79,12 @@
   "bgm_file": "",
   "bgm_volume": 0.3,
   "bgm_loop": true,
-  "add_voiceover": false,
+  "add_voiceover": true,
+  "tts_enabled": true,
+  "tts_voice": "aria",
   "voiceover_folder": "",
   "voiceover_volume": 1.0,
   "voiceover_delay": 0.0,
   "mix_audio": true,
-  "original_audio_volume": 0.5
+  "original_audio_volume": 0.3
 }
