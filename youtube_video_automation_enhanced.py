@@ -414,11 +414,32 @@ class TTSGenerator:
                             'duration': chunk.get('duration', 0) / 10000000.0  # Convert to seconds
                         }
                         word_timings.append(word_info)
-                        print(f"    Word {len(word_timings)}: '{word_info['word']}' @ {word_info['offset']:.2f}s")
-                    else:
-                        print(f"    Chunk type: {chunk_type}")
+                    # Also check for lowercase variant
+                    elif chunk_type == "word_boundary":
+                        word_boundary_chunks += 1
+                        word_info = {
+                            'word': chunk.get('text', ''),
+                            'offset': chunk.get('offset', 0) / 10000000.0,
+                            'duration': chunk.get('duration', 0) / 10000000.0
+                        }
+                        word_timings.append(word_info)
 
             print(f"  TTS Debug: {chunk_count} total chunks, {audio_chunks} audio, {word_boundary_chunks} word boundaries")
+
+            # If no word boundaries, split text into words and estimate timing
+            if not word_timings:
+                print(f"  ⚠ No word boundaries from TTS - using text splitting for word-level captions")
+                words = text.split()
+                if words:
+                    # Estimate word duration (total audio duration / number of words)
+                    # We'll calculate actual duration after file is created
+                    for i, word in enumerate(words):
+                        word_timings.append({
+                            'word': word,
+                            'offset': i,  # Placeholder - will be calculated later
+                            'duration': 1  # Placeholder
+                        })
+
             return True, word_timings
         except Exception as e:
             print(f"⚠ Async TTS generation error: {e}")
@@ -626,11 +647,11 @@ class CaptionRenderer:
         caption_clips = []
 
         # Caption settings
-        font_size = settings.get('caption_font_size', 60)
-        text_color = (255, 255, 255)  # White
+        font_size = settings.get('caption_font_size', 80)
+        text_color = (255, 255, 0)  # Yellow (TikTok style)
         bg_color = (0, 0, 0)  # Black
-        position = settings.get('caption_position', 'bottom')  # top, center, bottom
-        words_per_caption = settings.get('caption_words_per_line', 3)  # How many words to show at once
+        position = settings.get('caption_position', 'center')  # top, center, bottom
+        words_per_caption = settings.get('caption_words_per_line', 1)  # Show one word at a time for precision
 
         # Load font
         try:
@@ -1512,6 +1533,26 @@ class VideoQuoteAutomation:
             if success:
                 voiceover_file = tts_path
                 print(f"✓ Using TTS voiceover: {tts_filename}")
+
+                # Fix placeholder timing values if needed
+                if word_timings and word_timings[0]['offset'] < 100:  # Placeholder detection
+                    try:
+                        # Get actual audio duration
+                        tts_audio = AudioFileClip(str(tts_path))
+                        total_duration = tts_audio.duration
+                        tts_audio.close()
+
+                        # Calculate timing for each word
+                        num_words = len(word_timings)
+                        word_duration = total_duration / num_words
+
+                        for i, word_info in enumerate(word_timings):
+                            word_info['offset'] = i * word_duration
+                            word_info['duration'] = word_duration
+
+                        print(f"✓ Calculated word timing: {num_words} words, ~{word_duration:.2f}s per word")
+                    except Exception as e:
+                        print(f"⚠ Could not calculate word timing: {e}")
 
                 # Save word timings for caption generation
                 if word_timings:
