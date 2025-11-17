@@ -1678,13 +1678,21 @@ class VideoQuoteAutomation:
                     final_video = CompositeVideoClip(all_clips)
                     print(f"✓ Added {len(caption_clips)} caption segments")
                 else:
-                    print("⚠ No caption clips were created")
+                    print("⚠ No caption clips were created - falling back to static text overlay")
+                    # Fallback to static text overlay if word-by-word captions failed
+                    all_clips = [final_video, txt_clip]
+                    final_video = CompositeVideoClip(all_clips)
+                    print(f"✓ Added static text overlay as fallback")
 
             except Exception as e:
                 print(f"⚠ Caption rendering failed: {e}")
                 import traceback
                 traceback.print_exc()
-                print("  Continuing without captions...")
+                print("  Falling back to static text overlay...")
+                # Fallback to static text overlay on error
+                all_clips = [final_video, txt_clip]
+                final_video = CompositeVideoClip(all_clips)
+                print(f"✓ Added static text overlay as fallback")
 
         output_path = self.output_folder / output_filename
         counter = 1
