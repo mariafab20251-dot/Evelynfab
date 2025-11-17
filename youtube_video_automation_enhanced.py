@@ -1559,7 +1559,6 @@ class VideoQuoteAutomation:
                 # Fallback to estimated timing if TTS voiceover was generated
                 elif voiceover_file and voiceover_file.exists():
                     print(f"Using estimated caption timing (no word boundaries from TTS)")
-                    from moviepy.editor import AudioFileClip
                     try:
                         tts_audio = AudioFileClip(str(voiceover_file))
                         audio_duration = tts_audio.duration
