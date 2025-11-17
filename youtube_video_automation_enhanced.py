@@ -20,6 +20,50 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 from config import config
 
 
+class TTSGenerator:
+    """Text-to-Speech voice options"""
+
+    # Voice name mappings for display in GUI
+    VOICE_NAMES = {
+        # US Female voices
+        'aria': 'Aria - US Female (Friendly)',
+        'jenny': 'Jenny - US Female (Warm)',
+        'michelle': 'Michelle - US Female (Professional)',
+        'monica': 'Monica - US Female (Deep)',
+        'nancy': 'Nancy - US Female (Deep)',
+        'amber': 'Amber - US Female (Energetic)',
+        'ashley': 'Ashley - US Female (Clear)',
+        'sara': 'Sara - US Female (Calm)',
+
+        # US Male voices
+        'guy': 'Guy - US Male (Friendly)',
+        'davis': 'Davis - US Male (Professional)',
+        'eric': 'Eric - US Male (Clear)',
+        'christopher': 'Christopher - US Male (Confident)',
+        'jason': 'Jason - US Male (Energetic)',
+        'tony': 'Tony - US Male (Authoritative)',
+        'roger': 'Roger - US Male (Mature)',
+        'steffan': 'Steffan - US Male (Smooth)',
+
+        # British voices
+        'sonia': 'Sonia - British Female (Refined)',
+        'mia': 'Mia - British Female (Deep)',
+        'ryan': 'Ryan - British Male (Clear)',
+        'thomas': 'Thomas - British Male (Professional)',
+        'libby': 'Libby - British Female (Young)',
+        'alfie': 'Alfie - British Male (Friendly)',
+
+        # Australian voices
+        'natasha': 'Natasha - Australian Female (Warm)',
+        'annette': 'Annette - Australian Female (Deep)',
+        'william': 'William - Australian Male (Clear)',
+
+        # Indian voices
+        'neerja': 'Neerja - Indian Female (Clear)',
+        'prabhat': 'Prabhat - Indian Male (Professional)',
+    }
+
+
 class VideoEffects:
     """Advanced video effects module"""
 
