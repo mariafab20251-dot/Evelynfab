@@ -11,57 +11,67 @@ import json
 from datetime import datetime
 import numpy as np
 
-from moviepy import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
-from moviepy.video.fx import Resize, FadeIn
-from moviepy.audio.fx import MultiplyVolume, AudioLoop
+try:
+    from moviepy import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
+    from moviepy.video.fx import Resize
+    from moviepy.audio.fx import MultiplyVolume, AudioLoop
+except ImportError:
+    from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
+    from moviepy.video.fx.resize import resize as Resize
+    from moviepy.audio.fx.volumex import volumex as MultiplyVolume
+    AudioLoop = None
+
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
-# Configuration
-from config import config
+# Text-to-Speech - Using edge-tts for natural, human-like voices
+try:
+    import edge_tts
+    import asyncio
+    TTS_AVAILABLE = True
+except ImportError:
+    TTS_AVAILABLE = False
+    print("⚠ edge-tts not available - TTS voiceover generation disabled")
+    print("  Install with: pip install edge-tts")
 
 
-class TTSGenerator:
-    """Text-to-Speech voice options"""
+def set_volume(clip, volume):
+    """Compatible volume adjustment for MoviePy 1.x and 2.x"""
+    try:
+        return clip.with_effects([MultiplyVolume(volume)])
+    except:
+        return clip.volumex(volume)
 
-    # Voice name mappings for display in GUI
-    VOICE_NAMES = {
-        # US Female voices
-        'aria': 'Aria - US Female (Friendly)',
-        'jenny': 'Jenny - US Female (Warm)',
-        'michelle': 'Michelle - US Female (Professional)',
-        'monica': 'Monica - US Female (Deep)',
-        'nancy': 'Nancy - US Female (Deep)',
-        'amber': 'Amber - US Female (Energetic)',
-        'ashley': 'Ashley - US Female (Clear)',
-        'sara': 'Sara - US Female (Calm)',
 
-        # US Male voices
-        'guy': 'Guy - US Male (Friendly)',
-        'davis': 'Davis - US Male (Professional)',
-        'eric': 'Eric - US Male (Clear)',
-        'christopher': 'Christopher - US Male (Confident)',
-        'jason': 'Jason - US Male (Energetic)',
-        'tony': 'Tony - US Male (Authoritative)',
-        'roger': 'Roger - US Male (Mature)',
-        'steffan': 'Steffan - US Male (Smooth)',
+def set_duration(clip, duration):
+    """Compatible duration setting for MoviePy 1.x and 2.x"""
+    try:
+        return clip.with_duration(duration)
+    except:
+        return clip.set_duration(duration)
 
-        # British voices
-        'sonia': 'Sonia - British Female (Refined)',
-        'mia': 'Mia - British Female (Deep)',
-        'ryan': 'Ryan - British Male (Clear)',
-        'thomas': 'Thomas - British Male (Professional)',
-        'libby': 'Libby - British Female (Young)',
-        'alfie': 'Alfie - British Male (Friendly)',
 
-        # Australian voices
-        'natasha': 'Natasha - Australian Female (Warm)',
-        'annette': 'Annette - Australian Female (Deep)',
-        'william': 'William - Australian Male (Clear)',
+def subclip(clip, start, end):
+    """Compatible subclipping for MoviePy 1.x and 2.x"""
+    try:
+        return clip.subclipped(start, end)
+    except:
+        return clip.subclip(start, end)
 
-        # Indian voices
-        'neerja': 'Neerja - Indian Female (Clear)',
-        'prabhat': 'Prabhat - Indian Male (Professional)',
-    }
+
+def set_audio(clip, audio):
+    """Compatible audio setting for MoviePy 1.x and 2.x"""
+    try:
+        return clip.with_audio(audio)
+    except:
+        return clip.set_audio(audio)
+
+
+def set_position(clip, position):
+    """Compatible position setting for MoviePy 1.x and 2.x"""
+    try:
+        return clip.with_position(position)
+    except:
+        return clip.set_position(position)
 
 
 class VideoEffects:
@@ -70,6 +80,8 @@ class VideoEffects:
     @staticmethod
     def apply_color_grade(frame, grade_type='warm', intensity=0.5):
         """Apply color grading to frame"""
+        # Work on a copy to avoid modifying read-only arrays
+        frame = frame.copy()
         if grade_type == 'warm':
             frame[:,:,0] = np.clip(frame[:,:,0] * (1 + intensity * 0.2), 0, 255)
             frame[:,:,2] = np.clip(frame[:,:,2] * (1 - intensity * 0.1), 0, 255)
@@ -88,6 +100,8 @@ class VideoEffects:
     @staticmethod
     def apply_vignette(frame, intensity=0.4):
         """Apply vignette darkening"""
+        # Work on a copy to avoid modifying read-only arrays
+        frame = frame.copy()
         h, w = frame.shape[:2]
         y, x = np.ogrid[:h, :w]
         cx, cy = w / 2, h / 2
@@ -100,13 +114,624 @@ class VideoEffects:
     @staticmethod
     def apply_film_grain(frame, intensity=0.15):
         """Apply film grain overlay"""
+        # Work on a copy to avoid modifying read-only arrays
+        frame = frame.copy()
         noise = np.random.normal(0, intensity * 255, frame.shape)
         return np.clip(frame + noise, 0, 255).astype('uint8')
 
     @staticmethod
     def apply_background_dim(frame, intensity=0.25):
         """Dim the background"""
+        # Work on a copy to avoid modifying read-only arrays
+        frame = frame.copy()
         return (frame * (1 - intensity)).astype('uint8')
+
+
+class ParticleEffects:
+    """Animated particle overlays (glitter, stars, confetti, etc.)"""
+
+    @staticmethod
+    def create_glitter_overlay(width, height, duration, fps, intensity=0.5):
+        """Create glitter/sparkle particle effect"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        def make_frame(t):
+            # Create black frame (RGB)
+            frame = np.zeros((height, width, 3), dtype=np.uint8).copy()
+
+            # Number of particles based on intensity
+            num_particles = int(50 * intensity)
+
+            # Generate random sparkles
+            np.random.seed(int(t * 1000) % 10000)  # Different random seed per frame
+            for _ in range(num_particles):
+                x = np.random.randint(0, width)
+                y = np.random.randint(0, height)
+                size = np.random.randint(2, 6)
+
+                # Twinkling effect using sine wave
+                brightness = int(255 * abs(np.sin(t * 5 + np.random.random() * 10)))
+
+                # Draw sparkle (white with brightness)
+                y1, y2 = max(0, y-size), min(height, y+size)
+                x1, x2 = max(0, x-size), min(width, x+size)
+
+                frame[y1:y2, x1:x2, :] = [brightness, brightness, brightness]  # White sparkle
+
+            return frame.copy()
+
+        def make_mask(t):
+            # Create mask where white sparkles are opaque and black is transparent
+            frame = make_frame(t)
+            # Convert to grayscale for mask (bright areas = opaque, dark = transparent)
+            mask = frame[:, :, 0].astype('uint8')  # Use any channel since it's grayscale
+            return mask
+
+        clip = VideoClip(make_frame, duration=duration)
+        mask_clip = VideoClip(make_mask, duration=duration, ismask=True)
+
+        try:
+            clip = clip.set_fps(fps)
+            mask_clip = mask_clip.set_fps(fps)
+            clip = clip.set_mask(mask_clip)
+        except AttributeError:
+            clip = clip.with_fps(fps)
+            mask_clip = mask_clip.with_fps(fps)
+            clip = clip.with_mask(mask_clip)
+
+        return clip
+
+    @staticmethod
+    def create_stars_overlay(width, height, duration, fps, particle_type='star'):
+        """Create falling stars/hearts/emojis effect"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        # Create particles with random positions and speeds
+        num_particles = 20
+        particles = []
+
+        for i in range(num_particles):
+            particles.append({
+                'x': np.random.randint(0, width),
+                'y_start': -np.random.randint(0, height),  # Start above screen
+                'speed': np.random.uniform(50, 150),  # Pixels per second
+                'size': np.random.randint(15, 40),
+                'rotation': np.random.uniform(0, 360),
+                'rotation_speed': np.random.uniform(-180, 180)
+            })
+
+        def make_frame(t):
+            # Create transparent RGBA frame
+            frame_rgba = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(frame_rgba)
+
+            for particle in particles:
+                # Update position
+                y = int(particle['y_start'] + particle['speed'] * t)
+
+                # Wrap around when particle goes off bottom
+                if y > height + 50:
+                    y = y % (height + 100) - 50
+
+                x = int(particle['x'])
+                size = particle['size']
+
+                # Draw based on type
+                if particle_type == 'star':
+                    # Draw star shape
+                    points = []
+                    for i in range(10):
+                        angle = (i * 36) * np.pi / 180
+                        r = size if i % 2 == 0 else size // 2
+                        px = x + r * np.cos(angle)
+                        py = y + r * np.sin(angle)
+                        points.append((px, py))
+                    draw.polygon(points, fill=(255, 255, 100, 255))  # Yellow
+
+                elif particle_type == 'heart':
+                    # Draw heart (simplified circle-based)
+                    draw.ellipse([x-size//2, y-size//2, x, y+size//2], fill=(255, 50, 50, 255))
+                    draw.ellipse([x, y-size//2, x+size//2, y+size//2], fill=(255, 50, 50, 255))
+                    draw.polygon([(x-size//2, y), (x+size//2, y), (x, y+size)], fill=(255, 50, 50, 255))
+
+                elif particle_type == 'circle':
+                    # Simple colorful circles
+                    colors = [(255, 100, 100, 255), (100, 255, 100, 255),
+                             (100, 100, 255, 255), (255, 255, 100, 255)]
+                    color = colors[hash(str(particle['x'])) % len(colors)]
+                    draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], fill=color)
+
+            # Convert RGBA to RGB for video, and create separate mask
+            frame_rgb = Image.new('RGB', (width, height), (0, 0, 0))
+            frame_rgb.paste(frame_rgba, mask=frame_rgba.split()[3])
+            return np.array(frame_rgb).copy()
+
+        def make_mask(t):
+            # Extract alpha channel as mask
+            frame_rgba = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(frame_rgba)
+
+            for particle in particles:
+                y = int(particle['y_start'] + particle['speed'] * t)
+                if y > height + 50:
+                    y = y % (height + 100) - 50
+                x = int(particle['x'])
+                size = particle['size']
+
+                if particle_type == 'star':
+                    points = []
+                    for i in range(10):
+                        angle = (i * 36) * np.pi / 180
+                        r = size if i % 2 == 0 else size // 2
+                        px = x + r * np.cos(angle)
+                        py = y + r * np.sin(angle)
+                        points.append((px, py))
+                    draw.polygon(points, fill=(255, 255, 255, 255))
+                elif particle_type == 'heart':
+                    draw.ellipse([x-size//2, y-size//2, x, y+size//2], fill=(255, 255, 255, 255))
+                    draw.ellipse([x, y-size//2, x+size//2, y+size//2], fill=(255, 255, 255, 255))
+                    draw.polygon([(x-size//2, y), (x+size//2, y), (x, y+size)], fill=(255, 255, 255, 255))
+                elif particle_type == 'circle':
+                    draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], fill=(255, 255, 255, 255))
+
+            # Return alpha channel as grayscale mask
+            alpha = frame_rgba.split()[3]
+            return np.array(alpha).copy()
+
+        clip = VideoClip(make_frame, duration=duration)
+        mask_clip = VideoClip(make_mask, duration=duration, ismask=True)
+
+        try:
+            clip = clip.set_fps(fps)
+            mask_clip = mask_clip.set_fps(fps)
+            clip = clip.set_mask(mask_clip)
+        except AttributeError:
+            clip = clip.with_fps(fps)
+            mask_clip = mask_clip.with_fps(fps)
+            clip = clip.with_mask(mask_clip)
+
+        return clip
+
+    @staticmethod
+    def create_confetti_overlay(width, height, duration, fps):
+        """Create falling confetti effect"""
+        return ParticleEffects.create_stars_overlay(width, height, duration, fps, particle_type='circle')
+
+
+class TTSGenerator:
+    """Text-to-Speech voiceover generator using Microsoft Edge TTS (natural voices)"""
+
+    # Natural-sounding voice options with descriptions
+    VOICES = {
+        # US English - Female
+        'aria': 'en-US-AriaNeural',           # Friendly, warm female
+        'jenny': 'en-US-JennyNeural',         # Cheerful, energetic female
+        'michelle': 'en-US-MichelleNeural',   # Professional, clear female
+        'monica': 'en-US-MonicaNeural',       # Deep, mature female (DEEP)
+        'nancy': 'en-US-NancyNeural',         # News anchor female, authoritative (DEEP)
+        'amber': 'en-US-AmberNeural',         # Young, casual female
+        'ashley': 'en-US-AshleyNeural',       # Bright, youthful female
+        'sara': 'en-US-SaraNeural',           # Mature, calm female
+
+        # US English - Male
+        'guy': 'en-US-GuyNeural',             # Friendly, warm male
+        'davis': 'en-US-DavisNeural',         # Professional, authoritative male
+        'eric': 'en-US-EricNeural',           # Conversational, casual male
+        'christopher': 'en-US-ChristopherNeural',  # Deep, mature male
+        'jason': 'en-US-JasonNeural',         # Deep, powerful male (HEAVY)
+        'tony': 'en-US-TonyNeural',           # News anchor, deep authoritative (HEAVY)
+        'roger': 'en-US-RogerNeural',         # Older, wise male
+        'steffan': 'en-US-SteffanNeural',     # Young, energetic male
+
+        # British English
+        'sonia': 'en-GB-SoniaNeural',         # British female
+        'mia': 'en-GB-MiaNeural',             # British deeper, mature female (DEEP)
+        'ryan': 'en-GB-RyanNeural',           # British male
+        'thomas': 'en-GB-ThomasNeural',       # British deep, serious male (HEAVY)
+        'libby': 'en-GB-LibbyNeural',         # British young female
+        'alfie': 'en-GB-AlfieNeural',         # British young male
+
+        # Australian English
+        'natasha': 'en-AU-NatashaNeural',     # Australian female
+        'annette': 'en-AU-AnnetteNeural',     # Australian deeper, professional female (DEEP)
+        'william': 'en-AU-WilliamNeural',     # Australian male
+
+        # Indian English
+        'neerja': 'en-IN-NeerjaNeural',       # Indian female
+        'prabhat': 'en-IN-PrabhatNeural',     # Indian male
+
+        # Backward compatibility
+        'female': 'en-US-AriaNeural',         # Default female
+        'male': 'en-US-GuyNeural',            # Default male
+    }
+
+    # Voice display names for GUI
+    VOICE_NAMES = {
+        'aria': 'Aria - US Female (Friendly)',
+        'jenny': 'Jenny - US Female (Cheerful)',
+        'michelle': 'Michelle - US Female (Professional)',
+        'monica': 'Monica - US Female (Deep & Mature) 💎',
+        'nancy': 'Nancy - US Female (News Anchor, Deep) 💎',
+        'amber': 'Amber - US Female (Young)',
+        'ashley': 'Ashley - US Female (Bright)',
+        'sara': 'Sara - US Female (Mature)',
+        'guy': 'Guy - US Male (Friendly)',
+        'davis': 'Davis - US Male (Professional)',
+        'eric': 'Eric - US Male (Casual)',
+        'christopher': 'Christopher - US Male (Deep)',
+        'jason': 'Jason - US Male (Deep & Powerful) 🔥',
+        'tony': 'Tony - US Male (News Anchor, Heavy) 🔥',
+        'roger': 'Roger - US Male (Wise)',
+        'steffan': 'Steffan - US Male (Energetic)',
+        'sonia': 'Sonia - British Female',
+        'mia': 'Mia - British Female (Deep & Mature) 💎',
+        'ryan': 'Ryan - British Male',
+        'thomas': 'Thomas - British Male (Deep & Serious) 🔥',
+        'libby': 'Libby - British Female (Young)',
+        'alfie': 'Alfie - British Male (Young)',
+        'natasha': 'Natasha - Australian Female',
+        'annette': 'Annette - Australian Female (Deep & Professional) 💎',
+        'william': 'William - Australian Male',
+        'neerja': 'Neerja - Indian Female',
+        'prabhat': 'Prabhat - Indian Male',
+    }
+
+    @staticmethod
+    async def _generate_async_with_timing(text: str, output_path: Path, voice: str, rate: str):
+        """Async TTS generation with word-level timing data"""
+        try:
+            # Create TTS communicator
+            communicate = edge_tts.Communicate(text, voice, rate=rate)
+
+            # Collect word timings
+            word_timings = []
+            chunk_count = 0
+            audio_chunks = 0
+            word_boundary_chunks = 0
+
+            # Generate and save audio with word boundaries
+            with open(str(output_path), 'wb') as audio_file:
+                async for chunk in communicate.stream():
+                    chunk_count += 1
+                    chunk_type = chunk.get("type", "unknown")
+
+                    if chunk_type == "audio":
+                        audio_file.write(chunk["data"])
+                        audio_chunks += 1
+                    elif chunk_type == "WordBoundary":
+                        word_boundary_chunks += 1
+                        # Word timing info from edge-tts
+                        word_info = {
+                            'word': chunk.get('text', ''),
+                            'offset': chunk.get('offset', 0) / 10000000.0,  # Convert to seconds
+                            'duration': chunk.get('duration', 0) / 10000000.0  # Convert to seconds
+                        }
+                        word_timings.append(word_info)
+                        print(f"    Word {len(word_timings)}: '{word_info['word']}' @ {word_info['offset']:.2f}s")
+                    else:
+                        print(f"    Chunk type: {chunk_type}")
+
+            print(f"  TTS Debug: {chunk_count} total chunks, {audio_chunks} audio, {word_boundary_chunks} word boundaries")
+            return True, word_timings
+        except Exception as e:
+            print(f"⚠ Async TTS generation error: {e}")
+            import traceback
+            traceback.print_exc()
+            return False, []
+
+    @staticmethod
+    async def _generate_async(text: str, output_path: Path, voice: str, rate: str) -> bool:
+        """Async TTS generation using edge-tts (legacy - no timing)"""
+        try:
+            # Create TTS communicator
+            communicate = edge_tts.Communicate(text, voice, rate=rate)
+
+            # Generate and save audio
+            await communicate.save(str(output_path))
+            return True
+        except Exception as e:
+            print(f"⚠ Async TTS generation error: {e}")
+            return False
+
+    @staticmethod
+    def generate_voiceover(text: str, output_path: Path, settings: dict = None):
+        """Generate natural-sounding voiceover from text using Microsoft Edge TTS
+        Returns: (success: bool, word_timings: list)
+        """
+        if not TTS_AVAILABLE:
+            print("⚠ TTS not available - skipping voiceover generation")
+            return False, []
+
+        try:
+            settings = settings or {}
+
+            # Select voice based on preference (defaults to 'aria')
+            voice_key = settings.get('tts_voice', 'aria').lower()
+            voice = TTSGenerator.VOICES.get(voice_key, TTSGenerator.VOICES['aria'])
+
+            # Calculate speech rate adjustment
+            # Settings range: 100-250 (default 150)
+            # edge-tts rate format: "+0%", "-20%", "+50%"
+            speed = settings.get('tts_speed', 150)
+            rate_percent = int((speed - 150) / 150 * 100)  # Convert to percentage
+            rate = f"{rate_percent:+d}%" if rate_percent != 0 else "+0%"
+
+            # Clean text for TTS (remove emojis and special characters)
+            clean_text = re.sub(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+', '', text)
+            clean_text = clean_text.strip()
+
+            if not clean_text:
+                print("⚠ No text to convert after cleaning")
+                return False, []
+
+            # Run async TTS generation with word timing
+            try:
+                # Try to get existing event loop
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If loop is already running, create a new one in a thread
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future = executor.submit(
+                            asyncio.run,
+                            TTSGenerator._generate_async_with_timing(clean_text, output_path, voice, rate)
+                        )
+                        success, word_timings = future.result(timeout=30)
+                else:
+                    success, word_timings = loop.run_until_complete(
+                        TTSGenerator._generate_async_with_timing(clean_text, output_path, voice, rate)
+                    )
+            except RuntimeError:
+                # No event loop, create a new one
+                success, word_timings = asyncio.run(
+                    TTSGenerator._generate_async_with_timing(clean_text, output_path, voice, rate)
+                )
+
+            if success:
+                print(f"✓ Generated natural TTS voiceover: {output_path.name} (voice: {voice})")
+                print(f"  {len(word_timings)} words with timing data")
+                return True, word_timings
+            else:
+                return False, []
+
+        except Exception as e:
+            print(f"⚠ TTS generation failed: {e}")
+            return False, []
+
+
+class CaptionRenderer:
+    """Render synchronized captions/subtitles"""
+
+    @staticmethod
+    def create_estimated_captions(text, audio_duration, video_width, video_height, settings):
+        """Create captions with estimated timing when word-level timing is unavailable"""
+        caption_clips = []
+
+        # Remove emojis and clean text
+        import re
+        clean_text = re.sub(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+', '', text)
+        clean_text = clean_text.strip()
+
+        if not clean_text or audio_duration <= 0:
+            return []
+
+        # Split into words
+        words = clean_text.split()
+        if not words:
+            return []
+
+        # Caption settings
+        words_per_caption = settings.get('caption_words_per_line', 3)
+        font_size = settings.get('caption_font_size', 60)
+        position = settings.get('caption_position', 'bottom')
+
+        # Estimate time per word
+        time_per_word = audio_duration / len(words)
+
+        # Caption timing offset - start captions slightly early for better sync
+        # This compensates for reaction time and makes captions feel more natural
+        timing_offset = 0.15  # seconds
+
+        # Load font
+        try:
+            font_path = str(Path(r"C:\Windows\Fonts") / 'arialbd.ttf')
+            font = ImageFont.truetype(font_path, font_size)
+        except:
+            font = ImageFont.load_default()
+
+        # Create caption segments
+        current_time = 0.0
+        for i in range(0, len(words), words_per_caption):
+            segment_words = words[i:i+words_per_caption]
+            text_content = ' '.join(segment_words)
+
+            # Calculate timing - start slightly early for better sync
+            start_time = max(0, current_time - timing_offset)  # Don't go negative
+            duration = len(segment_words) * time_per_word
+            current_time += duration
+
+            try:
+                # Create PIL image
+                dummy_img = Image.new('RGBA', (1, 1))
+                dummy_draw = ImageDraw.Draw(dummy_img)
+                bbox = dummy_draw.textbbox((0, 0), text_content, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+
+                padding = 20
+                img_width = min(text_width + padding * 2, int(video_width * 0.9))
+                img_height = text_height + padding * 2
+
+                # Create caption image with SOLID black background (no transparency)
+                img_rgb = Image.new('RGB', (img_width, img_height), (0, 0, 0))  # Solid black
+                draw = ImageDraw.Draw(img_rgb)
+
+                text_x = (img_width - text_width) // 2
+                text_y = padding
+                draw.text((text_x, text_y), text_content, font=font, fill=(255, 255, 255))  # White text
+
+                # Create clip - no mask needed since background is solid
+                frame = np.array(img_rgb).copy()
+
+                try:
+                    from moviepy import ImageClip
+                except ImportError:
+                    from moviepy.editor import ImageClip
+
+                clip = ImageClip(frame, ismask=False)
+
+                try:
+                    clip = clip.set_duration(duration)
+                    clip = clip.set_start(start_time)
+                except AttributeError:
+                    clip = clip.with_duration(duration)
+                    clip = clip.with_start(start_time)
+
+                # Position
+                if position == 'top':
+                    y_pos = int(video_height * 0.1)
+                elif position == 'center':
+                    y_pos = 'center'
+                else:  # bottom
+                    y_pos = int(video_height * 0.75)
+
+                try:
+                    clip = clip.set_position(('center', y_pos))
+                except AttributeError:
+                    clip = clip.with_position(('center', y_pos))
+
+                caption_clips.append(clip)
+
+            except Exception as e:
+                print(f"⚠ Error creating caption segment: {e}")
+
+        print(f"✓ Created {len(caption_clips)} estimated caption segments")
+        return caption_clips
+
+    @staticmethod
+    def create_word_captions(word_timings, video_width, video_height, settings):
+        """Create synchronized caption clips for each word"""
+        try:
+            from moviepy import ImageClip
+        except ImportError:
+            from moviepy.editor import ImageClip
+
+        caption_clips = []
+
+        # Caption settings
+        font_size = settings.get('caption_font_size', 60)
+        text_color = (255, 255, 255)  # White
+        bg_color = (0, 0, 0)  # Black
+        position = settings.get('caption_position', 'bottom')  # top, center, bottom
+        words_per_caption = settings.get('caption_words_per_line', 3)  # How many words to show at once
+
+        # Load font
+        try:
+            font_path = str(Path(r"C:\Windows\Fonts") / 'arialbd.ttf')
+            font = ImageFont.truetype(font_path, font_size)
+        except:
+            font = ImageFont.load_default()
+
+        # Group words into caption segments
+        caption_segments = []
+        for i in range(0, len(word_timings), words_per_caption):
+            segment_words = word_timings[i:i+words_per_caption]
+            if not segment_words:
+                continue
+
+            # Calculate start and end time for this segment
+            start_time = segment_words[0]['offset']
+            end_time = segment_words[-1]['offset'] + segment_words[-1]['duration']
+
+            # Combine words
+            text = ' '.join([w['word'] for w in segment_words])
+
+            caption_segments.append({
+                'text': text,
+                'start': start_time,
+                'end': end_time
+            })
+
+        print(f"✓ Creating {len(caption_segments)} caption segments")
+
+        # Create caption clips
+        for segment in caption_segments:
+            try:
+                text = segment['text']
+
+                # Create PIL image with text
+                # First, get text size
+                dummy_img = Image.new('RGBA', (1, 1))
+                dummy_draw = ImageDraw.Draw(dummy_img)
+                bbox = dummy_draw.textbbox((0, 0), text, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+
+                # Add padding
+                padding = 20
+                img_width = min(text_width + padding * 2, int(video_width * 0.9))
+                img_height = text_height + padding * 2
+
+                # Create image with SOLID black background (no transparency)
+                img_rgb = Image.new('RGB', (img_width, img_height), bg_color)  # Solid black
+                draw = ImageDraw.Draw(img_rgb)
+
+                # Draw text centered
+                text_x = (img_width - text_width) // 2
+                text_y = padding
+                draw.text((text_x, text_y), text, font=font, fill=text_color)  # White text
+
+                # Convert to numpy array (writable copy)
+                frame = np.array(img_rgb).copy()
+
+                print(f"  Caption frame shape: {frame.shape}, dtype: {frame.dtype}")
+                print(f"  Caption text: '{text}' ({segment['start']:.2f}s - {segment['end']:.2f}s)")
+
+                # Create ImageClip - no mask needed since background is solid
+                try:
+                    from moviepy import ImageClip
+                except ImportError:
+                    from moviepy.editor import ImageClip
+
+                clip = ImageClip(frame, ismask=False)
+
+                duration = segment['end'] - segment['start']
+                try:
+                    clip = clip.with_duration(duration)
+                    clip = clip.with_start(segment['start'])
+                except AttributeError:
+                    clip = clip.set_duration(duration)
+                    clip = clip.set_start(segment['start'])
+
+                # Position based on settings
+                if position == 'top':
+                    y_pos = int(video_height * 0.1)
+                elif position == 'center':
+                    y_pos = 'center'
+                else:  # bottom
+                    y_pos = int(video_height * 0.75)
+
+                try:
+                    clip = clip.with_position(('center', y_pos))
+                except AttributeError:
+                    clip = clip.set_position(('center', y_pos))
+
+                print(f"  Caption positioned at: {clip.pos}, size: {clip.size}")
+                caption_clips.append(clip)
+
+            except Exception as e:
+                print(f"⚠ Error creating caption for '{segment['text']}': {e}")
+                import traceback
+                traceback.print_exc()
+                continue
+
+        return caption_clips
 
 
 class AudioProcessor:
@@ -114,50 +739,83 @@ class AudioProcessor:
 
     @staticmethod
     def get_voiceover_files(folder_path: Path) -> List[Path]:
-        """Get audio files from voiceover folder"""
+        """Get audio files from voiceover folder sorted by number"""
         if not folder_path or not folder_path.exists():
             return []
         audio_extensions = {'.mp3', '.wav', '.m4a', '.aac', '.ogg'}
         files = [f for f in folder_path.iterdir()
                 if f.suffix.lower() in audio_extensions and f.is_file()]
-        return sorted(files, key=lambda x: x.stat().st_ctime)
+
+        # Sort by number in filename (1.mp3, 2.mp3, etc.)
+        def extract_number(filepath):
+            import re
+            match = re.search(r'(\d+)', filepath.stem)
+            return int(match.group(1)) if match else 999999
+
+        return sorted(files, key=extract_number)
+
+    @staticmethod
+    def get_bgm_files(bgm_path: str) -> List[Path]:
+        """Get BGM files - supports single file or folder with multiple files"""
+        bgm_path = Path(bgm_path)
+
+        if not bgm_path.exists():
+            return []
+
+        audio_extensions = {'.mp3', '.wav', '.m4a', '.aac', '.ogg'}
+
+        # Single file
+        if bgm_path.is_file() and bgm_path.suffix.lower() in audio_extensions:
+            return [bgm_path]
+
+        # Folder with multiple files
+        if bgm_path.is_dir():
+            files = [f for f in bgm_path.iterdir()
+                    if f.suffix.lower() in audio_extensions and f.is_file()]
+            return sorted(files)
+
+        return []
 
     @staticmethod
     def create_looped_audio(audio_clip, target_duration):
         """Loop audio to match video duration"""
         if audio_clip.duration >= target_duration:
-            return audio_clip.subclipped(0, target_duration)
+            return subclip(audio_clip, 0, target_duration)
         else:
             loops_needed = int(np.ceil(target_duration / audio_clip.duration))
             clips = [audio_clip] * loops_needed
-            looped = CompositeAudioClip(clips).with_duration(target_duration)
+            looped = set_duration(CompositeAudioClip(clips), target_duration)
             return looped
 
     @staticmethod
-    def mix_audio_tracks(video_clip, settings, voiceover_file: Optional[Path] = None):
+    def mix_audio_tracks(video_clip, settings, voiceover_file: Optional[Path] = None, bgm_file: Optional[Path] = None):
         """Mix original audio, BGM, and voiceover"""
         audio_tracks = []
 
         # Original audio
         if video_clip.audio and not settings.get('mute_original_audio', False):
-            original_volume = settings.get('original_audio_volume', 0.5) if settings.get('mix_audio', True) else 1.0
-            original_audio = video_clip.audio.with_effects([MultiplyVolume(original_volume)])
+            # Convert percentage (0-200) to decimal (0.0-2.0)
+            volume_percent = settings.get('original_audio_volume', 100)
+            original_volume = volume_percent / 100.0
+            original_audio = set_volume(video_clip.audio, original_volume)
             audio_tracks.append(original_audio)
+            print(f"✓ Original audio volume: {volume_percent}%")
 
-        # Custom BGM
-        if settings.get('add_custom_bgm', False) and settings.get('bgm_file'):
-            bgm_path = Path(settings['bgm_file'])
-            if bgm_path.exists():
+        # Custom BGM (use provided bgm_file or fall back to settings)
+        if settings.get('add_custom_bgm', False):
+            bgm_path = bgm_file if bgm_file else (Path(settings['bgm_file']) if settings.get('bgm_file') else None)
+
+            if bgm_path and bgm_path.exists():
                 try:
                     bgm_audio = AudioFileClip(str(bgm_path))
 
                     if settings.get('bgm_loop', True):
                         bgm_audio = AudioProcessor.create_looped_audio(bgm_audio, video_clip.duration)
                     else:
-                        bgm_audio = bgm_audio.subclipped(0, min(bgm_audio.duration, video_clip.duration))
+                        bgm_audio = subclip(bgm_audio, 0, min(bgm_audio.duration, video_clip.duration))
 
                     bgm_volume = settings.get('bgm_volume', 0.3)
-                    bgm_audio = bgm_audio.with_effects([MultiplyVolume(bgm_volume)])
+                    bgm_audio = set_volume(bgm_audio, bgm_volume)
                     audio_tracks.append(bgm_audio)
                     print(f"✓ Added BGM: {bgm_path.name}")
                 except Exception as e:
@@ -170,11 +828,14 @@ class AudioProcessor:
                 voiceover_volume = settings.get('voiceover_volume', 1.0)
                 voiceover_delay = settings.get('voiceover_delay', 0.0)
 
-                voiceover_audio = voiceover_audio.with_effects([MultiplyVolume(voiceover_volume)])
+                voiceover_audio = set_volume(voiceover_audio, voiceover_volume)
 
                 if voiceover_delay > 0:
-                    silence = AudioFileClip(str(voiceover_file)).with_duration(voiceover_delay).with_effects([MultiplyVolume(0)])
-                    voiceover_audio = CompositeAudioClip([silence, voiceover_audio.with_start(voiceover_delay)])
+                    silence = set_volume(set_duration(AudioFileClip(str(voiceover_file)), voiceover_delay), 0)
+                    try:
+                        voiceover_audio = CompositeAudioClip([silence, voiceover_audio.set_start(voiceover_delay)])
+                    except:
+                        voiceover_audio = CompositeAudioClip([silence, voiceover_audio.with_start(voiceover_delay)])
 
                 audio_tracks.append(voiceover_audio)
                 print(f"✓ Added voiceover: {voiceover_file.name}")
@@ -262,24 +923,16 @@ class VideoQuoteAutomation:
     """Automate adding quotes to videos with advanced effects"""
 
     def __init__(self):
-        # Use centralized configuration
-        self.video_folder = config.VIDEO_FOLDER
-        self.quotes_file = config.QUOTES_FILE
-        self.output_folder = config.OUTPUT_FOLDER
+        self.video_folder = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\SourceVideosToEdit\Libriana8")
+        self.quotes_file = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\Quotes.txt")
+        self.output_folder = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\FinalVideos")
 
-        # Create output folder (already done in config, but safe to call again)
         self.output_folder.mkdir(parents=True, exist_ok=True)
 
-        # Load settings from GUI
         self.settings = self.load_settings()
 
-        # Processing log
-        self.log_file = config.PROCESSING_LOG
+        self.log_file = self.output_folder / "processing_log.json"
         self.processing_log = self._load_log()
-
-        # Failed videos folder for error recovery
-        self.failed_folder = self.output_folder / "Failed"
-        self.failed_folder.mkdir(exist_ok=True)
 
         # Load voiceover files if enabled
         self.voiceover_files = []
@@ -287,9 +940,25 @@ class VideoQuoteAutomation:
             voiceover_folder = Path(self.settings['voiceover_folder'])
             self.voiceover_files = AudioProcessor.get_voiceover_files(voiceover_folder)
             if self.voiceover_files:
-                print(f"✓ Loaded {len(self.voiceover_files)} voiceover files")
+                print(f"✓ Loaded {len(self.voiceover_files)} voiceover files (sorted by number)")
+                for i, vf in enumerate(self.voiceover_files[:5], 1):
+                    print(f"  {i}. {vf.name}")
             else:
                 print(f"⚠ No voiceover files found in {voiceover_folder}")
+
+        # Load BGM files if enabled
+        self.bgm_files = []
+        if self.settings.get('add_custom_bgm', False) and self.settings.get('bgm_file'):
+            self.bgm_files = AudioProcessor.get_bgm_files(self.settings['bgm_file'])
+            if self.bgm_files:
+                if len(self.bgm_files) == 1:
+                    print(f"✓ Loaded 1 BGM file: {self.bgm_files[0].name}")
+                else:
+                    print(f"✓ Loaded {len(self.bgm_files)} BGM files (will select randomly per video)")
+                    for i, bf in enumerate(self.bgm_files[:5], 1):
+                        print(f"  {i}. {bf.name}")
+            else:
+                print(f"⚠ No BGM files found")
 
     def load_settings(self) -> dict:
         """Load settings from GUI config file"""
@@ -357,81 +1026,6 @@ class VideoQuoteAutomation:
         """Convert hex color to RGB tuple"""
         hex_color = hex_color.lstrip('#')
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-
-    def _load_font(self, font_file: str, size: int, font_type: str):
-        """Load a font with proper fallback and error handling"""
-        from PIL import ImageFont
-
-        # Try loading from full path first
-        font_path = Path(font_file)
-        if font_path.exists() and font_path.is_file():
-            try:
-                font = ImageFont.truetype(str(font_path), size)
-                print(f"✓ Loaded {font_type} font: {font_path.name}")
-                return font
-            except Exception as e:
-                print(f"⚠ Could not load {font_type} font from {font_path}: {e}")
-
-        # Try system fonts folder
-        system_font_path = config.SYSTEM_FONTS_FOLDER / Path(font_file).name
-        if system_font_path.exists():
-            try:
-                font = ImageFont.truetype(str(system_font_path), size)
-                print(f"✓ Loaded {font_type} font: {system_font_path.name}")
-                return font
-            except Exception as e:
-                print(f"⚠ Could not load {font_type} font from system: {e}")
-
-        # Try project fonts folder
-        project_font_path = config.PROJECT_FONTS_FOLDER / Path(font_file).name
-        if project_font_path.exists():
-            try:
-                font = ImageFont.truetype(str(project_font_path), size)
-                print(f"✓ Loaded {font_type} font: {project_font_path.name}")
-                return font
-            except Exception as e:
-                print(f"⚠ Could not load {font_type} font from project: {e}")
-
-        # Final fallback: try loading by name only (PIL will search)
-        try:
-            font = ImageFont.truetype(font_file, size)
-            print(f"✓ Loaded {font_type} font: {font_file}")
-            return font
-        except Exception as e:
-            print(f"⚠ Could not load {font_type} font '{font_file}': {e}")
-
-        # Ultimate fallback: default font (will look bad but won't crash)
-        print(f"⚠ Using default PIL font for {font_type} (video quality will be degraded)")
-        return ImageFont.load_default()
-
-    def _load_emoji_font(self, size: int):
-        """Load emoji font with fallback options"""
-        from PIL import ImageFont
-
-        # Try bundled emoji font first (NotoColorEmoji.ttf in project root)
-        if config.EMOJI_FONT.exists():
-            try:
-                font = ImageFont.truetype(str(config.EMOJI_FONT), size)
-                print(f"✓ Loaded emoji font: {config.EMOJI_FONT.name}")
-                return font
-            except Exception as e:
-                print(f"⚠ Could not load project emoji font: {e}")
-
-        # Try system emoji fonts
-        emoji_fonts = ['seguiemj.ttf', 'NotoColorEmoji.ttf', 'AppleColorEmoji.ttf']
-        for emoji_font_name in emoji_fonts:
-            emoji_path = config.SYSTEM_FONTS_FOLDER / emoji_font_name
-            if emoji_path.exists():
-                try:
-                    font = ImageFont.truetype(str(emoji_path), size)
-                    print(f"✓ Loaded emoji font: {emoji_font_name}")
-                    return font
-                except Exception:
-                    continue
-
-        # Fallback to main font (emojis may not render properly)
-        print(f"⚠ No emoji font found, using default font (emojis may not display)")
-        return ImageFont.load_default()
 
     def read_quotes(self) -> List[str]:
         """Read quotes from file"""
@@ -531,28 +1125,11 @@ class VideoQuoteAutomation:
         return found[:2]
 
     def sanitize_filename(self, text: str, max_length: int = 100) -> str:
-        """Convert text to valid filename (prevents path traversal)"""
-        # Remove any path components first (security fix)
-        text = os.path.basename(text)
-
-        # Remove invalid filename characters
+        """Convert text to valid filename"""
         text = re.sub(r'[<>:"/\\|?*]', '', text)
-
-        # Remove any remaining path separators and dots at start
-        text = text.replace('/', '').replace('\\', '')
-        text = text.lstrip('.')
-
-        # Collapse whitespace
         text = re.sub(r'\s+', ' ', text).strip()
-
-        # Ensure we have some content
-        if not text:
-            text = "unnamed"
-
-        # Truncate if needed
         if len(text) > max_length - 4:
             text = text[:max_length - 4]
-
         return text
 
     def create_filename(self, quote: str, hashtags: List[str]) -> str:
@@ -570,23 +1147,27 @@ class VideoQuoteAutomation:
         font_size = self.settings['font_size']
         cta_font_size = self.settings.get('cta_font_size', int(font_size * 0.95))
 
-        # Load fonts with proper error handling
-        main_font = self._load_font(
-            self.settings.get('font_file', 'arialbd.ttf'),
-            font_size,
-            'main'
-        )
+        try:
+            main_font_file = self.settings.get('font_file', 'arialbd.ttf')
+            if not Path(main_font_file).exists():
+                main_font_file = str(Path(r"C:\Windows\Fonts") / Path(main_font_file).name)
 
-        # Emoji font - try project font first, then system font
-        emoji_size = int(font_size * self.settings.get('emoji_size_multiplier', 1.2))
-        emoji_font = self._load_emoji_font(emoji_size)
+            main_font = ImageFont.truetype(main_font_file, font_size)
 
-        # CTA font
-        cta_font = self._load_font(
-            self.settings.get('cta_font_file', 'ariali.ttf'),
-            cta_font_size,
-            'CTA'
-        )
+            emoji_font_path = str(Path(r"C:\Windows\Fonts") / 'seguiemj.ttf')
+            emoji_font = ImageFont.truetype(emoji_font_path, int(font_size * self.settings['emoji_size_multiplier']))
+
+            cta_font_file = self.settings.get('cta_font_file', 'ariali.ttf')
+            if not Path(cta_font_file).exists():
+                cta_font_file = str(Path(r"C:\Windows\Fonts") / Path(cta_font_file).name)
+
+            cta_font = ImageFont.truetype(cta_font_file, cta_font_size)
+
+        except Exception as e:
+            print(f"⚠ Font loading error: {e}")
+            main_font = ImageFont.load_default()
+            emoji_font = main_font
+            cta_font = main_font
 
         max_text_width = int(img_width * (self.settings['bubble_width'] / 100))
         words = main_text.split()
@@ -775,13 +1356,13 @@ class VideoQuoteAutomation:
         print(f"CTA: {cta_text}")
 
         img = self.create_text_overlay_image(video.w, video.h, main_text, emoji_line, cta_text)
-        img_array = np.array(img)
+        img_array = np.array(img).copy()
 
-        txt_clip = ImageClip(img_array).with_duration(video.duration)
+        txt_clip = set_duration(ImageClip(img_array), video.duration)
 
         if self.settings.get('text_fade_in', False):
             fade_duration = self.settings.get('text_fade_duration', 0.4)
-            txt_clip = txt_clip.with_effects([FadeIn(fade_duration)])
+            txt_clip = txt_clip.fadein(fade_duration)
 
         if self.settings.get('text_slide_up', False):
             slide_distance = self.settings.get('text_slide_distance', 50)
@@ -796,14 +1377,14 @@ class VideoQuoteAutomation:
                         return ('center', 'center')
                     else:
                         return ('center', video.h - txt_clip.h)
-            txt_clip = txt_clip.with_position(slide_position)
+            txt_clip = set_position(txt_clip, slide_position)
         else:
             if self.settings['position'] == 'top':
-                txt_clip = txt_clip.with_position(('center', 0))
+                txt_clip = set_position(txt_clip, ('center', 0))
             elif self.settings['position'] == 'center':
-                txt_clip = txt_clip.with_position(('center', 'center'))
+                txt_clip = set_position(txt_clip, ('center', 'center'))
             else:
-                txt_clip = txt_clip.with_position(('center', video.h - txt_clip.h))
+                txt_clip = set_position(txt_clip, ('center', video.h - txt_clip.h))
 
         if self.settings.get('video_zoom', False):
             zoom_scale = self.settings.get('zoom_scale', 1.08)
@@ -819,42 +1400,188 @@ class VideoQuoteAutomation:
                 crop_x = (new_w - w) // 2
                 crop_y = (new_h - h) // 2
                 pil_frame = pil_frame.crop((crop_x, crop_y, crop_x + w, crop_y + h))
-                return np.array(pil_frame)
-            video = video.transform(zoom_effect)
+                return np.array(pil_frame).copy()
+            try:
+                video = video.transform(zoom_effect)
+            except AttributeError:
+                video = video.fl(zoom_effect)
 
         if self.settings.get('color_grade', 'none') != 'none':
             grade_type = self.settings.get('color_grade', 'warm')
-            video = video.image_transform(lambda frame: VideoEffects.apply_color_grade(frame, grade_type))
+            try:
+                video = video.image_transform(lambda frame: VideoEffects.apply_color_grade(frame, grade_type))
+            except AttributeError:
+                video = video.fl_image(lambda frame: VideoEffects.apply_color_grade(frame, grade_type))
 
         if self.settings.get('vignette', False):
             intensity = self.settings.get('vignette_intensity', 0.4)
-            video = video.image_transform(lambda frame: VideoEffects.apply_vignette(frame, intensity))
+            try:
+                video = video.image_transform(lambda frame: VideoEffects.apply_vignette(frame, intensity))
+            except AttributeError:
+                video = video.fl_image(lambda frame: VideoEffects.apply_vignette(frame, intensity))
 
         if self.settings.get('background_dim', False):
             intensity = self.settings.get('dim_intensity', 0.25)
-            video = video.image_transform(lambda frame: VideoEffects.apply_background_dim(frame, intensity))
+            try:
+                video = video.image_transform(lambda frame: VideoEffects.apply_background_dim(frame, intensity))
+            except AttributeError:
+                video = video.fl_image(lambda frame: VideoEffects.apply_background_dim(frame, intensity))
 
         if self.settings.get('film_grain', False):
             intensity = self.settings.get('grain_intensity', 0.15)
-            video = video.image_transform(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
+            try:
+                video = video.image_transform(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
+            except AttributeError:
+                video = video.fl_image(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
 
-        final_video = CompositeVideoClip([video, txt_clip])
+        # Start with video and text overlay
+        layers = [video, txt_clip]
+
+        # Add particle effects if enabled
+        if self.settings.get('add_glitter', False):
+            try:
+                intensity = self.settings.get('glitter_intensity', 0.5)
+                glitter = ParticleEffects.create_glitter_overlay(
+                    video.w, video.h, video.duration, video.fps, intensity
+                )
+                layers.append(glitter)
+                print(f"✓ Added glitter effect (intensity: {intensity})")
+            except Exception as e:
+                print(f"⚠ Glitter effect failed: {e}")
+
+        if self.settings.get('add_stars', False):
+            try:
+                stars = ParticleEffects.create_stars_overlay(
+                    video.w, video.h, video.duration, video.fps, particle_type='star'
+                )
+                layers.append(stars)
+                print("✓ Added falling stars effect")
+            except Exception as e:
+                print(f"⚠ Stars effect failed: {e}")
+
+        if self.settings.get('add_hearts', False):
+            try:
+                hearts = ParticleEffects.create_stars_overlay(
+                    video.w, video.h, video.duration, video.fps, particle_type='heart'
+                )
+                layers.append(hearts)
+                print("✓ Added falling hearts effect")
+            except Exception as e:
+                print(f"⚠ Hearts effect failed: {e}")
+
+        if self.settings.get('add_confetti', False):
+            try:
+                confetti = ParticleEffects.create_confetti_overlay(
+                    video.w, video.h, video.duration, video.fps
+                )
+                layers.append(confetti)
+                print("✓ Added confetti effect")
+            except Exception as e:
+                print(f"⚠ Confetti effect failed: {e}")
+
+        final_video = CompositeVideoClip(layers)
 
         # Audio processing
         voiceover_file = None
-        if self.settings.get('add_voiceover', False) and self.voiceover_files:
+        word_timings = []
+
+        # Debug: Check caption and TTS settings
+        print(f"DEBUG: enable_captions={self.settings.get('enable_captions', False)}, use_tts_voiceover={self.settings.get('use_tts_voiceover', False)}, TTS_AVAILABLE={TTS_AVAILABLE}")
+
+        # Option 1: Generate TTS voiceover from text
+        if self.settings.get('use_tts_voiceover', False) and TTS_AVAILABLE:
+            tts_folder = self.output_folder / "tts_voiceovers"
+            tts_folder.mkdir(exist_ok=True)
+
+            tts_filename = f"tts_{video_index + 1}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp3"
+            tts_path = tts_folder / tts_filename
+
+            # Generate TTS from the quote text
+            success, word_timings = TTSGenerator.generate_voiceover(quote, tts_path, self.settings)
+            if success:
+                voiceover_file = tts_path
+                print(f"✓ Using TTS voiceover: {tts_filename}")
+
+                # Save word timings for caption generation
+                if word_timings:
+                    timing_file = tts_path.with_suffix('.json')
+                    with open(timing_file, 'w') as f:
+                        json.dump(word_timings, f, indent=2)
+                    print(f"✓ Saved {len(word_timings)} word timings")
+
+        # Option 2: Use pre-recorded voiceover files
+        elif self.settings.get('add_voiceover', False) and self.voiceover_files:
             if video_index < len(self.voiceover_files):
                 voiceover_file = self.voiceover_files[video_index]
+                print(f"✓ Using voiceover {video_index + 1}: {voiceover_file.name}")
             else:
-                print(f"⚠ No voiceover file for video index {video_index}")
+                print(f"⚠ No voiceover file for video index {video_index + 1}")
 
-        final_audio = AudioProcessor.mix_audio_tracks(video, self.settings, voiceover_file)
+        # Select BGM (random if multiple files)
+        bgm_file = None
+        if self.settings.get('add_custom_bgm', False) and self.bgm_files:
+            if len(self.bgm_files) == 1:
+                bgm_file = self.bgm_files[0]
+            else:
+                import random
+                bgm_file = random.choice(self.bgm_files)
+                print(f"🎵 Random BGM selected: {bgm_file.name}")
+
+        final_audio = AudioProcessor.mix_audio_tracks(video, self.settings, voiceover_file, bgm_file)
 
         if final_audio:
-            final_video = final_video.with_audio(final_audio)
+            final_video = set_audio(final_video, final_audio)
         elif self.settings.get('mute_original_audio', False):
             final_video = final_video.without_audio()
             print("✓ Original audio muted")
+
+        # Add synchronized captions if enabled
+        if self.settings.get('enable_captions', False):
+            try:
+                caption_clips = []
+
+                # Try word-level timing if available
+                if word_timings:
+                    print(f"Adding synchronized captions... (word_timings: {len(word_timings)} words)")
+                    caption_clips = CaptionRenderer.create_word_captions(
+                        word_timings,
+                        video.w,
+                        video.h,
+                        self.settings
+                    )
+                # Fallback to estimated timing if TTS voiceover was generated
+                elif voiceover_file and voiceover_file.exists():
+                    print(f"Using estimated caption timing (no word boundaries from TTS)")
+                    from moviepy.editor import AudioFileClip
+                    try:
+                        tts_audio = AudioFileClip(str(voiceover_file))
+                        audio_duration = tts_audio.duration
+                        tts_audio.close()
+
+                        caption_clips = CaptionRenderer.create_estimated_captions(
+                            quote,
+                            audio_duration,
+                            video.w,
+                            video.h,
+                            self.settings
+                        )
+                    except Exception as e:
+                        print(f"⚠ Could not get TTS audio duration: {e}")
+
+                if caption_clips:
+                    print(f"Compositing {len(caption_clips)} caption clips with video...")
+                    # Composite video with captions
+                    all_clips = [final_video] + caption_clips
+                    final_video = CompositeVideoClip(all_clips)
+                    print(f"✓ Added {len(caption_clips)} caption segments")
+                else:
+                    print("⚠ No caption clips were created")
+
+            except Exception as e:
+                print(f"⚠ Caption rendering failed: {e}")
+                import traceback
+                traceback.print_exc()
+                print("  Continuing without captions...")
 
         output_path = self.output_folder / output_filename
         counter = 1
@@ -864,16 +1591,25 @@ class VideoQuoteAutomation:
             output_path = self.output_folder / f"{stem}_{counter}.mp4"
             counter += 1
 
-        print(f"Rendering with effects... This may take a few minutes.")
-        final_video.write_videofile(
-            str(output_path),
-            codec='libx264',
-            audio_codec='aac',
-            fps=video.fps,
-            preset='medium',
-            threads=4,
-            logger=None
-        )
+        print(f"Rendering with effects to: {output_path.name}")
+        print(f"Video details: size={final_video.size}, duration={final_video.duration:.2f}s, fps={video.fps}")
+
+        try:
+            final_video.write_videofile(
+                str(output_path),
+                codec='libx264',
+                audio_codec='aac',
+                fps=video.fps,
+                preset='medium',
+                threads=4,
+                logger='bar'  # Show progress bar
+            )
+            print(f"✓ Rendering complete!")
+        except Exception as e:
+            print(f"✗ Rendering failed: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
         video.close()
         txt_clip.close()
