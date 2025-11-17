@@ -737,7 +737,7 @@ class AudioSettingsPopup:
 
         self.window = tk.Toplevel(parent)
         self.window.title("🔊 Audio Settings")
-        self.window.geometry("720x780")
+        self.window.geometry("720x950")  # Increased height for caption controls
         self.window.configure(bg=ModernStyles.BG_DARK)
         # Removed grab_set to allow minimize
 
