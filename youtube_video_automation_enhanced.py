@@ -13,13 +13,14 @@ import numpy as np
 
 try:
     from moviepy import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
-    from moviepy.video.fx import Resize
+    from moviepy.video.fx import Resize, FadeIn
     from moviepy.audio.fx import MultiplyVolume, AudioLoop
 except ImportError:
     from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
     from moviepy.video.fx.resize import resize as Resize
     from moviepy.audio.fx.volumex import volumex as MultiplyVolume
     AudioLoop = None
+    FadeIn = None
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
@@ -1362,7 +1363,13 @@ class VideoQuoteAutomation:
 
         if self.settings.get('text_fade_in', False):
             fade_duration = self.settings.get('text_fade_duration', 0.4)
-            txt_clip = txt_clip.fadein(fade_duration)
+            if FadeIn:
+                txt_clip = txt_clip.with_effects([FadeIn(fade_duration)])
+            else:
+                try:
+                    txt_clip = txt_clip.fadein(fade_duration)
+                except AttributeError:
+                    pass  # Skip fade if not available
 
         if self.settings.get('text_slide_up', False):
             slide_distance = self.settings.get('text_slide_distance', 50)
