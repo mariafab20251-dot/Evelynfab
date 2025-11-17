@@ -955,6 +955,7 @@ class AudioSettingsPopup:
                 fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
 
         # Caption font style
+        print("DEBUG: Adding caption font style control")
         self.create_label(content, "Caption Font Style:")
         font_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
         font_frame.pack(fill='x', padx=20, pady=5)
@@ -980,10 +981,12 @@ class AudioSettingsPopup:
                  font=('Segoe UI', 9, 'bold'), padx=10, pady=5).pack(side='left', padx=5)
 
         # Caption background enable/disable
+        print("DEBUG: Adding caption background enable/disable checkbox")
         self.caption_bg_enabled_var = tk.BooleanVar(value=self.settings.get('caption_bg_enabled', True))
         self.create_checkbox(content, "Enable Caption Background", self.caption_bg_enabled_var)
 
         # Caption background color
+        print("DEBUG: Adding caption background color picker")
         self.create_label(content, "Caption Background Color:")
         bg_color_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
         bg_color_frame.pack(fill='x', padx=20, pady=5)
