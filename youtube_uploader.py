@@ -17,6 +17,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
 
+# Configuration
+from config import config
+
 # YouTube API scopes
 SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
 
@@ -24,20 +27,24 @@ class YouTubeUploader:
     """Automated YouTube uploader for multiple channels"""
     
     def __init__(self):
-        # Paths
-        self.videos_folder = Path(r"D:\MyFinalAutomations\ScriptAutomations\VideoFolder\FinalVideos")
-        self.uploaded_folder = self.videos_folder / "Uploaded"
-        self.failed_folder = self.videos_folder / "Failed"
-        self.credentials_folder = Path("youtube_credentials")
-        
-        # Create folders
+        # Use centralized configuration
+        self.videos_folder = config.VIDEOS_UPLOAD_FOLDER
+        self.uploaded_folder = config.UPLOADED_FOLDER
+        self.failed_folder = config.FAILED_FOLDER
+        self.credentials_folder = config.CREDENTIALS_FOLDER
+
+        # Folders are created in config, but safe to call again
         self.uploaded_folder.mkdir(exist_ok=True)
         self.failed_folder.mkdir(exist_ok=True)
         self.credentials_folder.mkdir(exist_ok=True)
-        
+
         # Upload log
-        self.upload_log_file = self.videos_folder / "upload_log.json"
+        self.upload_log_file = config.UPLOAD_LOG
         self.upload_log = self.load_upload_log()
+
+        # Retry configuration
+        self.max_retries = config.MAX_RETRIES
+        self.retry_delay = config.RETRY_DELAY
         
         # Channel configuration
         self.channels = {
@@ -80,9 +87,9 @@ class YouTubeUploader:
         
         # Current channel index for rotation
         self.current_channel_index = 0
-        
-        # Upload interval (5 minutes)
-        self.upload_interval = 5 * 60  # seconds
+
+        # Upload interval (configurable via environment variable)
+        self.upload_interval = config.UPLOAD_INTERVAL  # seconds
         
         print("="*70)
         print("YouTube Auto Uploader Initialized")
@@ -125,25 +132,43 @@ class YouTubeUploader:
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 try:
+                    print(f"  Refreshing expired token for {channel['name']}...")
                     creds.refresh(Request())
+                    print(f"  ✓ Token refreshed successfully")
+
+                    # Save refreshed credentials
+                    with open(token_path, 'wb') as token:
+                        pickle.dump(creds, token)
+
                 except Exception as e:
-                    print(f"Error refreshing token: {e}")
+                    print(f"  ❌ Error refreshing token: {e}")
+                    print(f"  → Need to re-authenticate {channel['name']}")
                     creds = None
-            
+
             if not creds:
                 if not credentials_path.exists():
                     print(f"❌ Missing credentials file: {credentials_path}")
                     print(f"Please add OAuth 2.0 credentials for {channel['name']}")
+                    print(f"→ Get credentials from: https://console.cloud.google.com/")
                     return None
-                
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    str(credentials_path), SCOPES)
-                creds = flow.run_local_server(port=0)
-            
+
+                try:
+                    print(f"  Authenticating {channel['name']}...")
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        str(credentials_path), SCOPES)
+                    creds = flow.run_local_server(port=0)
+                    print(f"  ✓ Authentication successful")
+                except Exception as e:
+                    print(f"  ❌ Authentication failed: {e}")
+                    return None
+
             # Save credentials
-            with open(token_path, 'wb') as token:
-                pickle.dump(creds, token)
-        
+            try:
+                with open(token_path, 'wb') as token:
+                    pickle.dump(creds, token)
+            except Exception as e:
+                print(f"  ⚠ Warning: Could not save token: {e}")
+
         return creds
     
     def get_youtube_service(self, channel_id):
@@ -151,12 +176,64 @@ class YouTubeUploader:
         creds = self.get_credentials(channel_id)
         if not creds:
             return None
-        
+
         try:
             return build('youtube', 'v3', credentials=creds)
         except Exception as e:
             print(f"Error building YouTube service: {e}")
             return None
+
+    def _retry_with_backoff(self, func, *args, **kwargs):
+        """Retry a function with exponential backoff"""
+        for attempt in range(self.max_retries):
+            try:
+                return func(*args, **kwargs)
+            except HttpError as e:
+                error_reason = e.reason if hasattr(e, 'reason') else str(e)
+
+                # Check if error is retryable
+                if e.resp.status in [500, 502, 503, 504]:
+                    # Server error - retry
+                    if attempt < self.max_retries - 1:
+                        wait_time = self.retry_delay * (2 ** attempt)
+                        print(f"  ⚠ Server error (HTTP {e.resp.status}): {error_reason}")
+                        print(f"  → Retrying in {wait_time} seconds... (attempt {attempt + 1}/{self.max_retries})")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        print(f"  ❌ Max retries reached")
+                        raise
+                elif e.resp.status == 403:
+                    # Quota exceeded or forbidden - don't retry
+                    print(f"  ❌ Quota exceeded or forbidden: {error_reason}")
+                    raise
+                elif e.resp.status == 400:
+                    # Bad request - don't retry
+                    print(f"  ❌ Bad request: {error_reason}")
+                    raise
+                else:
+                    # Other error - retry once
+                    if attempt < self.max_retries - 1:
+                        wait_time = self.retry_delay
+                        print(f"  ⚠ Error: {error_reason}")
+                        print(f"  → Retrying in {wait_time} seconds...")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        raise
+            except Exception as e:
+                # Non-HTTP error
+                if attempt < self.max_retries - 1:
+                    wait_time = self.retry_delay * (2 ** attempt)
+                    print(f"  ⚠ Unexpected error: {str(e)}")
+                    print(f"  → Retrying in {wait_time} seconds... (attempt {attempt + 1}/{self.max_retries})")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    raise
+
+        # Should not reach here, but just in case
+        raise Exception("Max retries exceeded")
     
     def extract_title_and_tags(self, filename):
         """Extract title and tags from filename"""
@@ -234,30 +311,49 @@ class YouTubeUploader:
             }
         }
         
-        # Upload video
+        # Upload video with retry logic
         try:
-            media = MediaFileUpload(
-                str(video_path),
-                mimetype='video/mp4',
-                resumable=True,
-                chunksize=1024*1024  # 1MB chunks
-            )
-            
-            request = youtube.videos().insert(
-                part=','.join(body.keys()),
-                body=body,
-                media_body=media
-            )
-            
-            print("Uploading... (this may take several minutes)")
-            
-            response = None
-            while response is None:
-                status, response = request.next_chunk()
-                if status:
-                    progress = int(status.progress() * 100)
-                    print(f"Upload progress: {progress}%", end='\r')
-            
+            def do_upload():
+                """Inner function for retry logic"""
+                media = MediaFileUpload(
+                    str(video_path),
+                    mimetype='video/mp4',
+                    resumable=True,
+                    chunksize=1024*1024  # 1MB chunks
+                )
+
+                request = youtube.videos().insert(
+                    part=','.join(body.keys()),
+                    body=body,
+                    media_body=media
+                )
+
+                print("Uploading... (this may take several minutes)")
+
+                response = None
+                error = None
+                while response is None:
+                    try:
+                        status, response = request.next_chunk()
+                        if status:
+                            progress = int(status.progress() * 100)
+                            print(f"Upload progress: {progress}%", end='\r')
+                    except HttpError as e:
+                        # If resumable upload fails, re-raise for retry logic
+                        if e.resp.status in [500, 502, 503, 504]:
+                            raise
+                        else:
+                            error = e
+                            break
+
+                if error:
+                    raise error
+
+                return response
+
+            # Use retry logic for upload
+            response = self._retry_with_backoff(do_upload)
+
             print(f"\n✓ Upload complete!")
             print(f"Video ID: {response['id']}")
             print(f"Video URL: https://www.youtube.com/watch?v={response['id']}")

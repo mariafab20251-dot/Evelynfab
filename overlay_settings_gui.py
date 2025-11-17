@@ -632,8 +632,9 @@ class VideoOverlayGUI:
                 with open(settings_file, 'r') as f:
                     loaded = json.load(f)
                     self.settings.update(loaded)
-            except:
-                pass
+            except (json.JSONDecodeError, FileNotFoundError, IOError, KeyError) as e:
+                print(f"Warning: Could not load settings from {settings_file}: {e}")
+                print("Using default settings instead.")
     
     def reset_settings(self):
         """Reset to default settings"""

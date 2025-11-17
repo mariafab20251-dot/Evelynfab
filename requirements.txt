@@ -1,0 +1,24 @@
+# YouTube Video Automation System - Dependencies
+# Last updated: 2025-11-17
+
+# Video Processing
+moviepy>=2.0.0,<3.0.0
+Pillow>=10.0.0
+numpy>=1.24.0,<2.0.0
+
+# Google API & YouTube
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
+google-auth-httplib2>=0.1.1
+google-api-python-client>=2.100.0
+
+# Google Sheets (optional)
+gspread>=5.11.0
+
+# GUI (usually pre-installed with Python)
+# tkinter - comes with Python standard library
+
+# Note: FFmpeg must be installed separately on your system
+# Windows: Download from https://ffmpeg.org/download.html
+# Linux: sudo apt-get install ffmpeg
+# macOS: brew install ffmpeg

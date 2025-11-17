@@ -13,25 +13,32 @@ from datetime import datetime
 # MoviePy 2.x imports
 from moviepy import VideoFileClip, ImageClip, CompositeVideoClip
 
+# Configuration
+from config import config
+
 
 class VideoQuoteAutomation:
     """Automate adding quotes to videos using GUI settings"""
     
     def __init__(self):
-        # Your specific paths
-        self.video_folder = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\SourceVideosToEdit\Libriana8")
-        self.quotes_file = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\Quotes.txt")
-        self.output_folder = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\FinalVideos")
-        
-        # Create output folder
+        # Use centralized configuration
+        self.video_folder = config.VIDEO_FOLDER
+        self.quotes_file = config.QUOTES_FILE
+        self.output_folder = config.OUTPUT_FOLDER
+
+        # Create output folder (already done in config, but safe to call again)
         self.output_folder.mkdir(parents=True, exist_ok=True)
-        
+
         # Load settings from GUI
         self.settings = self.load_settings()
-        
+
         # Processing log
-        self.log_file = self.output_folder / "processing_log.json"
+        self.log_file = config.PROCESSING_LOG
         self.processing_log = self._load_log()
+
+        # Failed videos folder for error recovery
+        self.failed_folder = self.output_folder / "Failed"
+        self.failed_folder.mkdir(exist_ok=True)
     
     def load_settings(self) -> dict:
         """Load settings from GUI config file"""
@@ -91,7 +98,82 @@ class VideoQuoteAutomation:
         """Convert hex color to RGB tuple"""
         hex_color = hex_color.lstrip('#')
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-    
+
+    def _load_font(self, font_file: str, size: int, font_type: str):
+        """Load a font with proper fallback and error handling"""
+        from PIL import ImageFont
+
+        # Try loading from full path first
+        font_path = Path(font_file)
+        if font_path.exists() and font_path.is_file():
+            try:
+                font = ImageFont.truetype(str(font_path), size)
+                print(f"✓ Loaded {font_type} font: {font_path.name}")
+                return font
+            except Exception as e:
+                print(f"⚠ Could not load {font_type} font from {font_path}: {e}")
+
+        # Try system fonts folder
+        system_font_path = config.SYSTEM_FONTS_FOLDER / Path(font_file).name
+        if system_font_path.exists():
+            try:
+                font = ImageFont.truetype(str(system_font_path), size)
+                print(f"✓ Loaded {font_type} font: {system_font_path.name}")
+                return font
+            except Exception as e:
+                print(f"⚠ Could not load {font_type} font from system: {e}")
+
+        # Try project fonts folder
+        project_font_path = config.PROJECT_FONTS_FOLDER / Path(font_file).name
+        if project_font_path.exists():
+            try:
+                font = ImageFont.truetype(str(project_font_path), size)
+                print(f"✓ Loaded {font_type} font: {project_font_path.name}")
+                return font
+            except Exception as e:
+                print(f"⚠ Could not load {font_type} font from project: {e}")
+
+        # Final fallback: try loading by name only (PIL will search)
+        try:
+            font = ImageFont.truetype(font_file, size)
+            print(f"✓ Loaded {font_type} font: {font_file}")
+            return font
+        except Exception as e:
+            print(f"⚠ Could not load {font_type} font '{font_file}': {e}")
+
+        # Ultimate fallback: default font (will look bad but won't crash)
+        print(f"⚠ Using default PIL font for {font_type} (video quality will be degraded)")
+        return ImageFont.load_default()
+
+    def _load_emoji_font(self, size: int):
+        """Load emoji font with fallback options"""
+        from PIL import ImageFont
+
+        # Try bundled emoji font first (NotoColorEmoji.ttf in project root)
+        if config.EMOJI_FONT.exists():
+            try:
+                font = ImageFont.truetype(str(config.EMOJI_FONT), size)
+                print(f"✓ Loaded emoji font: {config.EMOJI_FONT.name}")
+                return font
+            except Exception as e:
+                print(f"⚠ Could not load project emoji font: {e}")
+
+        # Try system emoji fonts
+        emoji_fonts = ['seguiemj.ttf', 'NotoColorEmoji.ttf', 'AppleColorEmoji.ttf']
+        for emoji_font_name in emoji_fonts:
+            emoji_path = config.SYSTEM_FONTS_FOLDER / emoji_font_name
+            if emoji_path.exists():
+                try:
+                    font = ImageFont.truetype(str(emoji_path), size)
+                    print(f"✓ Loaded emoji font: {emoji_font_name}")
+                    return font
+                except Exception:
+                    continue
+
+        # Fallback to main font (emojis may not render properly)
+        print(f"⚠ No emoji font found, using default font (emojis may not display)")
+        return ImageFont.load_default()
+
     def read_quotes(self) -> List[str]:
         """Read quotes from file"""
         if not self.quotes_file.exists():
@@ -195,11 +277,28 @@ class VideoQuoteAutomation:
         return found[:2]
     
     def sanitize_filename(self, text: str, max_length: int = 100) -> str:
-        """Convert text to valid filename"""
+        """Convert text to valid filename (prevents path traversal)"""
+        # Remove any path components first (security fix)
+        text = os.path.basename(text)
+
+        # Remove invalid filename characters
         text = re.sub(r'[<>:"/\\|?*]', '', text)
+
+        # Remove any remaining path separators and dots at start
+        text = text.replace('/', '').replace('\\', '')
+        text = text.lstrip('.')
+
+        # Collapse whitespace
         text = re.sub(r'\s+', ' ', text).strip()
+
+        # Ensure we have some content
+        if not text:
+            text = "unnamed"
+
+        # Truncate if needed
         if len(text) > max_length - 4:
             text = text[:max_length - 4]
+
         return text
     
     def create_filename(self, quote: str, hashtags: List[str]) -> str:
@@ -265,35 +364,24 @@ class VideoQuoteAutomation:
         # Load fonts with settings - use saved font file paths
         font_size = self.settings['font_size']
         cta_font_size = self.settings.get('cta_font_size', int(font_size * 0.95))
-        
-        try:
-            # Use font_file paths saved from GUI
-            main_font_file = self.settings.get('font_file', 'arialbd.ttf')
-            if not Path(main_font_file).exists():
-                # Fallback to Windows Fonts folder
-                main_font_file = str(Path(r"C:\Windows\Fonts") / Path(main_font_file).name)
-            
-            main_font = ImageFont.truetype(main_font_file, font_size)
-            print(f"✓ Loaded main font: {main_font_file}")
-            
-            # Emoji font
-            emoji_font_path = str(Path(r"C:\Windows\Fonts") / 'seguiemj.ttf')
-            emoji_font = ImageFont.truetype(emoji_font_path, int(font_size * self.settings['emoji_size_multiplier']))
-            
-            # CTA font
-            cta_font_file = self.settings.get('cta_font_file', 'ariali.ttf')
-            if not Path(cta_font_file).exists():
-                cta_font_file = str(Path(r"C:\Windows\Fonts") / Path(cta_font_file).name)
-            
-            cta_font = ImageFont.truetype(cta_font_file, cta_font_size)
-            print(f"✓ Loaded CTA font: {cta_font_file}")
-            
-        except Exception as e:
-            print(f"⚠ Font loading error: {e}")
-            print(f"⚠ Using default font")
-            main_font = ImageFont.load_default()
-            emoji_font = main_font
-            cta_font = main_font
+
+        # Load fonts with proper error handling
+        main_font = self._load_font(
+            self.settings.get('font_file', 'arialbd.ttf'),
+            font_size,
+            'main'
+        )
+
+        # Emoji font - try project font first, then system font
+        emoji_size = int(font_size * self.settings.get('emoji_size_multiplier', 1.2))
+        emoji_font = self._load_emoji_font(emoji_size)
+
+        # CTA font
+        cta_font = self._load_font(
+            self.settings.get('cta_font_file', 'ariali.ttf'),
+            cta_font_size,
+            'CTA'
+        )
         
         # Word wrap main text
         max_text_width = int(img_width * (self.settings['bubble_width'] / 100))
@@ -443,27 +531,38 @@ class VideoQuoteAutomation:
             output_path = self.output_folder / f"{stem}_{counter}.mp4"
             counter += 1
         
-        # Render
+        # Render with proper resource cleanup
         print(f"Rendering... This may take a few minutes.")
-        final_video.write_videofile(
-            str(output_path),
-            codec='libx264',
-            audio_codec='aac',
-            fps=video.fps,
-            preset='medium',
-            threads=4,
-            logger=None
-        )
-        
-        # Cleanup
-        video.close()
-        txt_clip.close()
-        final_video.close()
-        
-        print(f"✓ Saved: {output_path.name}")
-        print(f"{'='*70}")
-        
-        return output_path, output_filename
+        try:
+            final_video.write_videofile(
+                str(output_path),
+                codec='libx264',
+                audio_codec='aac',
+                fps=video.fps,
+                preset='medium',
+                threads=4,
+                logger=None
+            )
+
+            print(f"✓ Saved: {output_path.name}")
+            print(f"{'='*70}")
+
+            return output_path, output_filename
+
+        finally:
+            # Always cleanup resources, even if rendering fails
+            try:
+                video.close()
+            except Exception:
+                pass
+            try:
+                txt_clip.close()
+            except Exception:
+                pass
+            try:
+                final_video.close()
+            except Exception:
+                pass
     
     def process_all(self, start_from: int = 0, sort_by: str = 'created'):
         """Process all videos with settings from GUI"""
@@ -520,7 +619,19 @@ class VideoQuoteAutomation:
                 self._save_log()
                 
             except Exception as e:
-                print(f"✗ Error: {str(e)}")
+                print(f"✗ Error processing video: {str(e)}")
+                import traceback
+                traceback.print_exc()
+
+                # Move failed video to failed folder for later retry
+                try:
+                    failed_path = self.failed_folder / video_path.name
+                    if not failed_path.exists():
+                        video_path.rename(failed_path)
+                        print(f"  → Moved to failed folder: {failed_path.name}")
+                except Exception as move_error:
+                    print(f"  ⚠ Could not move failed video: {move_error}")
+
                 result = {
                     'index': i,
                     'original_video': video_path.name,
@@ -530,6 +641,9 @@ class VideoQuoteAutomation:
                     'timestamp': datetime.now().isoformat()
                 }
                 results.append(result)
+
+                self.processing_log['processed_videos'].append(result)
+                self._save_log()
                 continue
         
         # Summary

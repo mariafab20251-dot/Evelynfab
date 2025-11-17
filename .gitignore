@@ -1,0 +1,132 @@
+# YouTube Video Automation - Git Ignore File
+
+# ============================================
+# SENSITIVE FILES - NEVER COMMIT THESE
+# ============================================
+
+# YouTube OAuth Credentials
+youtube_credentials/
+client_secret*.json
+token*.pickle
+service_account.json
+
+# Configuration with sensitive data
+config_local.py
+.env
+*.env
+
+# ============================================
+# GENERATED FILES
+# ============================================
+
+# Video Processing Output
+FinalVideos/
+Uploaded/
+Failed/
+SourceVideosToEdit/
+
+# Logs
+upload_log.json
+processing_log.json
+*.log
+
+# ============================================
+# PYTHON
+# ============================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# ============================================
+# MEDIA FILES
+# ============================================
+
+# Video files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.flv
+*.wmv
+*.webm
+
+# Audio files
+*.mp3
+*.wav
+*.m4a
+
+# Image files (except emoji font)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+!NotoColorEmoji.ttf
+!screenshot.png
+
+# ============================================
+# SYSTEM FILES
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ============================================
+# TEMPORARY FILES
+# ============================================
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Cache
+.cache/
+*.cache
