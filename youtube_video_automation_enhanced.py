@@ -568,22 +568,15 @@ class CaptionRenderer:
                 img_width = min(text_width + padding * 2, int(video_width * 0.9))
                 img_height = text_height + padding * 2
 
-                # Create caption image (RGBA with transparency)
-                img_rgba = Image.new('RGBA', (img_width, img_height), (0, 0, 0, 180))
-                draw = ImageDraw.Draw(img_rgba)
+                # Create caption image with SOLID black background (no transparency)
+                img_rgb = Image.new('RGB', (img_width, img_height), (0, 0, 0))  # Solid black
+                draw = ImageDraw.Draw(img_rgb)
 
                 text_x = (img_width - text_width) // 2
                 text_y = padding
-                draw.text((text_x, text_y), text_content, font=font, fill=(255, 255, 255, 255))
+                draw.text((text_x, text_y), text_content, font=font, fill=(255, 255, 255))  # White text
 
-                # Convert RGBA to RGB (blend with black background)
-                img_rgb = Image.new('RGB', img_rgba.size, (0, 0, 0))
-                img_rgb.paste(img_rgba, mask=img_rgba.split()[3])  # Use alpha channel as mask
-
-                # Extract alpha channel as mask for transparency
-                mask_array = np.array(img_rgba.split()[3]).copy()
-
-                # Create clip
+                # Create clip - no mask needed since background is solid
                 frame = np.array(img_rgb).copy()
 
                 try:
@@ -592,16 +585,13 @@ class CaptionRenderer:
                     from moviepy.editor import ImageClip
 
                 clip = ImageClip(frame, ismask=False)
-                mask_clip = ImageClip(mask_array, ismask=True)
 
                 try:
                     clip = clip.set_duration(duration)
                     clip = clip.set_start(start_time)
-                    clip = clip.set_mask(mask_clip.set_duration(duration))
                 except AttributeError:
                     clip = clip.with_duration(duration)
                     clip = clip.with_start(start_time)
-                    clip = clip.with_mask(mask_clip.with_duration(duration))
 
                 # Position
                 if position == 'top':
@@ -688,21 +678,14 @@ class CaptionRenderer:
                 img_width = min(text_width + padding * 2, int(video_width * 0.9))
                 img_height = text_height + padding * 2
 
-                # Create image with background (RGBA)
-                img_rgba = Image.new('RGBA', (img_width, img_height), bg_color + (180,))  # Semi-transparent black
-                draw = ImageDraw.Draw(img_rgba)
+                # Create image with SOLID black background (no transparency)
+                img_rgb = Image.new('RGB', (img_width, img_height), bg_color)  # Solid black
+                draw = ImageDraw.Draw(img_rgb)
 
                 # Draw text centered
                 text_x = (img_width - text_width) // 2
                 text_y = padding
-                draw.text((text_x, text_y), text, font=font, fill=text_color + (255,))
-
-                # Convert RGBA to RGB (blend with black background)
-                img_rgb = Image.new('RGB', img_rgba.size, bg_color)
-                img_rgb.paste(img_rgba, mask=img_rgba.split()[3])  # Use alpha channel as mask
-
-                # Extract alpha channel as mask for transparency
-                mask_array = np.array(img_rgba.split()[3]).copy()
+                draw.text((text_x, text_y), text, font=font, fill=text_color)  # White text
 
                 # Convert to numpy array (writable copy)
                 frame = np.array(img_rgb).copy()
@@ -710,24 +693,21 @@ class CaptionRenderer:
                 print(f"  Caption frame shape: {frame.shape}, dtype: {frame.dtype}")
                 print(f"  Caption text: '{text}' ({segment['start']:.2f}s - {segment['end']:.2f}s)")
 
-                # Create ImageClip with mask
+                # Create ImageClip - no mask needed since background is solid
                 try:
                     from moviepy import ImageClip
                 except ImportError:
                     from moviepy.editor import ImageClip
 
                 clip = ImageClip(frame, ismask=False)
-                mask_clip = ImageClip(mask_array, ismask=True)
 
                 duration = segment['end'] - segment['start']
                 try:
                     clip = clip.with_duration(duration)
                     clip = clip.with_start(segment['start'])
-                    clip = clip.with_mask(mask_clip.with_duration(duration))
                 except AttributeError:
                     clip = clip.set_duration(duration)
                     clip = clip.set_start(segment['start'])
-                    clip = clip.set_mask(mask_clip.set_duration(duration))
 
                 # Position based on settings
                 if position == 'top':
