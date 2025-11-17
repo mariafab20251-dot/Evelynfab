@@ -954,6 +954,69 @@ class AudioSettingsPopup:
         tk.Label(words_frame, textvariable=self.caption_words_var, bg=ModernStyles.BG_CARD,
                 fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
 
+        # Caption font style
+        self.create_label(content, "Caption Font Style:")
+        font_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        font_frame.pack(fill='x', padx=20, pady=5)
+
+        self.caption_font_var = tk.StringVar(value=self.settings.get('caption_font_style', 'arialbd.ttf'))
+        caption_fonts = ['arialbd.ttf', 'impact.ttf', 'comic.ttf', 'times.ttf', 'calibrib.ttf', 'verdanab.ttf']
+        font_dropdown = ttk.Combobox(font_frame, textvariable=self.caption_font_var,
+                                     values=caption_fonts, state='readonly', width=20)
+        font_dropdown.pack(side='left', padx=15, pady=10)
+
+        # Caption text color
+        self.create_label(content, "Caption Text Color:")
+        text_color_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        text_color_frame.pack(fill='x', padx=20, pady=5)
+
+        self.caption_text_color_var = tk.StringVar(value=self.settings.get('caption_text_color', '#FFFFFF'))
+        tk.Entry(text_color_frame, textvariable=self.caption_text_color_var, width=10,
+                bg=ModernStyles.BG_DARK, fg=ModernStyles.TEXT_WHITE,
+                font=('Segoe UI', 10)).pack(side='left', padx=(15,5), pady=10)
+
+        tk.Button(text_color_frame, text="Choose Color", command=self.choose_caption_text_color,
+                 bg=ModernStyles.ACCENT_BLUE, fg='white', relief='flat',
+                 font=('Segoe UI', 9, 'bold'), padx=10, pady=5).pack(side='left', padx=5)
+
+        # Caption background enable/disable
+        self.caption_bg_enabled_var = tk.BooleanVar(value=self.settings.get('caption_bg_enabled', True))
+        self.create_checkbox(content, "Enable Caption Background", self.caption_bg_enabled_var)
+
+        # Caption background color
+        self.create_label(content, "Caption Background Color:")
+        bg_color_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        bg_color_frame.pack(fill='x', padx=20, pady=5)
+
+        self.caption_bg_color_var = tk.StringVar(value=self.settings.get('caption_bg_color', '#000000'))
+        tk.Entry(bg_color_frame, textvariable=self.caption_bg_color_var, width=10,
+                bg=ModernStyles.BG_DARK, fg=ModernStyles.TEXT_WHITE,
+                font=('Segoe UI', 10)).pack(side='left', padx=(15,5), pady=10)
+
+        tk.Button(bg_color_frame, text="Choose Color", command=self.choose_caption_bg_color,
+                 bg=ModernStyles.ACCENT_BLUE, fg='white', relief='flat',
+                 font=('Segoe UI', 9, 'bold'), padx=10, pady=5).pack(side='left', padx=5)
+
+        # Caption background opacity
+        self.create_label(content, "Caption Background Opacity:")
+        opacity_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        opacity_frame.pack(fill='x', padx=20, pady=5)
+
+        self.caption_opacity_var = tk.IntVar(value=self.settings.get('caption_bg_opacity', 180))
+        tk.Scale(opacity_frame, from_=0, to=255, orient='horizontal',
+                variable=self.caption_opacity_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                font=('Segoe UI', 9)).pack(side='left', fill='x', expand=True, padx=15, pady=10)
+
+        tk.Label(opacity_frame, textvariable=self.caption_opacity_var, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
+
+        info_frame3 = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        info_frame3.pack(fill='x', padx=20, pady=(0,10))
+        tk.Label(info_frame3, text="💡 Tip: Use hex colors (#FFFFFF = white, #000000 = black, #FFFF00 = yellow)",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+                font=('Segoe UI', 8), justify='left').pack(anchor='w', padx=15, pady=5)
+
     def create_section(self, parent, title, color):
         header = tk.Frame(parent, bg=color, height=3)
         header.pack(fill='x', pady=(20,0))
@@ -990,6 +1053,18 @@ class AudioSettingsPopup:
         if folder:
             self.vo_path_var.set(folder)
 
+    def choose_caption_text_color(self):
+        color = colorchooser.askcolor(title="Choose Caption Text Color",
+                                      initialcolor=self.caption_text_color_var.get())
+        if color[1]:  # color[1] is the hex value
+            self.caption_text_color_var.set(color[1])
+
+    def choose_caption_bg_color(self):
+        color = colorchooser.askcolor(title="Choose Caption Background Color",
+                                      initialcolor=self.caption_bg_color_var.get())
+        if color[1]:  # color[1] is the hex value
+            self.caption_bg_color_var.set(color[1])
+
     def save_settings(self):
         self.settings['mute_original_audio'] = self.mute_var.get()
         self.settings['original_audio_volume'] = self.original_volume_var.get()
@@ -1020,6 +1095,11 @@ class AudioSettingsPopup:
         self.settings['caption_font_size'] = self.caption_size_var.get()
         self.settings['caption_position'] = self.caption_position_var.get()
         self.settings['caption_words_per_line'] = self.caption_words_var.get()
+        self.settings['caption_font_style'] = self.caption_font_var.get()
+        self.settings['caption_text_color'] = self.caption_text_color_var.get()
+        self.settings['caption_bg_enabled'] = self.caption_bg_enabled_var.get()
+        self.settings['caption_bg_color'] = self.caption_bg_color_var.get()
+        self.settings['caption_bg_opacity'] = self.caption_opacity_var.get()
 
         self.on_save(self.settings)
         self.window.destroy()

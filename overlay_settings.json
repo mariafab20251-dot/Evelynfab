@@ -78,6 +78,7 @@
   "caption_font_style": "arialbd.ttf",
   "caption_font_size": 70,
   "caption_text_color": "#FFFFFF",
+  "caption_bg_enabled": true,
   "caption_bg_color": "#000000",
   "caption_bg_opacity": 180,
   "caption_position": "center",

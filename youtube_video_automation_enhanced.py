@@ -657,6 +657,7 @@ class CaptionRenderer:
         text_color = hex_to_rgb(settings.get('caption_text_color', '#FFFFFF'))
         bg_color = hex_to_rgb(settings.get('caption_bg_color', '#000000'))
         bg_opacity = settings.get('caption_bg_opacity', 180)  # 0-255
+        bg_enabled = settings.get('caption_bg_enabled', True)  # Enable/disable background
         position = settings.get('caption_position', 'center')  # top, center, bottom
         words_per_caption = settings.get('caption_words_per_line', 3)  # Show 3 words at a time
         overlap_duration = 0.5  # Increased overlap for better readability
@@ -712,17 +713,31 @@ class CaptionRenderer:
                 img_width = min(text_width + padding * 2, int(video_width * 0.9))
                 img_height = text_height + padding * 2
 
-                # Create image with SOLID black background (no transparency)
-                img_rgb = Image.new('RGB', (img_width, img_height), bg_color)  # Solid black
-                draw = ImageDraw.Draw(img_rgb)
+                # Create image with or without background based on setting
+                if bg_enabled:
+                    # Create image with SOLID background color
+                    img_rgb = Image.new('RGB', (img_width, img_height), bg_color)
+                    draw = ImageDraw.Draw(img_rgb)
 
-                # Draw text centered
-                text_x = (img_width - text_width) // 2
-                text_y = padding
-                draw.text((text_x, text_y), text, font=font, fill=text_color)  # White text
+                    # Draw text centered
+                    text_x = (img_width - text_width) // 2
+                    text_y = padding
+                    draw.text((text_x, text_y), text, font=font, fill=text_color)
 
-                # Convert to numpy array (writable copy)
-                frame = np.array(img_rgb).copy()
+                    # Convert to numpy array (writable copy)
+                    frame = np.array(img_rgb).copy()
+                else:
+                    # Create image with TRANSPARENT background
+                    img_rgba = Image.new('RGBA', (img_width, img_height), (0, 0, 0, 0))
+                    draw = ImageDraw.Draw(img_rgba)
+
+                    # Draw text centered with full opacity
+                    text_x = (img_width - text_width) // 2
+                    text_y = padding
+                    draw.text((text_x, text_y), text, font=font, fill=text_color + (255,))  # Add alpha
+
+                    # Convert to numpy array (writable copy)
+                    frame = np.array(img_rgba).copy()
 
                 print(f"  Caption frame shape: {frame.shape}, dtype: {frame.dtype}")
                 print(f"  Caption text: '{text}' ({segment['start']:.2f}s - {segment['end']:.2f}s)")
