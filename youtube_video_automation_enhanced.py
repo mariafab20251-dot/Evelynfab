@@ -647,11 +647,12 @@ class CaptionRenderer:
         caption_clips = []
 
         # Caption settings
-        font_size = settings.get('caption_font_size', 80)
-        text_color = (255, 255, 0)  # Yellow (TikTok style)
+        font_size = settings.get('caption_font_size', 70)
+        text_color = (255, 255, 255)  # White (better readability)
         bg_color = (0, 0, 0)  # Black
         position = settings.get('caption_position', 'center')  # top, center, bottom
-        words_per_caption = settings.get('caption_words_per_line', 1)  # Show one word at a time for precision
+        words_per_caption = settings.get('caption_words_per_line', 3)  # Show 3 words at a time
+        overlap_duration = 0.3  # Overlap in seconds to keep captions visible longer
 
         # Load font
         try:
@@ -670,6 +671,9 @@ class CaptionRenderer:
             # Calculate start and end time for this segment
             start_time = segment_words[0]['offset']
             end_time = segment_words[-1]['offset'] + segment_words[-1]['duration']
+
+            # Add overlap to make captions stay visible longer
+            end_time += overlap_duration
 
             # Combine words
             text = ' '.join([w['word'] for w in segment_words])
