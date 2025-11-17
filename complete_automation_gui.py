@@ -1118,17 +1118,49 @@ class VideoProcessingWindow:
                 font=('Segoe UI', 11, 'bold'), pady=6).pack(padx=15)
 
     def load_paths(self):
-        """Load previously saved paths"""
+        """Load previously saved paths or use config defaults"""
+        # Default paths from config
+        default_video_folder = ''
+        default_quotes_file = ''
+        default_output_folder = ''
+
+        if config:
+            default_video_folder = str(config.VIDEO_FOLDER)
+            default_quotes_file = str(config.QUOTES_FILE)
+            default_output_folder = str(config.OUTPUT_FOLDER)
+
+        # Try loading from saved file
         paths_file = Path('processing_paths.json')
+        loaded_video = default_video_folder
+        loaded_quotes = default_quotes_file
+        loaded_output = default_output_folder
+
         if paths_file.exists():
             try:
                 with open(paths_file, 'r') as f:
                     paths = json.load(f)
-                    self.video_folder_var.set(paths.get('video_folder', ''))
-                    self.quotes_file_var.set(paths.get('quotes_file', ''))
-                    self.output_folder_var.set(paths.get('output_folder', ''))
+                    loaded_video = paths.get('video_folder', default_video_folder)
+                    loaded_quotes = paths.get('quotes_file', default_quotes_file)
+                    loaded_output = paths.get('output_folder', default_output_folder)
             except:
                 pass
+
+        # Validate paths exist, otherwise use defaults
+        if loaded_video and Path(loaded_video).exists():
+            self.video_folder_var.set(loaded_video)
+        else:
+            self.video_folder_var.set(default_video_folder)
+
+        if loaded_quotes and Path(loaded_quotes).exists():
+            self.quotes_file_var.set(loaded_quotes)
+        else:
+            self.quotes_file_var.set(default_quotes_file)
+
+        # Output folder - use loaded if specified, otherwise default
+        if loaded_output:
+            self.output_folder_var.set(loaded_output)
+        else:
+            self.output_folder_var.set(default_output_folder)
 
     def save_paths(self):
         """Save paths for next time"""

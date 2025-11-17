@@ -12,7 +12,7 @@ from datetime import datetime
 import numpy as np
 
 from moviepy import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
-from moviepy.video.fx import Resize
+from moviepy.video.fx import Resize, FadeIn
 from moviepy.audio.fx import MultiplyVolume, AudioLoop
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
@@ -781,7 +781,7 @@ class VideoQuoteAutomation:
 
         if self.settings.get('text_fade_in', False):
             fade_duration = self.settings.get('text_fade_duration', 0.4)
-            txt_clip = txt_clip.with_effects([lambda clip: clip.fadein(fade_duration)])
+            txt_clip = txt_clip.with_effects([FadeIn(fade_duration)])
 
         if self.settings.get('text_slide_up', False):
             slide_distance = self.settings.get('text_slide_distance', 50)
