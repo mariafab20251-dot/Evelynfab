@@ -585,7 +585,7 @@ class CaptionRenderer:
                 except ImportError:
                     from moviepy.editor import ImageClip
 
-                clip = ImageClip(frame, ismask=False)
+                clip = ImageClip(frame, is_mask=False)
 
                 try:
                     clip = clip.set_duration(duration)
@@ -700,7 +700,7 @@ class CaptionRenderer:
                 except ImportError:
                     from moviepy.editor import ImageClip
 
-                clip = ImageClip(frame, ismask=False)
+                clip = ImageClip(frame, is_mask=False)
 
                 duration = segment['end'] - segment['start']
                 try:
