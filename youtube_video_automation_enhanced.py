@@ -1489,9 +1489,15 @@ class VideoQuoteAutomation:
             except AttributeError:
                 video = video.fl_image(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
 
-        # Start with video and text overlay
-        layers = [video, txt_clip]
-        print(f"DEBUG: txt_clip size={txt_clip.size}, position={txt_clip.pos if hasattr(txt_clip, 'pos') else 'N/A'}, duration={txt_clip.duration}")
+        # Start with video and text overlay (only if word-by-word captions are disabled)
+        if self.settings.get('enable_captions', False):
+            # Skip static text overlay when word-by-word captions are enabled
+            layers = [video]
+            print("DEBUG: Skipping static text overlay (word-by-word captions enabled)")
+        else:
+            # Use static text overlay bubble
+            layers = [video, txt_clip]
+            print(f"DEBUG: txt_clip size={txt_clip.size}, position={txt_clip.pos if hasattr(txt_clip, 'pos') else 'N/A'}, duration={txt_clip.duration}")
         print(f"DEBUG: video size={video.size}, duration={video.duration}")
 
         # Add particle effects if enabled

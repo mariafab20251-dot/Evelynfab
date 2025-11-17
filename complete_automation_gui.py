@@ -960,11 +960,13 @@ class AudioSettingsPopup:
         font_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
         font_frame.pack(fill='x', padx=20, pady=5)
 
+        # Get all available Windows fonts
+        caption_fonts = self.get_windows_fonts()
+
         self.caption_font_var = tk.StringVar(value=self.settings.get('caption_font_style', 'arialbd.ttf'))
-        caption_fonts = ['arialbd.ttf', 'impact.ttf', 'comic.ttf', 'times.ttf', 'calibrib.ttf', 'verdanab.ttf']
         font_dropdown = ttk.Combobox(font_frame, textvariable=self.caption_font_var,
-                                     values=caption_fonts, state='readonly', width=20)
-        font_dropdown.pack(side='left', padx=15, pady=10)
+                                     values=caption_fonts, state='readonly', width=30)
+        font_dropdown.pack(side='left', padx=15, pady=10, fill='x', expand=True)
 
         # Caption text color
         self.create_label(content, "Caption Text Color:")
@@ -1039,6 +1041,32 @@ class AudioSettingsPopup:
     def create_label(self, parent, text):
         tk.Label(parent, text=text, bg=ModernStyles.BG_DARK,
                 fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 9)).pack(anchor='w', padx=20, pady=(10,2))
+
+    def get_windows_fonts(self):
+        """Get all TrueType fonts from Windows Fonts folder"""
+        fonts_dir = Path(r"C:\Windows\Fonts")
+        font_files = []
+
+        if fonts_dir.exists():
+            try:
+                # Get all .ttf files
+                ttf_files = list(fonts_dir.glob("*.ttf"))
+                # Sort and get just the filename
+                font_files = sorted([f.name for f in ttf_files])
+                print(f"Found {len(font_files)} fonts in Windows Fonts folder")
+            except Exception as e:
+                print(f"Error scanning fonts folder: {e}")
+                # Fallback to default fonts
+                font_files = ['arial.ttf', 'arialbd.ttf', 'impact.ttf', 'comic.ttf',
+                             'times.ttf', 'timesbd.ttf', 'calibri.ttf', 'calibrib.ttf',
+                             'verdana.ttf', 'verdanab.ttf']
+        else:
+            # Fallback if Windows Fonts folder not accessible
+            font_files = ['arial.ttf', 'arialbd.ttf', 'impact.ttf', 'comic.ttf',
+                         'times.ttf', 'timesbd.ttf', 'calibri.ttf', 'calibrib.ttf',
+                         'verdana.ttf', 'verdanab.ttf']
+
+        return font_files
 
     def browse_bgm_file(self):
         filename = filedialog.askopenfilename(title="Select BGM File",
