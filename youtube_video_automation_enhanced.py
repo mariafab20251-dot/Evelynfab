@@ -1443,6 +1443,8 @@ class VideoQuoteAutomation:
 
         # Start with video and text overlay
         layers = [video, txt_clip]
+        print(f"DEBUG: txt_clip size={txt_clip.size}, position={txt_clip.pos if hasattr(txt_clip, 'pos') else 'N/A'}, duration={txt_clip.duration}")
+        print(f"DEBUG: video size={video.size}, duration={video.duration}")
 
         # Add particle effects if enabled
         if self.settings.get('add_glitter', False):
@@ -1486,7 +1488,9 @@ class VideoQuoteAutomation:
             except Exception as e:
                 print(f"⚠ Confetti effect failed: {e}")
 
+        print(f"DEBUG: Compositing {len(layers)} layers...")
         final_video = CompositeVideoClip(layers)
+        print(f"DEBUG: Composite created - size={final_video.size}, duration={final_video.duration:.2f}s")
 
         # Audio processing
         voiceover_file = None
