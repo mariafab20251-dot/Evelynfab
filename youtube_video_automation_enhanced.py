@@ -172,7 +172,7 @@ class ParticleEffects:
             return mask
 
         clip = VideoClip(make_frame, duration=duration)
-        mask_clip = VideoClip(make_mask, duration=duration, ismask=True)
+        mask_clip = VideoClip(make_mask, duration=duration, is_mask=True)
 
         try:
             clip = clip.set_fps(fps)
@@ -286,7 +286,7 @@ class ParticleEffects:
             return np.array(alpha).copy()
 
         clip = VideoClip(make_frame, duration=duration)
-        mask_clip = VideoClip(make_mask, duration=duration, ismask=True)
+        mask_clip = VideoClip(make_mask, duration=duration, is_mask=True)
 
         try:
             clip = clip.set_fps(fps)

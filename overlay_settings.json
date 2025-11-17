@@ -74,6 +74,9 @@
   "progress_color": "#00ff40",
 
   "_comment_audio": "AUDIO SETTINGS",
+  "enable_captions": false,
+  "use_tts_voiceover": true,
+  "tts_voice": "en-US-TonyNeural",
   "mute_original_audio": false,
   "add_custom_bgm": false,
   "bgm_file": "",
