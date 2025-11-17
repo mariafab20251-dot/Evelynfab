@@ -646,17 +646,25 @@ class CaptionRenderer:
 
         caption_clips = []
 
-        # Caption settings
+        # Caption settings from config
         font_size = settings.get('caption_font_size', 70)
-        text_color = (255, 255, 255)  # White (better readability)
-        bg_color = (0, 0, 0)  # Black
+
+        # Parse hex color to RGB tuple
+        def hex_to_rgb(hex_color):
+            hex_color = hex_color.lstrip('#')
+            return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+        text_color = hex_to_rgb(settings.get('caption_text_color', '#FFFFFF'))
+        bg_color = hex_to_rgb(settings.get('caption_bg_color', '#000000'))
+        bg_opacity = settings.get('caption_bg_opacity', 180)  # 0-255
         position = settings.get('caption_position', 'center')  # top, center, bottom
         words_per_caption = settings.get('caption_words_per_line', 3)  # Show 3 words at a time
-        overlap_duration = 0.3  # Overlap in seconds to keep captions visible longer
+        overlap_duration = 0.5  # Increased overlap for better readability
 
         # Load font
         try:
-            font_path = str(Path(r"C:\Windows\Fonts") / 'arialbd.ttf')
+            font_file = settings.get('caption_font_style', 'arialbd.ttf')
+            font_path = str(Path(r"C:\Windows\Fonts") / font_file)
             font = ImageFont.truetype(font_path, font_size)
         except:
             font = ImageFont.load_default()
@@ -1546,15 +1554,34 @@ class VideoQuoteAutomation:
                         total_duration = tts_audio.duration
                         tts_audio.close()
 
-                        # Calculate timing for each word
-                        num_words = len(word_timings)
-                        word_duration = total_duration / num_words
+                        # Weight words by length for more natural timing
+                        # Longer words typically take longer to say
+                        total_chars = sum(len(w['word']) for w in word_timings)
+                        if total_chars == 0:
+                            total_chars = 1
 
-                        for i, word_info in enumerate(word_timings):
-                            word_info['offset'] = i * word_duration
+                        current_time = 0.0
+                        for word_info in word_timings:
+                            word_length = len(word_info['word'])
+                            # Allocate time based on word length proportion
+                            word_duration = (word_length / total_chars) * total_duration
+                            # Add minimum duration (0.2s) to prevent too-fast words
+                            word_duration = max(word_duration, 0.2)
+
+                            word_info['offset'] = current_time
                             word_info['duration'] = word_duration
+                            current_time += word_duration
 
-                        print(f"✓ Calculated word timing: {num_words} words, ~{word_duration:.2f}s per word")
+                        # Normalize if we overshot the duration
+                        if current_time > total_duration:
+                            scale_factor = total_duration / current_time
+                            current_time = 0.0
+                            for word_info in word_timings:
+                                word_info['duration'] *= scale_factor
+                                word_info['offset'] = current_time
+                                current_time += word_info['duration']
+
+                        print(f"✓ Calculated weighted word timing: {len(word_timings)} words, {total_duration:.2f}s total")
                     except Exception as e:
                         print(f"⚠ Could not calculate word timing: {e}")
 
