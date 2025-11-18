@@ -34,18 +34,45 @@ except ImportError:
 
 
 class ModernStyles:
-    """Professional color scheme"""
-    BG_DARK = '#0f172a'
-    BG_CARD = '#1e293b'
-    BG_CARD_HOVER = '#334155'
-    ACCENT_BLUE = '#3b82f6'
-    ACCENT_GREEN = '#10b981'
-    ACCENT_PURPLE = '#8b5cf6'
-    ACCENT_ORANGE = '#f59e0b'
-    ACCENT_RED = '#ef4444'
-    TEXT_WHITE = '#f8fafc'
-    TEXT_GRAY = '#cbd5e1'
-    BORDER = '#475569'
+    """Ultra-Professional Dark Theme with Gradients"""
+    # Background colors - Deep, rich dark theme
+    BG_PRIMARY = '#0a0e1a'  # Very dark blue-black
+    BG_SECONDARY = '#111827'  # Dark slate
+    BG_CARD = '#1a2332'  # Card background
+    BG_CARD_HOVER = '#212d40'  # Card hover state
+    BG_SIDEBAR = '#0f1623'  # Sidebar background
+
+    # Accent colors - Vibrant, modern
+    ACCENT_BLUE = '#3b82f6'  # Primary action blue
+    ACCENT_BLUE_LIGHT = '#60a5fa'  # Lighter blue
+    ACCENT_CYAN = '#06b6d4'  # Cyan accent
+    ACCENT_GREEN = '#10b981'  # Success green
+    ACCENT_GREEN_LIGHT = '#34d399'  # Lighter green
+    ACCENT_PURPLE = '#8b5cf6'  # Purple accent
+    ACCENT_PURPLE_LIGHT = '#a78bfa'  # Lighter purple
+    ACCENT_ORANGE = '#f59e0b'  # Warning orange
+    ACCENT_ORANGE_LIGHT = '#fbbf24'  # Lighter orange
+    ACCENT_RED = '#ef4444'  # Error/danger red
+    ACCENT_PINK = '#ec4899'  # Pink accent
+
+    # Text colors
+    TEXT_PRIMARY = '#f8fafc'  # Pure white
+    TEXT_SECONDARY = '#cbd5e1'  # Light gray
+    TEXT_MUTED = '#94a3b8'  # Muted gray
+    TEXT_DARK = '#64748b'  # Dark gray
+
+    # Border & Shadow
+    BORDER = '#1e293b'  # Subtle border
+    BORDER_LIGHT = '#334155'  # Lighter border
+    SHADOW = '#000000'  # Shadow color
+
+    # Gradient combinations for modern UI
+    GRADIENT_BLUE = ('#3b82f6', '#1d4ed8')  # Blue gradient
+    GRADIENT_PURPLE = ('#8b5cf6', '#6d28d9')  # Purple gradient
+    GRADIENT_GREEN = ('#10b981', '#059669')  # Green gradient
+    GRADIENT_ORANGE = ('#f59e0b', '#d97706')  # Orange gradient
+    GRADIENT_PINK = ('#ec4899', '#db2777')  # Pink gradient
+    GRADIENT_CYAN = ('#06b6d4', '#0891b2')  # Cyan gradient
 
 
 def get_windows_fonts():
@@ -2080,14 +2107,20 @@ class DashboardGUI:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("🎬 Video Automation Studio - Dashboard")
-        self.root.geometry("1100x700")  # More compact
-        self.root.configure(bg=ModernStyles.BG_DARK)
+        self.root.title("🎬 Video Automation Studio - Professional Dashboard")
+        self.root.geometry("1280x780")  # Wider, more modern aspect ratio
+        self.root.configure(bg=ModernStyles.BG_PRIMARY)
         self.root.resizable(True, True)
-        self.root.minsize(900, 600)  # Minimum window size
+        self.root.minsize(1100, 700)  # Larger minimum for modern UI
 
         self.settings = self.load_settings()
         self.processing = False
+
+        # Set modern window icon behavior
+        try:
+            self.root.iconbitmap(default='')  # Remove default icon
+        except:
+            pass
 
         self.setup_ui()
 
@@ -2104,85 +2137,236 @@ class DashboardGUI:
         messagebox.showinfo("Success", "Settings saved successfully!")
 
     def setup_ui(self):
-        # Top header - more compact
-        header = tk.Frame(self.root, bg=ModernStyles.ACCENT_BLUE, height=65)
+        # ═══════════════════════════════════════════════════════════
+        # MODERN HEADER with Gradient Effect
+        # ═══════════════════════════════════════════════════════════
+        header = tk.Frame(self.root, bg=ModernStyles.BG_SECONDARY, height=80)
         header.pack(fill='x')
         header.pack_propagate(False)
 
-        header_content = tk.Frame(header, bg=ModernStyles.ACCENT_BLUE)
-        header_content.pack(expand=True, fill='both', padx=30, pady=12)
+        header_content = tk.Frame(header, bg=ModernStyles.BG_SECONDARY)
+        header_content.pack(expand=True, fill='both', padx=40, pady=15)
 
-        tk.Label(header_content, text="🎬 Video Automation Studio",
-                bg=ModernStyles.ACCENT_BLUE, fg='white',
-                font=('Segoe UI', 20, 'bold')).pack(side='left')
+        # Left side - Logo and title
+        left_header = tk.Frame(header_content, bg=ModernStyles.BG_SECONDARY)
+        left_header.pack(side='left')
 
-        tk.Label(header_content, text="Professional Dashboard",
-                bg=ModernStyles.ACCENT_BLUE, fg='#e0f2fe',
-                font=('Segoe UI', 11)).pack(side='left', padx=(12,0))
+        tk.Label(left_header, text="🎬 Video Automation Studio",
+                bg=ModernStyles.BG_SECONDARY, fg=ModernStyles.TEXT_PRIMARY,
+                font=('Segoe UI', 24, 'bold')).pack(anchor='w')
 
-        # Main dashboard - reduced padding
-        dashboard = tk.Frame(self.root, bg=ModernStyles.BG_DARK)
-        dashboard.pack(fill='both', expand=True, padx=25, pady=20)
+        tk.Label(left_header, text="Professional AI-Powered Video Creation Platform",
+                bg=ModernStyles.BG_SECONDARY, fg=ModernStyles.TEXT_MUTED,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(2,0))
 
-        # Feature cards grid - more compact layout
-        cards_container = tk.Frame(dashboard, bg=ModernStyles.BG_DARK)
+        # Right side - Quick stats
+        right_header = tk.Frame(header_content, bg=ModernStyles.BG_SECONDARY)
+        right_header.pack(side='right')
+
+        self.create_stat_badge(right_header, "✓", "Ready", ModernStyles.ACCENT_GREEN)
+
+        # ═══════════════════════════════════════════════════════════
+        # MAIN CONTENT AREA
+        # ═══════════════════════════════════════════════════════════
+        main_content = tk.Frame(self.root, bg=ModernStyles.BG_PRIMARY)
+        main_content.pack(fill='both', expand=True, padx=30, pady=25)
+
+        # Welcome message card
+        welcome_card = tk.Frame(main_content, bg=ModernStyles.BG_CARD,
+                               highlightbackground=ModernStyles.BORDER, highlightthickness=1)
+        welcome_card.pack(fill='x', pady=(0,20))
+
+        welcome_content = tk.Frame(welcome_card, bg=ModernStyles.BG_CARD)
+        welcome_content.pack(padx=30, pady=20)
+
+        tk.Label(welcome_content, text="👋 Welcome Back!",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                font=('Segoe UI', 16, 'bold')).pack(anchor='w')
+
+        tk.Label(welcome_content,
+                text="Transform your videos with AI-powered automation. Select a feature below to get started.",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(5,0))
+
+        # Feature cards grid with modern design
+        cards_container = tk.Frame(main_content, bg=ModernStyles.BG_PRIMARY)
         cards_container.pack(expand=True, fill='both')
 
-        # Row 1 - reduced spacing
-        row1 = tk.Frame(cards_container, bg=ModernStyles.BG_DARK)
-        row1.pack(fill='both', expand=True, pady=(0,15))
+        # Row 1
+        row1 = tk.Frame(cards_container, bg=ModernStyles.BG_PRIMARY)
+        row1.pack(fill='both', expand=True, pady=(0,18))
 
-        # Configure grid for equal spacing
         row1.grid_columnconfigure(0, weight=1)
         row1.grid_columnconfigure(1, weight=1)
         row1.grid_rowconfigure(0, weight=1)
 
-        card1 = self.create_card(row1, "📝", "Text & Fonts",
-                                "Configure text style, fonts, colors and position",
+        card1 = self.create_modern_card(row1, "📝", "Text & Fonts",
+                                "Configure typography, colors, and text positioning for your videos",
                                 ModernStyles.ACCENT_BLUE, lambda: self.open_text_settings())
-        card1.grid(row=0, column=0, sticky='nsew', padx=(0,8))
+        card1.grid(row=0, column=0, sticky='nsew', padx=(0,10))
 
-        card2 = self.create_card(row1, "✨", "Visual Effects",
-                                "Add animations, glow, shadows and color grading",
+        card2 = self.create_modern_card(row1, "✨", "Visual Effects",
+                                "Apply stunning animations, glows, shadows and cinematic grading",
                                 ModernStyles.ACCENT_PURPLE, lambda: self.open_effects_settings())
-        card2.grid(row=0, column=1, sticky='nsew', padx=(8,0))
+        card2.grid(row=0, column=1, sticky='nsew', padx=(10,0))
 
         # Row 2
-        row2 = tk.Frame(cards_container, bg=ModernStyles.BG_DARK)
+        row2 = tk.Frame(cards_container, bg=ModernStyles.BG_PRIMARY)
         row2.pack(fill='both', expand=True)
 
         row2.grid_columnconfigure(0, weight=1)
         row2.grid_columnconfigure(1, weight=1)
         row2.grid_rowconfigure(0, weight=1)
 
-        card3 = self.create_card(row2, "🔊", "Audio & Music",
-                                "BGM, voiceover and audio mixing settings",
+        card3 = self.create_modern_card(row2, "🔊", "Audio & Music",
+                                "TTS voiceover, background music, and professional audio mixing",
                                 ModernStyles.ACCENT_GREEN, lambda: self.open_audio_settings())
-        card3.grid(row=0, column=0, sticky='nsew', padx=(0,8))
+        card3.grid(row=0, column=0, sticky='nsew', padx=(0,10))
 
-        card4 = self.create_card(row2, "⚙️", "Processing",
-                                "Configure paths and process videos",
+        card4 = self.create_modern_card(row2, "⚙️", "Processing",
+                                "Configure paths, start batch processing, and monitor progress",
                                 ModernStyles.ACCENT_ORANGE, lambda: self.show_processing())
-        card4.grid(row=0, column=1, sticky='nsew', padx=(8,0))
+        card4.grid(row=0, column=1, sticky='nsew', padx=(10,0))
 
-        # Control buttons at bottom - more compact
-        controls = tk.Frame(self.root, bg=ModernStyles.BG_DARK, height=70)
-        controls.pack(fill='x', side='bottom', pady=(15,0))
-        controls.pack_propagate(False)
+        # ═══════════════════════════════════════════════════════════
+        # BOTTOM ACTION BAR with Modern Buttons
+        # ═══════════════════════════════════════════════════════════
+        action_bar = tk.Frame(self.root, bg=ModernStyles.BG_SECONDARY, height=85)
+        action_bar.pack(fill='x', side='bottom')
+        action_bar.pack_propagate(False)
 
-        btn_frame = tk.Frame(controls, bg=ModernStyles.BG_DARK)
-        btn_frame.pack(expand=True)
+        btn_container = tk.Frame(action_bar, bg=ModernStyles.BG_SECONDARY)
+        btn_container.pack(expand=True, pady=18)
 
-        tk.Button(btn_frame, text="💾  Save All Settings", command=self.save_settings,
-                 bg=ModernStyles.ACCENT_BLUE, fg='white', font=('Segoe UI', 13, 'bold'),
-                 relief='flat', padx=45, pady=16, cursor='hand2',
-                 borderwidth=0, highlightthickness=0).pack(side='left', padx=8)
+        # Save button with modern styling
+        save_btn = tk.Button(btn_container, text="💾  Save All Settings", command=self.save_settings,
+                 bg=ModernStyles.BG_CARD_HOVER, fg=ModernStyles.TEXT_PRIMARY,
+                 font=('Segoe UI', 12, 'bold'),
+                 relief='flat', padx=40, pady=18, cursor='hand2',
+                 borderwidth=0, highlightthickness=2,
+                 highlightbackground=ModernStyles.BORDER_LIGHT,
+                 activebackground=ModernStyles.BG_CARD)
+        save_btn.pack(side='left', padx=10)
 
-        self.process_btn = tk.Button(btn_frame, text="▶️  Start Processing", command=self.start_processing,
-                                     bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 13, 'bold'),
-                                     relief='flat', padx=45, pady=16, cursor='hand2',
-                                     borderwidth=0, highlightthickness=0)
-        self.process_btn.pack(side='left', padx=8)
+        # Process button with gradient-like appearance
+        self.process_btn = tk.Button(btn_container, text="▶  Start Processing",
+                                     command=self.start_processing,
+                                     bg=ModernStyles.ACCENT_GREEN, fg='white',
+                                     font=('Segoe UI', 13, 'bold'),
+                                     relief='flat', padx=50, pady=18, cursor='hand2',
+                                     borderwidth=0, highlightthickness=0,
+                                     activebackground=ModernStyles.ACCENT_GREEN_LIGHT)
+        self.process_btn.pack(side='left', padx=10)
+
+        # Add hover effects to buttons
+        def on_save_hover(e):
+            save_btn.config(bg=ModernStyles.ACCENT_BLUE, highlightbackground=ModernStyles.ACCENT_BLUE)
+        def on_save_leave(e):
+            save_btn.config(bg=ModernStyles.BG_CARD_HOVER, highlightbackground=ModernStyles.BORDER_LIGHT)
+
+        save_btn.bind('<Enter>', on_save_hover)
+        save_btn.bind('<Leave>', on_save_leave)
+
+        def on_process_hover(e):
+            self.process_btn.config(bg=ModernStyles.ACCENT_GREEN_LIGHT)
+        def on_process_leave(e):
+            self.process_btn.config(bg=ModernStyles.ACCENT_GREEN)
+
+        self.process_btn.bind('<Enter>', on_process_hover)
+        self.process_btn.bind('<Leave>', on_process_leave)
+
+    def create_stat_badge(self, parent, icon, text, color):
+        """Create a modern status badge"""
+        badge = tk.Frame(parent, bg=ModernStyles.BG_CARD,
+                        highlightbackground=color, highlightthickness=2)
+        badge.pack(side='right', padx=5)
+
+        content = tk.Frame(badge, bg=ModernStyles.BG_CARD)
+        content.pack(padx=15, pady=8)
+
+        tk.Label(content, text=icon, bg=ModernStyles.BG_CARD,
+                fg=color, font=('Segoe UI', 12, 'bold')).pack(side='left', padx=(0,8))
+
+        tk.Label(content, text=text, bg=ModernStyles.BG_CARD,
+                fg=ModernStyles.TEXT_SECONDARY, font=('Segoe UI', 10, 'bold')).pack(side='left')
+
+        return badge
+
+    def create_modern_card(self, parent, emoji, title, description, color, command):
+        """Create a modern, professional feature card with enhanced visuals"""
+        # Main card with subtle border
+        card = tk.Frame(parent, bg=ModernStyles.BG_CARD, relief='flat', bd=0, cursor='hand2',
+                       highlightbackground=ModernStyles.BORDER, highlightthickness=2)
+
+        # Accent bar at top
+        accent_bar = tk.Frame(card, bg=color, height=6)
+        accent_bar.pack(fill='x')
+
+        # Content container
+        content = tk.Frame(card, bg=ModernStyles.BG_CARD)
+        content.pack(expand=True, fill='both', pady=30, padx=30)
+
+        # Icon with colored background circle effect
+        icon_container = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        icon_container.pack(pady=(0,15))
+
+        # Create icon with background
+        icon_bg = tk.Frame(icon_container, bg=color, width=80, height=80)
+        icon_bg.pack_propagate(False)
+        icon_bg.pack()
+
+        tk.Label(icon_bg, text=emoji, bg=color,
+                font=('Segoe UI', 36)).pack(expand=True)
+
+        # Title
+        tk.Label(content, text=title, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                font=('Segoe UI', 18, 'bold')).pack(pady=(0,10))
+
+        # Description
+        desc_label = tk.Label(content, text=description, bg=ModernStyles.BG_CARD,
+                             fg=ModernStyles.TEXT_MUTED,
+                             font=('Segoe UI', 10), wraplength=300, justify='center')
+        desc_label.pack(pady=(0,20))
+
+        # Action button
+        btn = tk.Button(content, text="Open Settings →", command=command,
+                       bg=ModernStyles.BG_CARD_HOVER, fg=color,
+                       font=('Segoe UI', 10, 'bold'),
+                       relief='flat', padx=25, pady=10, cursor='hand2',
+                       borderwidth=0, highlightthickness=1,
+                       highlightbackground=ModernStyles.BORDER_LIGHT)
+        btn.pack()
+
+        # Hover effects
+        def on_card_enter(e):
+            card.config(bg=ModernStyles.BG_CARD_HOVER, highlightbackground=color)
+            content.config(bg=ModernStyles.BG_CARD_HOVER)
+            icon_container.config(bg=ModernStyles.BG_CARD_HOVER)
+            desc_label.config(bg=ModernStyles.BG_CARD_HOVER, fg=ModernStyles.TEXT_SECONDARY)
+            btn.config(bg=color, fg='white', highlightbackground=color)
+            for widget in content.winfo_children():
+                if isinstance(widget, tk.Label) and widget != desc_label and widget != icon_bg:
+                    widget.config(bg=ModernStyles.BG_CARD_HOVER)
+
+        def on_card_leave(e):
+            card.config(bg=ModernStyles.BG_CARD, highlightbackground=ModernStyles.BORDER)
+            content.config(bg=ModernStyles.BG_CARD)
+            icon_container.config(bg=ModernStyles.BG_CARD)
+            desc_label.config(bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_MUTED)
+            btn.config(bg=ModernStyles.BG_CARD_HOVER, fg=color, highlightbackground=ModernStyles.BORDER_LIGHT)
+            for widget in content.winfo_children():
+                if isinstance(widget, tk.Label) and widget != desc_label and widget != icon_bg:
+                    widget.config(bg=ModernStyles.BG_CARD)
+
+        card.bind('<Enter>', on_card_enter)
+        card.bind('<Leave>', on_card_leave)
+        card.bind('<Button-1>', lambda e: command())
+
+        # Make all elements clickable
+        for widget in [content, icon_container, icon_bg, desc_label]:
+            widget.bind('<Button-1>', lambda e: command())
+
+        return card
 
     def create_card(self, parent, emoji, title, description, color, command):
         card = tk.Frame(parent, bg=ModernStyles.BG_CARD, relief='flat', bd=0, cursor='hand2',
