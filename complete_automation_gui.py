@@ -940,6 +940,24 @@ class AudioSettingsPopup:
         self.caption_preset_var = tk.StringVar(value="Custom")
         caption_presets = [
             "Custom",
+            # VIRAL TRENDING STYLES
+            "🚀 MrBeast Style (Yellow/Black Viral)",
+            "💰 Alex Hormozi (Bold Red)",
+            "👑 Andrew Tate (Aggressive Red/Black)",
+            "🎯 Subway Surfers (Bright Colorful)",
+            "💪 Fitness Motivation (Orange Energy)",
+            "🧠 Psychology Facts (Purple Deep)",
+            "💸 Money Mindset (Green Dollar)",
+            "🎤 Podcast Clips (Navy Professional)",
+            "😂 Meme Style (Comic Sans Fun)",
+            "🌟 Instagram Viral (Gradient Pink)",
+            "⚡ High Energy Shorts (Yellow Thunder)",
+            "🔴 Breaking News Alert (Red Urgent)",
+            "💎 Luxury Brand (Gold Elegant)",
+            "🌊 Calm & Chill (Blue Peaceful)",
+            "🎨 Artistic Creative (Multi-color)",
+
+            # ORIGINAL STYLES
             "🔥 Bold Impact (TikTok Style)",
             "✨ Minimal Clean",
             "💎 Neon Glow",
@@ -1136,6 +1154,159 @@ class AudioSettingsPopup:
 
         # Define preset configurations
         presets = {
+            # VIRAL TRENDING PRESETS
+            "🚀 MrBeast Style (Yellow/Black Viral)": {
+                'font': 'impact.ttf',
+                'size': 90,
+                'text_color': '#000000',
+                'bg_enabled': True,
+                'bg_color': '#FFD700',
+                'opacity': 255,
+                'position': 'center',
+                'words': 1
+            },
+            "💰 Alex Hormozi (Bold Red)": {
+                'font': 'arialbd.ttf',
+                'size': 85,
+                'text_color': '#FFFFFF',
+                'bg_enabled': True,
+                'bg_color': '#DC143C',
+                'opacity': 240,
+                'position': 'center',
+                'words': 2
+            },
+            "👑 Andrew Tate (Aggressive Red/Black)": {
+                'font': 'impact.ttf',
+                'size': 88,
+                'text_color': '#FF0000',
+                'bg_enabled': True,
+                'bg_color': '#000000',
+                'opacity': 255,
+                'position': 'center',
+                'words': 1
+            },
+            "🎯 Subway Surfers (Bright Colorful)": {
+                'font': 'comic.ttf',
+                'size': 78,
+                'text_color': '#FFFF00',
+                'bg_enabled': True,
+                'bg_color': '#FF1493',
+                'opacity': 220,
+                'position': 'top',
+                'words': 2
+            },
+            "💪 Fitness Motivation (Orange Energy)": {
+                'font': 'impact.ttf',
+                'size': 82,
+                'text_color': '#FFFFFF',
+                'bg_enabled': True,
+                'bg_color': '#FF6600',
+                'opacity': 230,
+                'position': 'center',
+                'words': 2
+            },
+            "🧠 Psychology Facts (Purple Deep)": {
+                'font': 'arialbd.ttf',
+                'size': 72,
+                'text_color': '#FFFFFF',
+                'bg_enabled': True,
+                'bg_color': '#6A0DAD',
+                'opacity': 220,
+                'position': 'center',
+                'words': 3
+            },
+            "💸 Money Mindset (Green Dollar)": {
+                'font': 'impact.ttf',
+                'size': 85,
+                'text_color': '#FFFFFF',
+                'bg_enabled': True,
+                'bg_color': '#228B22',
+                'opacity': 240,
+                'position': 'center',
+                'words': 2
+            },
+            "🎤 Podcast Clips (Navy Professional)": {
+                'font': 'calibrib.ttf',
+                'size': 68,
+                'text_color': '#FFFFFF',
+                'bg_enabled': True,
+                'bg_color': '#1E3A8A',
+                'opacity': 230,
+                'position': 'bottom',
+                'words': 4
+            },
+            "😂 Meme Style (Comic Sans Fun)": {
+                'font': 'comic.ttf',
+                'size': 75,
+                'text_color': '#000000',
+                'bg_enabled': True,
+                'bg_color': '#FFFFFF',
+                'opacity': 220,
+                'position': 'center',
+                'words': 2
+            },
+            "🌟 Instagram Viral (Gradient Pink)": {
+                'font': 'arialbd.ttf',
+                'size': 76,
+                'text_color': '#FFFFFF',
+                'bg_enabled': True,
+                'bg_color': '#E1306C',
+                'opacity': 225,
+                'position': 'center',
+                'words': 2
+            },
+            "⚡ High Energy Shorts (Yellow Thunder)": {
+                'font': 'impact.ttf',
+                'size': 88,
+                'text_color': '#000000',
+                'bg_enabled': True,
+                'bg_color': '#FFFF00',
+                'opacity': 245,
+                'position': 'center',
+                'words': 1
+            },
+            "🔴 Breaking News Alert (Red Urgent)": {
+                'font': 'arialbd.ttf',
+                'size': 74,
+                'text_color': '#FFFFFF',
+                'bg_enabled': True,
+                'bg_color': '#FF0000',
+                'opacity': 250,
+                'position': 'bottom',
+                'words': 3
+            },
+            "💎 Luxury Brand (Gold Elegant)": {
+                'font': 'georgia.ttf',
+                'size': 70,
+                'text_color': '#FFD700',
+                'bg_enabled': True,
+                'bg_color': '#000000',
+                'opacity': 235,
+                'position': 'center',
+                'words': 3
+            },
+            "🌊 Calm & Chill (Blue Peaceful)": {
+                'font': 'calibri.ttf',
+                'size': 65,
+                'text_color': '#FFFFFF',
+                'bg_enabled': True,
+                'bg_color': '#4682B4',
+                'opacity': 200,
+                'position': 'bottom',
+                'words': 4
+            },
+            "🎨 Artistic Creative (Multi-color)": {
+                'font': 'comic.ttf',
+                'size': 73,
+                'text_color': '#FF1493',
+                'bg_enabled': True,
+                'bg_color': '#00CED1',
+                'opacity': 210,
+                'position': 'center',
+                'words': 2
+            },
+
+            # ORIGINAL PRESETS
             "🔥 Bold Impact (TikTok Style)": {
                 'font': 'impact.ttf',
                 'size': 80,
