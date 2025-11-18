@@ -1482,48 +1482,46 @@ class VideoQuoteAutomation:
         print(f"Emojis: {emoji_line}")
         print(f"CTA: {cta_text}")
 
-        # Only create static text overlay if word-by-word captions are disabled
-        if not self.settings.get('enable_captions', False):
-            img = self.create_text_overlay_image(video.w, video.h, main_text, emoji_line, cta_text)
-            img_array = np.array(img).copy()
+        # Create static text overlay (quote bubble with emoji and CTA)
+        # This is SEPARATE from word-by-word captions and both can be shown together
+        img = self.create_text_overlay_image(video.w, video.h, main_text, emoji_line, cta_text)
+        img_array = np.array(img).copy()
 
-            txt_clip = set_duration(ImageClip(img_array), video.duration)
+        txt_clip = set_duration(ImageClip(img_array), video.duration)
 
-            if self.settings.get('text_fade_in', False):
-                fade_duration = self.settings.get('text_fade_duration', 0.4)
-                if FadeIn:
-                    txt_clip = txt_clip.with_effects([FadeIn(fade_duration)])
-                else:
-                    try:
-                        txt_clip = txt_clip.fadein(fade_duration)
-                    except AttributeError:
-                        pass  # Skip fade if not available
-
-            if self.settings.get('text_slide_up', False):
-                slide_distance = self.settings.get('text_slide_distance', 50)
-                def slide_position(t):
-                    if t < 0.5:
-                        offset = slide_distance * (1 - t / 0.5)
-                        return ('center', video.h - txt_clip.h - offset) if self.settings['position'] == 'bottom' else ('center', offset)
-                    else:
-                        if self.settings['position'] == 'top':
-                            return ('center', 0)
-                        elif self.settings['position'] == 'center':
-                            return ('center', 'center')
-                        else:
-                            return ('center', video.h - txt_clip.h)
-                txt_clip = set_position(txt_clip, slide_position)
+        if self.settings.get('text_fade_in', False):
+            fade_duration = self.settings.get('text_fade_duration', 0.4)
+            if FadeIn:
+                txt_clip = txt_clip.with_effects([FadeIn(fade_duration)])
             else:
-                if self.settings['position'] == 'top':
-                    txt_clip = set_position(txt_clip, ('center', 0))
-                elif self.settings['position'] == 'center':
-                    txt_clip = set_position(txt_clip, ('center', 'center'))
+                try:
+                    txt_clip = txt_clip.fadein(fade_duration)
+                except AttributeError:
+                    pass  # Skip fade if not available
+
+        if self.settings.get('text_slide_up', False):
+            slide_distance = self.settings.get('text_slide_distance', 50)
+            def slide_position(t):
+                if t < 0.5:
+                    offset = slide_distance * (1 - t / 0.5)
+                    return ('center', video.h - txt_clip.h - offset) if self.settings['position'] == 'bottom' else ('center', offset)
                 else:
-                    txt_clip = set_position(txt_clip, ('center', video.h - txt_clip.h))
+                    if self.settings['position'] == 'top':
+                        return ('center', 0)
+                    elif self.settings['position'] == 'center':
+                        return ('center', 'center')
+                    else:
+                        return ('center', video.h - txt_clip.h)
+            txt_clip = set_position(txt_clip, slide_position)
         else:
-            # When word-by-word captions are enabled, create a dummy clip for fallback purposes
-            txt_clip = None
-            print("✓ Skipping static text overlay creation (word-by-word captions enabled)")
+            if self.settings['position'] == 'top':
+                txt_clip = set_position(txt_clip, ('center', 0))
+            elif self.settings['position'] == 'center':
+                txt_clip = set_position(txt_clip, ('center', 'center'))
+            else:
+                txt_clip = set_position(txt_clip, ('center', video.h - txt_clip.h))
+
+        print(f"✓ Static text overlay created at position: {self.settings['position']}")
 
         if self.settings.get('video_zoom', False):
             zoom_scale = self.settings.get('zoom_scale', 1.08)
@@ -1573,13 +1571,9 @@ class VideoQuoteAutomation:
             except AttributeError:
                 video = video.fl_image(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
 
-        # Start with video and text overlay
-        layers = [video]
-        if txt_clip is not None:
-            layers.append(txt_clip)
-            print(f"DEBUG: txt_clip size={txt_clip.size}, position={txt_clip.pos if hasattr(txt_clip, 'pos') else 'N/A'}, duration={txt_clip.duration}")
-        else:
-            print("DEBUG: No static text overlay (word-by-word captions enabled)")
+        # Start with video and static text overlay
+        layers = [video, txt_clip]
+        print(f"DEBUG: txt_clip size={txt_clip.size}, position={txt_clip.pos if hasattr(txt_clip, 'pos') else 'N/A'}, duration={txt_clip.duration}")
         print(f"DEBUG: video size={video.size}, duration={video.duration}")
 
         # Add particle effects if enabled
