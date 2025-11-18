@@ -854,11 +854,11 @@ class AudioSettingsPopup:
         voice_options = []
         voice_keys = []
         if TTSGenerator:
-            # Group voices by category
-            voice_keys = ['aria', 'jenny', 'michelle', 'monica', 'nancy', 'amber', 'ashley', 'sara',  # US Female (added monica, nancy - deep voices)
-                         'guy', 'davis', 'eric', 'christopher', 'jason', 'tony', 'roger', 'steffan',  # US Male
-                         'sonia', 'mia', 'ryan', 'thomas', 'libby', 'alfie',  # British (added mia - deep female)
-                         'natasha', 'annette', 'william',  # Australian (added annette - deep female)
+            # Group voices by category (deep voices marked with 💎🔥🎙️)
+            voice_keys = ['aria', 'jenny', 'michelle', 'monica', 'nancy', 'ana', 'amber', 'ashley', 'sara', 'emma',  # US Female
+                         'guy', 'davis', 'eric', 'christopher', 'jason', 'tony', 'andrew', 'brian', 'brandon', 'jacob', 'roger', 'steffan',  # US Male
+                         'sonia', 'mia', 'ryan', 'thomas', 'libby', 'alfie',  # British
+                         'natasha', 'annette', 'william',  # Australian
                          'neerja', 'prabhat']  # Indian
             voice_options = [TTSGenerator.VOICE_NAMES.get(k, k) for k in voice_keys]
         else:

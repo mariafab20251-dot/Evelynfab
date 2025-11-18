@@ -347,6 +347,14 @@ class TTSGenerator:
         'neerja': 'en-IN-NeerjaNeural',       # Indian female
         'prabhat': 'en-IN-PrabhatNeural',     # Indian male
 
+        # Additional Professional Deep Voices
+        'andrew': 'en-US-AndrewNeural',       # News anchor, very deep authoritative male (ULTRA DEEP)
+        'brian': 'en-US-BrianNeural',         # Deep, serious male narrator (ULTRA DEEP)
+        'ana': 'en-US-AnaNeural',             # Deep, professional female narrator (DEEP)
+        'brandon': 'en-US-BrandonNeural',     # Deep, mature male (DEEP)
+        'emma': 'en-US-EmmaNeural',           # Professional, warm female
+        'jacob': 'en-US-JacobNeural',         # Deep, confident male (DEEP)
+
         # Backward compatibility
         'female': 'en-US-AriaNeural',         # Default female
         'male': 'en-US-GuyNeural',            # Default male
@@ -381,6 +389,12 @@ class TTSGenerator:
         'william': 'William - Australian Male',
         'neerja': 'Neerja - Indian Female',
         'prabhat': 'Prabhat - Indian Male',
+        'andrew': 'Andrew - US Male (Ultra Deep News Anchor) 🎙️',
+        'brian': 'Brian - US Male (Ultra Deep Narrator) 🎙️',
+        'ana': 'Ana - US Female (Deep Professional Narrator) 💎',
+        'brandon': 'Brandon - US Male (Deep & Mature) 🔥',
+        'emma': 'Emma - US Female (Professional & Warm)',
+        'jacob': 'Jacob - US Male (Deep & Confident) 🔥',
     }
 
     @staticmethod
