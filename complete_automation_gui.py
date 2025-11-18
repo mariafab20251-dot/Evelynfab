@@ -1037,7 +1037,7 @@ class AudioSettingsPopup:
         preset_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
         preset_frame.pack(fill='x', padx=20, pady=5)
 
-        self.caption_preset_var = tk.StringVar(value="Custom")
+        self.caption_preset_var = tk.StringVar(value=self.settings.get('caption_preset', 'Custom'))
         caption_presets = [
             "Custom",
             # VIRAL TRENDING STYLES
@@ -1077,6 +1077,27 @@ class AudioSettingsPopup:
         tk.Button(preset_frame, text="Apply Preset", command=self.apply_caption_preset,
                  bg=ModernStyles.ACCENT_ORANGE, fg='white', relief='flat',
                  font=('Segoe UI', 9, 'bold'), padx=15, pady=5).pack(side='left', padx=5)
+
+        # Live Preview
+        preview_label = tk.Label(content, text="👁️ Live Preview:", bg=ModernStyles.BG_PRIMARY,
+                                fg=ModernStyles.TEXT_PRIMARY, font=('Segoe UI', 10, 'bold'))
+        preview_label.pack(anchor='w', padx=20, pady=(15, 5))
+
+        self.preview_canvas = tk.Canvas(content, width=660, height=120, bg='#202020', highlightthickness=2,
+                                       highlightbackground=ModernStyles.BORDER)
+        self.preview_canvas.pack(padx=20, pady=(0, 15))
+
+        # Update button for preview
+        preview_btn_frame = tk.Frame(content, bg=ModernStyles.BG_PRIMARY)
+        preview_btn_frame.pack(fill='x', padx=20, pady=(0, 10))
+
+        tk.Button(preview_btn_frame, text="🔄 Refresh Preview", command=self.update_caption_preview,
+                 bg=ModernStyles.ACCENT_BLUE, fg='white', relief='flat',
+                 font=('Segoe UI', 9, 'bold'), padx=15, pady=5, cursor='hand2').pack(side='left')
+
+        tk.Label(preview_btn_frame, text="(Preview updates automatically when applying preset)",
+                bg=ModernStyles.BG_PRIMARY, fg=ModernStyles.TEXT_MUTED,
+                font=('Segoe UI', 8, 'italic')).pack(side='left', padx=10)
 
         # Caption font size
         self.create_label(content, "Caption Font Size:")
@@ -1185,6 +1206,9 @@ class AudioSettingsPopup:
         tk.Label(info_frame3, text="💡 Tip: Use hex colors (#FFFFFF = white, #000000 = black, #FFFF00 = yellow)",
                 bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
                 font=('Segoe UI', 8), justify='left').pack(anchor='w', padx=15, pady=5)
+
+        # Draw initial preview
+        self.window.after(200, self.update_caption_preview)
 
     def create_section(self, parent, title, color):
         header = tk.Frame(parent, bg=color, height=3)
@@ -1530,7 +1554,8 @@ class AudioSettingsPopup:
             self.caption_position_var.set(config['position'])
             self.caption_words_var.set(config['words'])
 
-            messagebox.showinfo("Preset Applied", f"✓ Applied '{preset}' style to captions!\n\nYou can still customize individual settings.")
+            # Update preview automatically
+            self.window.after(100, self.update_caption_preview)  # Delay to let UI update
 
     def choose_caption_text_color(self):
         color = colorchooser.askcolor(title="Choose Caption Text Color",
@@ -1545,6 +1570,94 @@ class AudioSettingsPopup:
         if color[1]:  # color[1] is the hex value
             self.caption_bg_color_var.set(color[1])
             self.caption_preset_var.set("Custom")  # Mark as custom when manually changed
+
+    def update_caption_preview(self):
+        """Draw live preview of caption style on canvas"""
+        try:
+            # Clear canvas
+            self.preview_canvas.delete("all")
+
+            # Get current settings
+            font_size = self.caption_size_var.get()
+            text_color = self.caption_text_color_var.get()
+            bg_enabled = self.caption_bg_enabled_var.get()
+            bg_color = self.caption_bg_color_var.get()
+            bg_opacity = self.caption_opacity_var.get()
+
+            # Sample text
+            sample_text = "This is how your captions will look! 🔥"
+
+            # Convert hex to RGB
+            def hex_to_rgb(hex_color):
+                hex_color = hex_color.lstrip('#')
+                return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+            text_rgb = hex_to_rgb(text_color)
+            bg_rgb = hex_to_rgb(bg_color)
+
+            # Create PIL image for better text rendering
+            from PIL import Image, ImageDraw, ImageFont
+            img_width, img_height = 660, 120
+
+            # Create image
+            if bg_enabled:
+                # Solid background
+                img = Image.new('RGB', (img_width, img_height), color=bg_rgb)
+            else:
+                # Dark video background simulation
+                img = Image.new('RGB', (img_width, img_height), color=(32, 32, 32))
+
+            draw = ImageDraw.Draw(img)
+
+            # Load font - try common Windows fonts
+            try:
+                font_path = self.caption_font_var.get()
+                if not Path(font_path).exists():
+                    # Try Windows fonts directory
+                    font_path = f"C:\\Windows\\Fonts\\{font_path}"
+                font = ImageFont.truetype(font_path, int(font_size * 0.6))  # Scale down for preview
+            except:
+                font = ImageFont.load_default()
+
+            # Get text size
+            bbox = draw.textbbox((0, 0), sample_text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+
+            # Draw background box if enabled
+            if bg_enabled:
+                padding = 15
+                box_x1 = (img_width - text_width) // 2 - padding
+                box_y1 = (img_height - text_height) // 2 - padding
+                box_x2 = (img_width + text_width) // 2 + padding
+                box_y2 = (img_height + text_height) // 2 + padding
+
+                # Apply opacity to background
+                alpha = bg_opacity / 255.0
+                blended_color = tuple(int(c * alpha + 32 * (1 - alpha)) for c in bg_rgb)
+                draw.rectangle([box_x1, box_y1, box_x2, box_y2], fill=blended_color)
+
+            # Draw text centered
+            text_x = (img_width - text_width) // 2
+            text_y = (img_height - text_height) // 2
+            draw.text((text_x, text_y), sample_text, font=font, fill=text_rgb)
+
+            # Convert PIL image to PhotoImage for canvas
+            import io
+            from PIL import ImageTk
+            self.preview_photo = ImageTk.PhotoImage(img)
+            self.preview_canvas.create_image(330, 60, image=self.preview_photo)
+
+            # Add info text
+            preset_name = self.caption_preset_var.get()
+            info_text = f"Current Style: {preset_name}"
+            self.preview_canvas.create_text(330, 10, text=info_text,
+                                           fill='#888888', font=('Segoe UI', 9))
+
+        except Exception as e:
+            # Show error on canvas
+            self.preview_canvas.create_text(330, 60, text=f"Preview Error: {str(e)}",
+                                           fill='#ff6666', font=('Segoe UI', 10))
 
     def generate_quote_images(self):
         """Generate beautiful template-based images from quotes"""
@@ -1637,6 +1750,7 @@ class AudioSettingsPopup:
 
         # Caption settings
         self.settings['enable_captions'] = self.captions_var.get()
+        self.settings['caption_preset'] = self.caption_preset_var.get()  # Save active preset name
         self.settings['caption_font_size'] = self.caption_size_var.get()
         self.settings['caption_position'] = self.caption_position_var.get()
         self.settings['caption_words_per_line'] = self.caption_words_var.get()

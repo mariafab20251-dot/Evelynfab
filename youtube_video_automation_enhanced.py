@@ -1229,10 +1229,15 @@ class CaptionRenderer:
                 text_y = padding
                 draw.text((content_start_x, text_y), text_content, font=font, fill=(255, 255, 255))  # White text
 
-                # Draw emoji next to text (CapCut style)
+                # Draw emoji next to text (CapCut style) - with original emoji colors
                 if emoji_for_segment:
                     emoji_x = content_start_x + text_width + emoji_spacing
-                    draw.text((emoji_x, text_y - 5), emoji_for_segment, font=emoji_font, fill=(255, 255, 255))
+                    # Use embedded_color=True to preserve emoji colors (Pillow 8.0+)
+                    try:
+                        draw.text((emoji_x, text_y - 5), emoji_for_segment, font=emoji_font, embedded_color=True)
+                    except TypeError:
+                        # Fallback for older Pillow versions - draw without fill to use emoji colors
+                        draw.text((emoji_x, text_y - 5), emoji_for_segment, font=emoji_font)
 
                 # Create clip - no mask needed since background is solid
                 frame = np.array(img_rgb).copy()
