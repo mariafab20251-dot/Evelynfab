@@ -1202,18 +1202,42 @@ class QuoteImageGenerator:
         # Add text overlay
         draw = ImageDraw.Draw(img)
 
-        # Try to load a nice font
+        # Detect if quote contains emojis
+        emoji_pattern = re.compile(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+')
+        has_emojis = bool(emoji_pattern.search(quote))
+
+        # Try to load a font that supports emojis
         font_size = 80
+        emoji_font = None
+        text_font = None
+
         try:
-            # Try Arial Bold first
-            font_path = "C:/Windows/Fonts/arialbd.ttf"
-            if not os.path.exists(font_path):
-                # Fallback to any available font
-                font_path = "C:/Windows/Fonts/arial.ttf"
-            font = ImageFont.truetype(font_path, font_size)
-        except:
-            # Fallback to default font
-            font = ImageFont.load_default()
+            # For Windows: Use Segoe UI Emoji which supports emojis
+            if has_emojis:
+                emoji_font_path = "C:/Windows/Fonts/seguiemj.ttf"  # Segoe UI Emoji
+                if os.path.exists(emoji_font_path):
+                    emoji_font = ImageFont.truetype(emoji_font_path, font_size)
+                    text_font = ImageFont.truetype(emoji_font_path, font_size)
+                    print(f"✓ Using Segoe UI Emoji font for emoji support")
+                else:
+                    # Fallback: strip emojis if emoji font not available
+                    print(f"⚠ Emoji font not found, removing emojis from text")
+                    quote = emoji_pattern.sub(' ', quote).strip()
+                    quote = ' '.join(quote.split())  # Remove extra spaces
+                    has_emojis = False
+
+            # If no emojis or couldn't load emoji font, use Arial Bold
+            if not has_emojis:
+                font_path = "C:/Windows/Fonts/arialbd.ttf"
+                if not os.path.exists(font_path):
+                    font_path = "C:/Windows/Fonts/arial.ttf"
+                text_font = ImageFont.truetype(font_path, font_size)
+        except Exception as e:
+            print(f"⚠ Font loading error: {e}, using default font")
+            text_font = ImageFont.load_default()
+
+        # Use the loaded font
+        font = text_font
 
         # Word wrap the quote
         words = quote.split()
@@ -1223,8 +1247,12 @@ class QuoteImageGenerator:
 
         for word in words:
             test_line = ' '.join(current_line + [word])
-            bbox = draw.textbbox((0, 0), test_line, font=font)
-            text_width = bbox[2] - bbox[0]
+            try:
+                bbox = draw.textbbox((0, 0), test_line, font=font)
+                text_width = bbox[2] - bbox[0]
+            except:
+                # Fallback for older Pillow versions
+                text_width = len(test_line) * (font_size // 2)
 
             if text_width <= max_width:
                 current_line.append(word)
@@ -1248,16 +1276,25 @@ class QuoteImageGenerator:
 
         # Draw each line centered
         for i, line in enumerate(lines):
-            bbox = draw.textbbox((0, 0), line, font=font)
-            text_width = bbox[2] - bbox[0]
-            text_height = bbox[3] - bbox[1]
+            try:
+                bbox = draw.textbbox((0, 0), line, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+            except:
+                # Fallback for older Pillow versions
+                text_width = len(line) * (font_size // 2)
+                text_height = font_size
 
             x = (width - text_width) // 2
             y = start_y + i * line_height
 
             # Add subtle shadow for better readability
             shadow_offset = 3
-            draw.text((x + shadow_offset, y + shadow_offset), line, font=font, fill=(0, 0, 0, 128))
+            shadow_color = (0, 0, 0, 128) if has_emojis else (0, 0, 0)
+            try:
+                draw.text((x + shadow_offset, y + shadow_offset), line, font=font, fill=shadow_color)
+            except:
+                pass  # Skip shadow if it causes issues
 
             # Draw main text
             draw.text((x, y), line, font=font, fill=text_color)
