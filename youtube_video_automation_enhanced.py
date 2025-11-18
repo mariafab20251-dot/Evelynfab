@@ -660,7 +660,7 @@ class CaptionRenderer:
         bg_enabled = settings.get('caption_bg_enabled', True)  # Enable/disable background
         position = settings.get('caption_position', 'center')  # top, center, bottom
         words_per_caption = settings.get('caption_words_per_line', 3)  # Show 3 words at a time
-        overlap_duration = 0.5  # Increased overlap for better readability
+        overlap_duration = 0.0  # No overlap to prevent double captions appearing simultaneously
 
         # Load font
         try:
