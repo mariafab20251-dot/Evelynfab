@@ -372,10 +372,21 @@ class TTSGenerator:
         'ryan_multi': 'en-US-RyanMultilingualNeural',        # Deep confident male (STRONG)
 
         # URDU VOICES (اردو آوازیں)
-        'asad': 'ur-PK-AsadNeural',           # Pakistani Urdu Male (Professional)
-        'uzma': 'ur-PK-UzmaNeural',           # Pakistani Urdu Female (Clear & Professional)
-        'salman': 'ur-IN-SalmanNeural',       # Indian Urdu Male (Warm)
-        'gul': 'ur-IN-GulNeural',             # Indian Urdu Female (Friendly)
+        # Pakistani Urdu (Best for Poetry & Motivation)
+        'asad': 'ur-PK-AsadNeural',           # Pakistani Male (Deep Professional - BEST FOR MOTIVATION)
+        'uzma': 'ur-PK-UzmaNeural',           # Pakistani Female (Clear Expressive - BEST FOR POETRY)
+
+        # Indian Urdu (Rich & Cultural)
+        'salman': 'ur-IN-SalmanNeural',       # Indian Male (Warm Poetic - GREAT FOR SHAYARI)
+        'gul': 'ur-IN-GulNeural',             # Indian Female (Soft Melodious - POETRY)
+
+        # Multilingual Urdu Support (Premium for Poetry)
+        'asad_multi': 'ur-PK-AsadMultilingualNeural',    # Pakistani Multi (POWERFUL MOTIVATION)
+        'uzma_multi': 'ur-PK-UzmaMultilingualNeural',    # Pakistani Multi (EXPRESSIVE POETRY)
+
+        # Additional Regional Voices (Supporting Urdu)
+        'faiz': 'ur-PK-AsadNeural',           # Alias for poetry (named after Faiz Ahmed Faiz)
+        'parveen': 'ur-PK-UzmaNeural',        # Alias for female poetry (Parveen Shakir style)
 
         # Backward compatibility
         'female': 'en-US-AriaNeural',         # Default female
@@ -432,11 +443,20 @@ class TTSGenerator:
         'jenny_multi': 'Jenny Multi - US Female (Energetic Upbeat) 🎉',
         'ryan_multi': 'Ryan Multi - US Male (Deep Confident Strong) 💪',
 
-        # Urdu Voices
-        'asad': 'اسد Asad - Pakistani اردو Male (Professional) 🇵🇰',
-        'uzma': 'عظمیٰ Uzma - Pakistani اردو Female (Clear) 🇵🇰',
-        'salman': 'سلمان Salman - Indian اردو Male (Warm) 🇮🇳',
-        'gul': 'گل Gul - Indian اردو Female (Friendly) 🇮🇳',
+        # Urdu Voices - اردو آوازیں
+        # Pakistani Urdu (پاکستانی اردو)
+        'asad': '⭐ اسد Asad - Pakistani Male (MOTIVATION MASTER) 🇵🇰💪',
+        'uzma': '⭐ عظمیٰ Uzma - Pakistani Female (POETRY QUEEN) 🇵🇰📖',
+        'asad_multi': '🌟 اسد Multi - Pakistani (Powerful Motivation) 🇵🇰🚀',
+        'uzma_multi': '🌟 عظمیٰ Multi - Pakistani (Expressive Poetry) 🇵🇰✨',
+
+        # Indian Urdu (ہندوستانی اردو)
+        'salman': '📜 سلمان Salman - Indian Male (Shayari Master) 🇮🇳',
+        'gul': '🌺 گل Gul - Indian Female (Melodious Poetry) 🇮🇳',
+
+        # Poetry Aliases (شاعری)
+        'faiz': '🎭 فیض Faiz - Poetry Deep (Like Faiz Ahmed Faiz) 📖',
+        'parveen': '💫 پروین Parveen - Female Poetry (Parveen Shakir) 🌹',
     }
 
     @staticmethod

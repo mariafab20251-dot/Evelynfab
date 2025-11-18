@@ -876,7 +876,7 @@ class AudioSettingsPopup:
                 'neerja', 'prabhat',
 
                 # URDU VOICES (اردو)
-                'asad', 'uzma', 'salman', 'gul'
+                'asad', 'uzma', 'salman', 'gul', 'asad_multi', 'uzma_multi', 'faiz', 'parveen'
             ]
             voice_options = [TTSGenerator.VOICE_NAMES.get(k, k) for k in voice_keys]
         else:
