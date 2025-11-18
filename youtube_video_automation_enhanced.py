@@ -611,10 +611,13 @@ class CaptionRenderer:
         """Create captions with estimated timing when word-level timing is unavailable"""
         caption_clips = []
 
-        # Remove emojis and clean text
+        # Extract emojis from text (CapCut-style emoji integration)
         import re
-        clean_text = re.sub(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+', '', text)
-        clean_text = clean_text.strip()
+        emoji_pattern = re.compile(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+')
+        emojis_found = emoji_pattern.findall(text)
+
+        # Remove emojis from text for word counting
+        clean_text = emoji_pattern.sub('', text).strip()
 
         if not clean_text or audio_duration <= 0:
             return []
@@ -628,6 +631,7 @@ class CaptionRenderer:
         words_per_caption = settings.get('caption_words_per_line', 3)
         font_size = settings.get('caption_font_size', 60)
         position = settings.get('caption_position', 'bottom')
+        emoji_in_captions = settings.get('emoji_in_captions', True)  # Enable/disable emoji feature
 
         # IMPROVED TIMING CALCULATION
         # Use natural speaking rate instead of spreading words across full audio duration
@@ -654,12 +658,34 @@ class CaptionRenderer:
         # No timing offset - start at 0 for better sync
         timing_offset = 0.0
 
-        # Load font
+        # Load fonts
         try:
+            # Text font (Arial Bold)
             font_path = str(Path(r"C:\Windows\Fonts") / 'arialbd.ttf')
             font = ImageFont.truetype(font_path, font_size)
+
+            # Emoji font (Segoe UI Emoji for proper emoji rendering)
+            emoji_font_path = str(Path(r"C:\Windows\Fonts") / 'seguiemj.ttf')
+            emoji_font = ImageFont.truetype(emoji_font_path, int(font_size * 1.2))  # Slightly larger
         except:
             font = ImageFont.load_default()
+            emoji_font = font
+
+        # Distribute emojis across segments (1 emoji per 2-3 words, CapCut style)
+        emoji_distribution = []
+        if emoji_in_captions and emojis_found:
+            total_segments = (len(words) + words_per_caption - 1) // words_per_caption
+            emoji_interval = 2  # Show emoji every 2 segments (adjust based on preference)
+
+            for seg_idx in range(total_segments):
+                # Distribute emojis evenly
+                if emojis_found and seg_idx % emoji_interval == 0:
+                    emoji_idx = (seg_idx // emoji_interval) % len(emojis_found)
+                    emoji_distribution.append(emojis_found[emoji_idx])
+                else:
+                    emoji_distribution.append('')  # No emoji for this segment
+
+            print(f"  Emojis found: {emojis_found}, distributed across {len(emoji_distribution)} segments")
 
         # Create caption segments
         current_time = 0.0
@@ -667,30 +693,55 @@ class CaptionRenderer:
             segment_words = words[i:i+words_per_caption]
             text_content = ' '.join(segment_words)
 
+            # Add emoji for this segment (CapCut style)
+            segment_index = i // words_per_caption
+            emoji_for_segment = ''
+            if emoji_in_captions and segment_index < len(emoji_distribution):
+                emoji_for_segment = emoji_distribution[segment_index]
+
             # Calculate timing - start slightly early for better sync
             start_time = max(0, current_time - timing_offset)  # Don't go negative
             duration = len(segment_words) * time_per_word
             current_time += duration
 
             try:
-                # Create PIL image
+                # Calculate dimensions for text + emoji
                 dummy_img = Image.new('RGBA', (1, 1))
                 dummy_draw = ImageDraw.Draw(dummy_img)
+
+                # Measure text
                 bbox = dummy_draw.textbbox((0, 0), text_content, font=font)
                 text_width = bbox[2] - bbox[0]
                 text_height = bbox[3] - bbox[1]
 
+                # Measure emoji if present
+                emoji_width = 0
+                emoji_height = 0
+                emoji_spacing = 15  # Space between text and emoji
+                if emoji_for_segment:
+                    emoji_bbox = dummy_draw.textbbox((0, 0), emoji_for_segment, font=emoji_font)
+                    emoji_width = (emoji_bbox[2] - emoji_bbox[0]) + emoji_spacing
+                    emoji_height = emoji_bbox[3] - emoji_bbox[1]
+
+                # Calculate total dimensions
+                total_width = text_width + emoji_width
                 padding = 20
-                img_width = min(text_width + padding * 2, int(video_width * 0.9))
-                img_height = text_height + padding * 2
+                img_width = min(total_width + padding * 2, int(video_width * 0.9))
+                img_height = max(text_height, emoji_height) + padding * 2
 
                 # Create caption image with SOLID black background (no transparency)
                 img_rgb = Image.new('RGB', (img_width, img_height), (0, 0, 0))  # Solid black
                 draw = ImageDraw.Draw(img_rgb)
 
-                text_x = (img_width - text_width) // 2
+                # Draw text (left-aligned within center)
+                content_start_x = (img_width - total_width) // 2
                 text_y = padding
-                draw.text((text_x, text_y), text_content, font=font, fill=(255, 255, 255))  # White text
+                draw.text((content_start_x, text_y), text_content, font=font, fill=(255, 255, 255))  # White text
+
+                # Draw emoji next to text (CapCut style)
+                if emoji_for_segment:
+                    emoji_x = content_start_x + text_width + emoji_spacing
+                    draw.text((emoji_x, text_y - 5), emoji_for_segment, font=emoji_font, fill=(255, 255, 255))
 
                 # Create clip - no mask needed since background is solid
                 frame = np.array(img_rgb).copy()

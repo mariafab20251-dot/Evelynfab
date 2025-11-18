@@ -1996,9 +1996,20 @@ class ProcessingPopup:
         self.create_path_selector(content, self.video_folder_var, self.browse_video_folder)
 
         # Quotes file
-        self.create_label(content, "Quotes File (.txt):")
+        self.create_label(content, "Quotes File (.txt) - Subtitle text:")
         self.quotes_file_var = tk.StringVar()
         self.create_path_selector(content, self.quotes_file_var, self.browse_quotes_file, is_file=True)
+
+        # Voiceover text file
+        self.create_label(content, "Voiceover Text File (.txt) - Optional (for longer narration):")
+        info_label = tk.Label(content,
+                             text="ℹ️ Leave empty to use Quotes.txt for both subtitle and voiceover",
+                             bg=ModernStyles.BG_PRIMARY, fg=ModernStyles.TEXT_MUTED,
+                             font=('Segoe UI', 8, 'italic'))
+        info_label.pack(anchor='w', padx=20, pady=(0,5))
+
+        self.voiceover_text_file_var = tk.StringVar()
+        self.create_path_selector(content, self.voiceover_text_file_var, self.browse_voiceover_text_file, is_file=True)
 
         # Output folder
         self.create_label(content, "Output Folder (final videos):")
@@ -2061,6 +2072,12 @@ class ProcessingPopup:
         if filename:
             self.quotes_file_var.set(filename)
 
+    def browse_voiceover_text_file(self):
+        filename = filedialog.askopenfilename(title="Select Voiceover Text File",
+                                             filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
+        if filename:
+            self.voiceover_text_file_var.set(filename)
+
     def browse_output_folder(self):
         folder = filedialog.askdirectory(title="Select Output Folder")
         if folder:
@@ -2080,6 +2097,7 @@ class ProcessingPopup:
                     paths = json.load(f)
                     self.video_folder_var.set(paths.get('video_folder', ''))
                     self.quotes_file_var.set(paths.get('quotes_file', ''))
+                    self.voiceover_text_file_var.set(paths.get('voiceover_text_file', ''))
                     self.output_folder_var.set(paths.get('output_folder', ''))
                     self.archive_folder_var.set(paths.get('archive_folder', ''))
             except:
@@ -2090,9 +2108,17 @@ class ProcessingPopup:
         paths = {
             'video_folder': self.video_folder_var.get(),
             'quotes_file': self.quotes_file_var.get(),
+            'voiceover_text_file': self.voiceover_text_file_var.get(),
             'output_folder': self.output_folder_var.get(),
             'archive_folder': self.archive_folder_var.get()
         }
+
+        # Also save to settings so automation can use it
+        if self.voiceover_text_file_var.get():
+            self.settings['voiceover_text_file'] = self.voiceover_text_file_var.get()
+            with open('overlay_settings.json', 'w') as f:
+                json.dump(self.settings, f, indent=2)
+
         with open('processing_paths.json', 'w') as f:
             json.dump(paths, f, indent=2)
 
