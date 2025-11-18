@@ -971,6 +971,28 @@ class AudioSettingsPopup:
         tk.Label(speed_frame, textvariable=self.tts_speed_var, bg=ModernStyles.BG_CARD,
                 fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
 
+        # Voiceover Text File (Separate from Quotes)
+        self.create_label(content, "Voiceover Text File (Optional - for longer narration):")
+        info_frame_vo = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        info_frame_vo.pack(fill='x', padx=20, pady=(0,5))
+        tk.Label(info_frame_vo,
+                text="ℹ️ Use a separate file for voiceover text (what TTS speaks).\nIf not selected, Quotes.txt will be used for both subtitles and voiceover.",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+                font=('Segoe UI', 8, 'italic'), justify='left').pack(anchor='w', padx=15, pady=5)
+
+        self.voiceover_text_path_var = tk.StringVar(value=self.settings.get('voiceover_text_file', ''))
+        vo_text_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        vo_text_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Entry(vo_text_frame, textvariable=self.voiceover_text_path_var, width=40,
+                bg='#0f172a', fg=ModernStyles.TEXT_WHITE, relief='flat').pack(side='left', fill='x', expand=True, padx=10, pady=10)
+
+        tk.Button(vo_text_frame, text="📄 Browse", command=self.browse_voiceover_text_file,
+                 bg=ModernStyles.ACCENT_PURPLE, fg='white', relief='flat', cursor='hand2', padx=15).pack(side='left', padx=5)
+
+        tk.Button(vo_text_frame, text="✕ Clear", command=lambda: self.voiceover_text_path_var.set(''),
+                 bg=ModernStyles.ACCENT_RED, fg='white', relief='flat', cursor='hand2', padx=15).pack(side='left', padx=5)
+
         # Synchronized Captions (NEW!)
         self.create_section(content, "Synchronized Captions (with TTS)", ModernStyles.ACCENT_ORANGE)
 
@@ -1198,6 +1220,15 @@ class AudioSettingsPopup:
         folder = filedialog.askdirectory(title="Select Voiceover Folder")
         if folder:
             self.vo_path_var.set(folder)
+
+    def browse_voiceover_text_file(self):
+        """Browse for voiceover text file (separate from quotes)"""
+        file = filedialog.askopenfilename(
+            title="Select Voiceover Text File",
+            filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
+        )
+        if file:
+            self.voiceover_text_path_var.set(file)
 
     def apply_caption_preset(self):
         """Apply professional caption preset styles (CapCut-inspired)"""
@@ -1573,6 +1604,9 @@ class AudioSettingsPopup:
             self.settings['tts_voice'] = 'aria'
 
         self.settings['tts_speed'] = self.tts_speed_var.get()
+
+        # Voiceover text file (separate from quotes)
+        self.settings['voiceover_text_file'] = self.voiceover_text_path_var.get()
 
         # Caption settings
         self.settings['enable_captions'] = self.captions_var.get()

@@ -1,51 +1,124 @@
 ===============================================================================
-QUOTES.TXT FORMAT GUIDE - Separate Subtitle & Voiceover
+SEPARATE SUBTITLE & VOICEOVER FILES - NEW FEATURE GUIDE
 ===============================================================================
 
-NEW FEATURE: You can now have different text for subtitles and voiceover!
+NEW FEATURE: You can now have different text for subtitles and voiceover
+              using TWO SEPARATE FILES!
 
-FORMAT:
-  Subtitle text|||Voiceover text with explanations
-
-EXAMPLES:
-
-Success is not final|||Success is not final, failure is not fatal. It is the courage to continue that counts. Remember, every successful person has faced failures along the way. The difference is they didn't give up. They kept pushing forward, learning from their mistakes, and eventually achieved their dreams. You can do the same!
-
-Hard work beats talent|||Hard work beats talent when talent doesn't work hard. You might not be the most gifted person in the room, but consistent effort and dedication will take you further than raw talent alone. Make it a habit to work hard every single day, and you'll be amazed at what you can accomplish.
-
-Dream big|||Dream big, work hard, stay focused, and surround yourself with good people. Your dreams are valid, no matter how impossible they might seem right now. Break them down into smaller goals, take action every day, and never lose sight of your vision. Success is a journey, not a destination.
-
-===============================================================================
 HOW IT WORKS:
+
+1. Quotes.txt → Contains subtitle text (what viewers SEE)
+   - Short, punchy, main heading
+   - Displayed as captions in center
+   - Shown in static text overlay at top
+
+2. VoiceoverText.txt → Contains voiceover narration (what viewers HEAR)
+   - Full explanations with context
+   - Spoken by TTS voiceover
+   - Can be much longer
+
+3. Line matching:
+   - Line 1 in Quotes.txt pairs with Line 1 in VoiceoverText.txt
+   - Line 2 in Quotes.txt pairs with Line 2 in VoiceoverText.txt
+   - And so on...
+
+===============================================================================
+EXAMPLE SETUP:
 ===============================================================================
 
-1. SUBTITLES/CAPTIONS (What viewers SEE):
-   - Uses the text BEFORE the "|||" separator
-   - Short, punchy, main heading
-   - Displayed as word-by-word captions in center
-   - Also shown in static text overlay at top
+FILE: Quotes.txt
+----------------
+Success is not final
+Hard work beats talent
+Dream big 🚀
+Never give up
+Your mindset matters
 
-2. VOICEOVER (What viewers HEAR):
-   - Uses the text AFTER the "|||" separator
-   - Can be much longer with full explanations
-   - Spoken by TTS voiceover
-   - Includes context, examples, motivation
+FILE: VoiceoverText.txt
+-----------------------
+Success is not final, failure is not fatal. It is the courage to continue that counts. Remember, every successful person has faced failures along the way. The difference is they didn't give up. They kept pushing forward, learning from their mistakes, and eventually achieved their dreams. You can do the same!
 
-3. BACKWARD COMPATIBLE:
-   - If you don't use "|||", same text is used for both
-   - Your old quotes will still work perfectly
+Hard work beats talent when talent doesn't work hard. You might not be the most gifted person in the room, but consistent effort and dedication will take you further than raw talent alone. Make it a habit to work hard every single day, and you'll be amazed at what you can accomplish.
+
+Dream big, work hard, stay focused, and surround yourself with good people. Your dreams are valid, no matter how impossible they might seem right now. Break them down into smaller goals, take action every day, and never lose sight of your vision. Success is a journey, not a destination.
+
+Never give up on your dreams. When things get tough, when people doubt you, when obstacles seem insurmountable - that's exactly when you need to push harder. Champions are made in moments when quitting seems like the only option. Keep going, keep fighting, keep believing in yourself.
+
+Your mindset is everything. The way you think determines the way you live. Cultivate positive thoughts, surround yourself with uplifting people, and choose to see opportunities instead of obstacles. With the right mindset, there's nothing you can't achieve.
+
+===============================================================================
+HOW TO USE IN GUI:
+===============================================================================
+
+1. Open the GUI application
+2. Click "Audio Settings" button
+3. Find "Voiceover Text File" section
+4. Click "📄 Browse" button
+5. Select your VoiceoverText.txt file
+6. Click "Save Changes"
+7. Start processing your videos!
+
+===============================================================================
+BACKWARD COMPATIBLE:
+===============================================================================
+
+If you DON'T select a voiceover text file:
+✓ Quotes.txt will be used for both subtitle and voiceover
+✓ Your old setup continues to work perfectly
+✓ No changes needed to existing workflow
 
 ===============================================================================
 BEST PRACTICES:
 ===============================================================================
 
-✓ Keep subtitles short (5-10 words)
-✓ Make voiceover engaging with explanations
-✓ Use emojis in subtitle text for visual appeal
-✓ Include storytelling in voiceover for connection
-✓ Add calls-to-action in voiceover
+SUBTITLES (Quotes.txt):
+✓ Keep it short (5-10 words max)
+✓ Main idea or heading
+✓ Use emojis for visual appeal
+✓ Make it attention-grabbing
+✓ Easy to read at a glance
 
-EXAMPLE WITH EMOJI:
-Success is the best revenge 💪|||Success is the best revenge. Don't waste your energy proving people wrong. Instead, focus that energy on proving yourself right. Work in silence, let your success make the noise. When they doubted you, you kept going. Now they're watching. Keep rising!
+VOICEOVER (VoiceoverText.txt):
+✓ Tell the full story
+✓ Add context and explanations
+✓ Include examples and analogies
+✓ Create emotional connection
+✓ Add calls-to-action
+✓ Length: 30 seconds to 2 minutes per quote
+
+===============================================================================
+PERFECT FOR:
+===============================================================================
+
+✓ Educational content (brief concept + detailed explanation)
+✓ Motivational quotes (short quote + inspiring story)
+✓ Tips & facts (headline + full context)
+✓ Poetry (short verse + deeper meaning)
+✓ Business advice (principle + real-world examples)
+✓ Life lessons (quote + personal story)
+
+===============================================================================
+TIPS:
+===============================================================================
+
+1. Ensure same number of lines in both files
+   - If counts don't match, system uses minimum count
+   - You'll see a warning message in processing log
+
+2. Keep subtitles visual-friendly
+   - Short enough to read quickly
+   - Punchy and impactful
+   - Include emojis when appropriate
+
+3. Make voiceover engaging
+   - Use storytelling techniques
+   - Vary your pacing and rhythm
+   - Include pauses for emphasis (use punctuation)
+   - End with a call-to-action
+
+4. Test different combinations
+   - Same quote, different explanations
+   - Try multiple voiceover variations
+   - See what resonates with your audience
 
 ===============================================================================

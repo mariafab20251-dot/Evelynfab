@@ -1457,11 +1457,13 @@ class VideoQuoteAutomation:
 
     def read_quotes(self) -> List[dict]:
         """
-        Read quotes from file with support for separate subtitle and voiceover text.
+        Read quotes from file(s) with support for separate subtitle and voiceover text.
 
         Format options:
-        1. Simple format (backward compatible): "Quote text"
-        2. Separate subtitle/voiceover: "Subtitle text|||Voiceover text with explanations"
+        1. Single file (Quotes.txt only): Same text for subtitle and voiceover
+        2. Two separate files: Quotes.txt for subtitles, VoiceoverText.txt for voiceover
+           - Line 1 in Quotes.txt pairs with line 1 in VoiceoverText.txt
+           - Line 2 in Quotes.txt pairs with line 2 in VoiceoverText.txt, etc.
 
         Returns list of dicts with 'subtitle' and 'voiceover' keys.
         """
@@ -1469,46 +1471,66 @@ class VideoQuoteAutomation:
             print(f"✗ Quotes file not found: {self.quotes_file}")
             return []
 
+        # Read subtitle text (from Quotes.txt)
         with open(self.quotes_file, 'r', encoding='utf-8') as f:
-            content = f.read()
+            subtitle_content = f.read()
 
-        quotes = []
-
-        if re.match(r'^\s*\d+\.', content, re.MULTILINE):
-            parts = re.split(r'\n\s*\d+\.\s*', content)
-            quotes = [q.strip() for q in parts[1:] if q.strip()]
-        elif '\n\n' in content:
-            quotes = [q.strip() for q in content.split('\n\n') if q.strip()]
-        elif '---' in content:
-            quotes = [q.strip() for q in content.split('---') if q.strip()]
+        subtitle_lines = []
+        if re.match(r'^\s*\d+\.', subtitle_content, re.MULTILINE):
+            parts = re.split(r'\n\s*\d+\.\s*', subtitle_content)
+            subtitle_lines = [q.strip() for q in parts[1:] if q.strip()]
+        elif '\n\n' in subtitle_content:
+            subtitle_lines = [q.strip() for q in subtitle_content.split('\n\n') if q.strip()]
+        elif '---' in subtitle_content:
+            subtitle_lines = [q.strip() for q in subtitle_content.split('---') if q.strip()]
         else:
-            quotes = [line.strip() for line in content.split('\n') if line.strip()]
+            subtitle_lines = [line.strip() for line in subtitle_content.split('\n') if line.strip()]
 
-        processed_quotes = []
-        for quote in quotes:
-            cleaned = re.sub(r'^\d+\.\s*', '', quote).strip()
-            if not cleaned:
-                continue
+        # Clean subtitle lines
+        subtitle_lines = [re.sub(r'^\d+\.\s*', '', line).strip() for line in subtitle_lines if line.strip()]
 
-            # Check if quote uses subtitle|||voiceover format
-            if '|||' in cleaned:
-                parts = cleaned.split('|||', 1)  # Split only on first occurrence
-                subtitle_text = parts[0].strip()
-                voiceover_text = parts[1].strip() if len(parts) > 1 else subtitle_text
+        # Check for separate voiceover text file
+        voiceover_text_file = self.settings.get('voiceover_text_file', '')
+        voiceover_lines = []
 
-                processed_quotes.append({
-                    'subtitle': subtitle_text,
-                    'voiceover': voiceover_text
-                })
-                print(f"  → Found split format:")
-                print(f"     Subtitle: {subtitle_text[:60]}...")
-                print(f"     Voiceover: {voiceover_text[:60]}...")
+        if voiceover_text_file and Path(voiceover_text_file).exists():
+            print(f"✓ Using separate voiceover text file: {Path(voiceover_text_file).name}")
+            with open(voiceover_text_file, 'r', encoding='utf-8') as f:
+                voiceover_content = f.read()
+
+            # Parse voiceover file same way as subtitle file
+            if re.match(r'^\s*\d+\.', voiceover_content, re.MULTILINE):
+                parts = re.split(r'\n\s*\d+\.\s*', voiceover_content)
+                voiceover_lines = [q.strip() for q in parts[1:] if q.strip()]
+            elif '\n\n' in voiceover_content:
+                voiceover_lines = [q.strip() for q in voiceover_content.split('\n\n') if q.strip()]
+            elif '---' in voiceover_content:
+                voiceover_lines = [q.strip() for q in voiceover_content.split('---') if q.strip()]
             else:
-                # Backward compatible: use same text for both
-                processed_quotes.append({
-                    'subtitle': cleaned,
-                    'voiceover': cleaned
-                })
+                voiceover_lines = [line.strip() for line in voiceover_content.split('\n') if line.strip()]
+
+            # Clean voiceover lines
+            voiceover_lines = [re.sub(r'^\d+\.\s*', '', line).strip() for line in voiceover_lines if line.strip()]
+
+            if len(voiceover_lines) != len(subtitle_lines):
+                print(f"⚠ Warning: Subtitle file has {len(subtitle_lines)} lines, Voiceover file has {len(voiceover_lines)} lines")
+                print(f"  → Will use minimum count: {min(len(subtitle_lines), len(voiceover_lines))}")
+        else:
+            print(f"✓ Using Quotes.txt for both subtitle and voiceover")
+            voiceover_lines = subtitle_lines  # Use same text for both
+
+        # Pair subtitle and voiceover lines
+        processed_quotes = []
+        min_count = min(len(subtitle_lines), len(voiceover_lines)) if voiceover_lines else len(subtitle_lines)
+
+        for i in range(min_count):
+            subtitle_text = subtitle_lines[i]
+            voiceover_text = voiceover_lines[i] if voiceover_lines else subtitle_text
+
+            processed_quotes.append({
+                'subtitle': subtitle_text,
+                'voiceover': voiceover_text
+            })
 
         print(f"✓ Loaded {len(processed_quotes)} quotes")
 
