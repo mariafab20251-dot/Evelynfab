@@ -780,6 +780,57 @@ class AudioSettingsPopup:
         canvas.create_window((0, 0), window=content, anchor="nw")
         content.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 
+        # Quote Image Generation
+        self.create_section(content, "🎨 Quote Image Generation", ModernStyles.ACCENT_PURPLE)
+
+        self.create_label(content, "Generate beautiful background images from your quotes:")
+        info_label = tk.Label(content,
+                             text="This creates gradient/template-based images with your quotes.\nPerfect for simple quote videos without video backgrounds!",
+                             bg=ModernStyles.BG_DARK, fg=ModernStyles.TEXT_GRAY,
+                             font=('Segoe UI', 9), justify='left')
+        info_label.pack(padx=20, pady=(0, 10))
+
+        # Template selection
+        self.create_label(content, "Image Template Style:")
+        template_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        template_frame.pack(fill='x', padx=20, pady=5)
+
+        self.image_template_var = tk.StringVar(value='auto')
+        image_templates = [
+            'auto (Smart: Auto-select based on quote)',
+            'gradient_sunset (Warm sunset - motivational)',
+            'gradient_ocean (Deep ocean - calm, wisdom)',
+            'gradient_fire (Fire energy - high energy)',
+            'gradient_purple_dream (Purple dream - creative)',
+            'gradient_mint_fresh (Mint fresh - success)',
+            'gradient_golden_hour (Golden hour - inspiring)',
+            'gradient_sky (Sky blue - hopeful)',
+            'gradient_dark_purple (Dark purple - luxury)',
+            'solid_black (Minimalist black - bold)',
+            'solid_navy (Deep navy - professional)'
+        ]
+
+        template_dropdown = ttk.Combobox(template_frame, textvariable=self.image_template_var,
+                                        values=image_templates, state='readonly', width=50)
+        template_dropdown.pack(side='left', padx=15, pady=10, fill='x', expand=True)
+
+        # Generate button
+        generate_btn_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        generate_btn_frame.pack(fill='x', padx=20, pady=10)
+
+        tk.Button(generate_btn_frame, text="🎨 Generate Quote Images",
+                 command=self.generate_quote_images,
+                 bg=ModernStyles.ACCENT_PURPLE, fg='white', relief='flat',
+                 font=('Segoe UI', 10, 'bold'), padx=20, pady=10,
+                 cursor='hand2').pack(padx=15, pady=10)
+
+        # Status label
+        self.image_gen_status_var = tk.StringVar(value="")
+        status_label = tk.Label(content, textvariable=self.image_gen_status_var,
+                               bg=ModernStyles.BG_DARK, fg=ModernStyles.ACCENT_GREEN,
+                               font=('Segoe UI', 9, 'italic'))
+        status_label.pack(padx=20, pady=(0, 10))
+
         # Original Audio
         self.create_section(content, "Original Audio", ModernStyles.ACCENT_BLUE)
         self.mute_var = tk.BooleanVar(value=self.settings.get('mute_original_audio', False))
@@ -1436,6 +1487,55 @@ class AudioSettingsPopup:
         if color[1]:  # color[1] is the hex value
             self.caption_bg_color_var.set(color[1])
             self.caption_preset_var.set("Custom")  # Mark as custom when manually changed
+
+    def generate_quote_images(self):
+        """Generate beautiful template-based images from quotes"""
+        try:
+            from youtube_video_automation_enhanced import QuoteImageGenerator
+
+            # Read quotes from file
+            quotes_file = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\Quotes.txt")
+            if not quotes_file.exists():
+                messagebox.showerror("Error", f"Quotes file not found:\n{quotes_file}")
+                return
+
+            with open(quotes_file, 'r', encoding='utf-8') as f:
+                quotes = [line.strip() for line in f if line.strip()]
+
+            if not quotes:
+                messagebox.showerror("Error", "No quotes found in Quotes.txt")
+                return
+
+            # Get selected template
+            template_selection = self.image_template_var.get()
+            template_name = template_selection.split(' (')[0]  # Extract template name
+
+            # Create output folder
+            output_folder = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\GeneratedQuoteImages")
+            output_folder.mkdir(exist_ok=True, parents=True)
+
+            # Update status
+            self.image_gen_status_var.set(f"Generating {len(quotes)} quote images...")
+            self.window.update()
+
+            # Generate images
+            generated_images = QuoteImageGenerator.generate_images_from_quotes(
+                quotes, output_folder, template_name
+            )
+
+            # Update status
+            self.image_gen_status_var.set(f"✓ Generated {len(generated_images)} images in:\n{output_folder}")
+
+            # Show success message
+            messagebox.showinfo("Success",
+                              f"Generated {len(generated_images)} quote images!\n\n"
+                              f"Location: {output_folder}\n\n"
+                              f"You can now use these images as video backgrounds\n"
+                              f"by placing them in your video source folder.")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to generate images:\n{str(e)}")
+            self.image_gen_status_var.set(f"✗ Error: {str(e)}")
 
     def save_settings(self):
         self.settings['mute_original_audio'] = self.mute_var.get()

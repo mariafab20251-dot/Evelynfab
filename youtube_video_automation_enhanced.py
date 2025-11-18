@@ -1046,6 +1046,270 @@ class TextEffects:
         return Image.alpha_composite(img, overlay)
 
 
+class QuoteImageGenerator:
+    """Generate beautiful template-based background images for quotes"""
+
+    TEMPLATES = {
+        'gradient_sunset': {
+            'colors': [(255, 94, 77), (255, 154, 158), (250, 208, 196)],
+            'direction': 'diagonal',
+            'text_color': '#FFFFFF',
+            'description': 'Warm sunset gradient (motivational)'
+        },
+        'gradient_ocean': {
+            'colors': [(26, 42, 108), (58, 96, 115), (107, 140, 140)],
+            'direction': 'vertical',
+            'text_color': '#FFFFFF',
+            'description': 'Deep ocean gradient (calm, wisdom)'
+        },
+        'gradient_fire': {
+            'colors': [(255, 65, 108), (255, 75, 43), (255, 168, 0)],
+            'direction': 'radial',
+            'text_color': '#FFFFFF',
+            'description': 'Fire energy gradient (high energy)'
+        },
+        'gradient_purple_dream': {
+            'colors': [(67, 67, 255), (156, 81, 182), (255, 109, 255)],
+            'direction': 'diagonal',
+            'text_color': '#FFFFFF',
+            'description': 'Purple dream gradient (creative, spiritual)'
+        },
+        'gradient_mint_fresh': {
+            'colors': [(11, 163, 96), (60, 186, 146), (130, 224, 170)],
+            'direction': 'vertical',
+            'text_color': '#FFFFFF',
+            'description': 'Mint fresh gradient (growth, success)'
+        },
+        'solid_black': {
+            'colors': [(0, 0, 0)],
+            'direction': 'solid',
+            'text_color': '#FFFFFF',
+            'description': 'Minimalist black (bold, modern)'
+        },
+        'solid_navy': {
+            'colors': [(20, 30, 48)],
+            'direction': 'solid',
+            'text_color': '#FFFFFF',
+            'description': 'Deep navy (professional, trust)'
+        },
+        'gradient_golden_hour': {
+            'colors': [(255, 195, 113), (251, 144, 98), (247, 106, 104)],
+            'direction': 'horizontal',
+            'text_color': '#FFFFFF',
+            'description': 'Golden hour (warm, inspiring)'
+        },
+        'gradient_sky': {
+            'colors': [(2, 170, 176), (0, 205, 172), (134, 253, 232)],
+            'direction': 'vertical',
+            'text_color': '#000000',
+            'description': 'Sky blue gradient (hopeful, peaceful)'
+        },
+        'gradient_dark_purple': {
+            'colors': [(35, 7, 77), (79, 46, 109), (117, 86, 142)],
+            'direction': 'radial',
+            'text_color': '#FFFFFF',
+            'description': 'Dark purple (luxury, mystery)'
+        }
+    }
+
+    @staticmethod
+    def create_gradient(width, height, colors, direction='vertical'):
+        """Create a gradient background image"""
+        img = Image.new('RGB', (width, height))
+        draw = ImageDraw.Draw(img)
+
+        if direction == 'solid':
+            img.paste(colors[0], [0, 0, width, height])
+            return img
+
+        if direction == 'vertical':
+            for y in range(height):
+                # Calculate color interpolation
+                position = y / height
+                color = QuoteImageGenerator._interpolate_colors(colors, position)
+                draw.line([(0, y), (width, y)], fill=color)
+
+        elif direction == 'horizontal':
+            for x in range(width):
+                position = x / width
+                color = QuoteImageGenerator._interpolate_colors(colors, position)
+                draw.line([(x, 0), (x, height)], fill=color)
+
+        elif direction == 'diagonal':
+            for y in range(height):
+                for x in range(width):
+                    position = (x + y) / (width + height)
+                    color = QuoteImageGenerator._interpolate_colors(colors, position)
+                    draw.point((x, y), fill=color)
+
+        elif direction == 'radial':
+            center_x, center_y = width // 2, height // 2
+            max_distance = np.sqrt(center_x**2 + center_y**2)
+
+            for y in range(height):
+                for x in range(width):
+                    distance = np.sqrt((x - center_x)**2 + (y - center_y)**2)
+                    position = distance / max_distance
+                    color = QuoteImageGenerator._interpolate_colors(colors, position)
+                    draw.point((x, y), fill=color)
+
+        return img
+
+    @staticmethod
+    def _interpolate_colors(colors, position):
+        """Interpolate between multiple colors based on position (0.0 to 1.0)"""
+        if len(colors) == 1:
+            return colors[0]
+
+        # Clamp position
+        position = max(0.0, min(1.0, position))
+
+        # Calculate which colors to interpolate between
+        num_segments = len(colors) - 1
+        segment = position * num_segments
+        segment_index = int(segment)
+
+        if segment_index >= num_segments:
+            return colors[-1]
+
+        # Interpolate between two adjacent colors
+        local_position = segment - segment_index
+        color1 = colors[segment_index]
+        color2 = colors[segment_index + 1]
+
+        r = int(color1[0] + (color2[0] - color1[0]) * local_position)
+        g = int(color1[1] + (color2[1] - color1[1]) * local_position)
+        b = int(color1[2] + (color2[2] - color1[2]) * local_position)
+
+        return (r, g, b)
+
+    @staticmethod
+    def create_quote_image(quote, template_name='gradient_sunset', width=1080, height=1920):
+        """Create a beautiful quote image using a template"""
+        if template_name not in QuoteImageGenerator.TEMPLATES:
+            print(f"⚠ Template '{template_name}' not found, using 'gradient_sunset'")
+            template_name = 'gradient_sunset'
+
+        template = QuoteImageGenerator.TEMPLATES[template_name]
+
+        # Create gradient background
+        img = QuoteImageGenerator.create_gradient(
+            width, height,
+            template['colors'],
+            template['direction']
+        )
+
+        # Add text overlay
+        draw = ImageDraw.Draw(img)
+
+        # Try to load a nice font
+        font_size = 80
+        try:
+            # Try Arial Bold first
+            font_path = "C:/Windows/Fonts/arialbd.ttf"
+            if not os.path.exists(font_path):
+                # Fallback to any available font
+                font_path = "C:/Windows/Fonts/arial.ttf"
+            font = ImageFont.truetype(font_path, font_size)
+        except:
+            # Fallback to default font
+            font = ImageFont.load_default()
+
+        # Word wrap the quote
+        words = quote.split()
+        lines = []
+        current_line = []
+        max_width = width - 200  # 100px padding on each side
+
+        for word in words:
+            test_line = ' '.join(current_line + [word])
+            bbox = draw.textbbox((0, 0), test_line, font=font)
+            text_width = bbox[2] - bbox[0]
+
+            if text_width <= max_width:
+                current_line.append(word)
+            else:
+                if current_line:
+                    lines.append(' '.join(current_line))
+                current_line = [word]
+
+        if current_line:
+            lines.append(' '.join(current_line))
+
+        # Calculate total text height
+        line_height = font_size + 20
+        total_text_height = len(lines) * line_height
+
+        # Center text vertically
+        start_y = (height - total_text_height) // 2
+
+        # Parse text color
+        text_color = tuple(int(template['text_color'].lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+
+        # Draw each line centered
+        for i, line in enumerate(lines):
+            bbox = draw.textbbox((0, 0), line, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+
+            x = (width - text_width) // 2
+            y = start_y + i * line_height
+
+            # Add subtle shadow for better readability
+            shadow_offset = 3
+            draw.text((x + shadow_offset, y + shadow_offset), line, font=font, fill=(0, 0, 0, 128))
+
+            # Draw main text
+            draw.text((x, y), line, font=font, fill=text_color)
+
+        return img
+
+    @staticmethod
+    def generate_images_from_quotes(quotes_list, output_folder, template_name='auto'):
+        """Generate images for a list of quotes"""
+        output_folder = Path(output_folder)
+        output_folder.mkdir(exist_ok=True, parents=True)
+
+        # Auto-select templates based on quote content
+        template_keywords = {
+            'gradient_fire': ['energy', 'power', 'passion', 'motivation', 'action', 'hustle'],
+            'gradient_ocean': ['calm', 'peace', 'wisdom', 'deep', 'think', 'mind'],
+            'gradient_purple_dream': ['dream', 'creative', 'spiritual', 'soul', 'art', 'imagine'],
+            'gradient_mint_fresh': ['success', 'growth', 'money', 'wealth', 'win', 'achieve'],
+            'gradient_sunset': ['inspire', 'hope', 'life', 'love', 'beautiful', 'happy'],
+            'gradient_dark_purple': ['luxury', 'mystery', 'secret', 'truth', 'deep'],
+            'solid_black': ['bold', 'strong', 'power', 'minimal', 'modern']
+        }
+
+        generated_images = []
+
+        for i, quote in enumerate(quotes_list):
+            # Auto-select template based on quote content
+            if template_name == 'auto':
+                quote_lower = quote.lower()
+                selected_template = 'gradient_sunset'  # default
+
+                for tmpl, keywords in template_keywords.items():
+                    if any(keyword in quote_lower for keyword in keywords):
+                        selected_template = tmpl
+                        break
+            else:
+                selected_template = template_name
+
+            # Generate image
+            img = QuoteImageGenerator.create_quote_image(quote, selected_template)
+
+            # Save image
+            filename = f"quote_{i+1}_{selected_template}.png"
+            filepath = output_folder / filename
+            img.save(filepath)
+
+            generated_images.append(filepath)
+            print(f"✓ Generated image {i+1}/{len(quotes_list)}: {filename} (template: {selected_template})")
+
+        return generated_images
+
+
 class VideoQuoteAutomation:
     """Automate adding quotes to videos with advanced effects"""
 
