@@ -629,12 +629,30 @@ class CaptionRenderer:
         font_size = settings.get('caption_font_size', 60)
         position = settings.get('caption_position', 'bottom')
 
-        # Estimate time per word
-        time_per_word = audio_duration / len(words)
+        # IMPROVED TIMING CALCULATION
+        # Use natural speaking rate instead of spreading words across full audio duration
+        # This fixes the issue when subtitle text is SHORT but voiceover is LONG
 
-        # Caption timing offset - start captions slightly early for better sync
-        # This compensates for reaction time and makes captions feel more natural
-        timing_offset = 0.15  # seconds
+        # Use TTS speed setting from user (default 150 wpm)
+        # Standard rates: Slow=100, Normal=150, Fast=200 words per minute
+        speaking_rate_wpm = settings.get('tts_speed', 150)
+        time_per_word = 60.0 / speaking_rate_wpm  # Convert WPM to seconds per word
+
+        # Calculate natural duration for this text
+        natural_duration = len(words) * time_per_word
+
+        # If natural duration exceeds audio, use audio duration instead
+        # This handles cases where text is very long relative to audio
+        if natural_duration > audio_duration:
+            time_per_word = audio_duration / len(words)
+            caption_duration = audio_duration
+        else:
+            caption_duration = natural_duration
+
+        print(f"  Caption timing: {len(words)} words, {caption_duration:.2f}s duration ({time_per_word:.2f}s per word)")
+
+        # No timing offset - start at 0 for better sync
+        timing_offset = 0.0
 
         # Load font
         try:
