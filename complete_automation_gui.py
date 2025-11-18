@@ -1958,6 +1958,335 @@ class VideoProcessingWindow:
         self.log("⏹️ Stopping after current video...")
 
 
+class TransitionsEffectsPopup:
+    """Popup for professional transitions and light leaks configuration"""
+
+    def __init__(self, parent, settings, on_save):
+        self.settings = settings.copy()
+        self.on_save = on_save
+
+        self.window = tk.Toplevel(parent)
+        self.window.title("🎬 Transitions & Effects")
+        self.window.geometry("800x750")
+        self.window.configure(bg=ModernStyles.BG_PRIMARY)
+
+        self.setup_ui()
+
+    def setup_ui(self):
+        # Header
+        header = tk.Frame(self.window, bg=ModernStyles.ACCENT_PURPLE, height=60)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+
+        tk.Label(header, text="🎬 Transitions & Cinematic Effects",
+                bg=ModernStyles.ACCENT_PURPLE, fg='white',
+                font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
+
+        # Bottom buttons
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_PRIMARY, height=70)
+        btn_frame.pack(fill='x', side='bottom')
+        btn_frame.pack_propagate(False)
+
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_PRIMARY)
+        buttons.pack(expand=True)
+
+        tk.Button(buttons, text="💾  Save Changes", command=self.save_settings,
+                 bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
+
+        tk.Button(buttons, text="✕  Cancel", command=self.window.destroy,
+                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
+
+        # Scrollable content
+        canvas = tk.Canvas(self.window, bg=ModernStyles.BG_PRIMARY, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self.window, orient="vertical", command=canvas.yview)
+        content = tk.Frame(canvas, bg=ModernStyles.BG_PRIMARY)
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True, padx=20, pady=20)
+        canvas.create_window((0, 0), window=content, anchor="nw")
+        content.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        # === FADE TRANSITIONS ===
+        self.create_section(content, "🌊 Fade Transitions", ModernStyles.ACCENT_BLUE)
+
+        self.fade_in_var = tk.BooleanVar(value=self.settings.get('transition_fade_in', False))
+        self.create_checkbox(content, "Fade In (video starts from black)", self.fade_in_var)
+
+        self.fade_in_duration_var = tk.DoubleVar(value=self.settings.get('transition_fade_in_duration', 0.5))
+        self.create_slider(content, "Fade In Duration (seconds):", self.fade_in_duration_var, 0.1, 3.0, 0.1)
+
+        self.fade_out_var = tk.BooleanVar(value=self.settings.get('transition_fade_out', False))
+        self.create_checkbox(content, "Fade Out (video ends to black)", self.fade_out_var)
+
+        self.fade_out_duration_var = tk.DoubleVar(value=self.settings.get('transition_fade_out_duration', 0.5))
+        self.create_slider(content, "Fade Out Duration (seconds):", self.fade_out_duration_var, 0.1, 3.0, 0.1)
+
+        # === ZOOM TRANSITIONS ===
+        self.create_section(content, "🔍 Zoom Transitions", ModernStyles.ACCENT_ORANGE)
+
+        self.zoom_in_var = tk.BooleanVar(value=self.settings.get('transition_zoom_in', False))
+        self.create_checkbox(content, "Zoom In (starts zoomed, zooms to normal)", self.zoom_in_var)
+
+        self.zoom_in_duration_var = tk.DoubleVar(value=self.settings.get('transition_zoom_in_duration', 1.0))
+        self.create_slider(content, "Zoom In Duration (seconds):", self.zoom_in_duration_var, 0.3, 3.0, 0.1)
+
+        self.zoom_out_var = tk.BooleanVar(value=self.settings.get('transition_zoom_out', False))
+        self.create_checkbox(content, "Zoom Out (ends zooming out)", self.zoom_out_var)
+
+        self.zoom_out_duration_var = tk.DoubleVar(value=self.settings.get('transition_zoom_out_duration', 1.0))
+        self.create_slider(content, "Zoom Out Duration (seconds):", self.zoom_out_duration_var, 0.3, 3.0, 0.1)
+
+        self.zoom_scale_var = tk.DoubleVar(value=self.settings.get('transition_zoom_scale', 1.3))
+        self.create_slider(content, "Zoom Scale (1.0=none, 1.5=strong):", self.zoom_scale_var, 1.0, 2.0, 0.05)
+
+        # === BLUR TRANSITIONS ===
+        self.create_section(content, "💨 Blur Transitions", ModernStyles.ACCENT_PURPLE)
+
+        self.blur_in_var = tk.BooleanVar(value=self.settings.get('transition_blur_in', False))
+        self.create_checkbox(content, "Blur In (starts blurred, clears up)", self.blur_in_var)
+
+        self.blur_out_var = tk.BooleanVar(value=self.settings.get('transition_blur_out', False))
+        self.create_checkbox(content, "Blur Out (ends with blur)", self.blur_out_var)
+
+        self.blur_duration_var = tk.DoubleVar(value=self.settings.get('transition_blur_duration', 0.5))
+        self.create_slider(content, "Blur Duration (seconds):", self.blur_duration_var, 0.1, 2.0, 0.1)
+
+        self.blur_amount_var = tk.IntVar(value=self.settings.get('transition_blur_amount', 15))
+        self.create_slider(content, "Blur Amount (pixels):", self.blur_amount_var, 5, 30, 1)
+
+        # === SLIDE TRANSITIONS ===
+        self.create_section(content, "➡️ Slide Transitions", ModernStyles.ACCENT_GREEN)
+
+        self.slide_in_var = tk.BooleanVar(value=self.settings.get('transition_slide_in', False))
+        self.create_checkbox(content, "Slide In (video slides into frame)", self.slide_in_var)
+
+        self.slide_out_var = tk.BooleanVar(value=self.settings.get('transition_slide_out', False))
+        self.create_checkbox(content, "Slide Out (video slides out)", self.slide_out_var)
+
+        self.slide_direction_var = tk.StringVar(value=self.settings.get('transition_slide_direction', 'left'))
+        self.create_dropdown(content, "Slide Direction:", self.slide_direction_var,
+                           ['left', 'right', 'up', 'down'])
+
+        self.slide_duration_var = tk.DoubleVar(value=self.settings.get('transition_slide_duration', 0.8))
+        self.create_slider(content, "Slide Duration (seconds):", self.slide_duration_var, 0.3, 2.0, 0.1)
+
+        # === WIPE TRANSITIONS ===
+        self.create_section(content, "📱 Wipe Transitions", ModernStyles.ACCENT_BLUE)
+
+        self.wipe_in_var = tk.BooleanVar(value=self.settings.get('transition_wipe_in', False))
+        self.create_checkbox(content, "Wipe In (reveals video gradually)", self.wipe_in_var)
+
+        self.wipe_out_var = tk.BooleanVar(value=self.settings.get('transition_wipe_out', False))
+        self.create_checkbox(content, "Wipe Out (hides video gradually)", self.wipe_out_var)
+
+        self.wipe_direction_var = tk.StringVar(value=self.settings.get('transition_wipe_direction', 'right'))
+        self.create_dropdown(content, "Wipe Direction:", self.wipe_direction_var,
+                           ['left', 'right', 'up', 'down'])
+
+        self.wipe_duration_var = tk.DoubleVar(value=self.settings.get('transition_wipe_duration', 0.8))
+        self.create_slider(content, "Wipe Duration (seconds):", self.wipe_duration_var, 0.3, 2.0, 0.1)
+
+        # === GLITCH TRANSITIONS ===
+        self.create_section(content, "⚡ Glitch Transitions", ModernStyles.ACCENT_RED)
+
+        self.glitch_start_var = tk.BooleanVar(value=self.settings.get('transition_glitch_start', False))
+        self.create_checkbox(content, "Glitch at Start (digital distortion intro)", self.glitch_start_var)
+
+        self.glitch_end_var = tk.BooleanVar(value=self.settings.get('transition_glitch_end', False))
+        self.create_checkbox(content, "Glitch at End (digital distortion outro)", self.glitch_end_var)
+
+        self.glitch_duration_var = tk.DoubleVar(value=self.settings.get('transition_glitch_duration', 0.5))
+        self.create_slider(content, "Glitch Duration (seconds):", self.glitch_duration_var, 0.2, 1.5, 0.1)
+
+        self.glitch_intensity_var = tk.DoubleVar(value=self.settings.get('transition_glitch_intensity', 0.5))
+        self.create_slider(content, "Glitch Intensity (0.0-1.0):", self.glitch_intensity_var, 0.1, 1.0, 0.1)
+
+        # === CINEMATIC BARS ===
+        self.create_section(content, "🎥 Cinematic Letterbox", ModernStyles.ACCENT_PURPLE)
+
+        self.cinematic_bars_var = tk.BooleanVar(value=self.settings.get('transition_cinematic_bars', False))
+        self.create_checkbox(content, "Add Cinematic Bars (black bars top/bottom)", self.cinematic_bars_var)
+
+        self.bars_duration_var = tk.DoubleVar(value=self.settings.get('transition_bars_duration', 0.8))
+        self.create_slider(content, "Bars Fade-In Duration (seconds):", self.bars_duration_var, 0.1, 2.0, 0.1)
+
+        self.bars_height_var = tk.IntVar(value=self.settings.get('transition_bars_height', 10))
+        self.create_slider(content, "Bars Height (% of video):", self.bars_height_var, 5, 20, 1)
+
+        # === LIGHT LEAKS ===
+        self.create_section(content, "✨ Light Leaks & Lens Effects", ModernStyles.ACCENT_ORANGE)
+
+        self.light_leak_enabled_var = tk.BooleanVar(value=self.settings.get('light_leak_enabled', False))
+        self.create_checkbox(content, "🌅 Light Leak (cinematic color streaks)", self.light_leak_enabled_var)
+
+        self.light_leak_color_var = tk.StringVar(value=self.settings.get('light_leak_color', 'warm'))
+        self.create_dropdown(content, "Light Leak Color:", self.light_leak_color_var,
+                           ['warm', 'cold', 'pink', 'purple', 'rainbow'])
+
+        self.light_leak_intensity_var = tk.DoubleVar(value=self.settings.get('light_leak_intensity', 0.6))
+        self.create_slider(content, "Light Leak Intensity (0.0-1.0):", self.light_leak_intensity_var, 0.1, 1.0, 0.1)
+
+        self.light_leak_start_time_var = tk.DoubleVar(value=self.settings.get('light_leak_start_time', 0.0))
+        self.create_slider(content, "Light Leak Start Time (seconds):", self.light_leak_start_time_var, 0.0, 10.0, 0.5)
+
+        self.light_leak_duration_var = tk.DoubleVar(value=self.settings.get('light_leak_duration', 3.0))
+        self.create_slider(content, "Light Leak Duration (seconds):", self.light_leak_duration_var, 1.0, 10.0, 0.5)
+
+        self.light_leak_direction_var = tk.StringVar(value=self.settings.get('light_leak_direction', 'top_right'))
+        self.create_dropdown(content, "Light Leak Direction:", self.light_leak_direction_var,
+                           ['top_right', 'top_left', 'bottom_right', 'bottom_left', 'center'])
+
+        # === LENS FLARE ===
+        tk.Label(content, text="", bg=ModernStyles.BG_PRIMARY).pack(pady=5)
+
+        self.lens_flare_enabled_var = tk.BooleanVar(value=self.settings.get('lens_flare_enabled', False))
+        self.create_checkbox(content, "🌟 Lens Flare (bright flash effect)", self.lens_flare_enabled_var)
+
+        self.lens_flare_intensity_var = tk.DoubleVar(value=self.settings.get('lens_flare_intensity', 0.5))
+        self.create_slider(content, "Lens Flare Intensity (0.0-1.0):", self.lens_flare_intensity_var, 0.1, 1.0, 0.1)
+
+        self.lens_flare_start_time_var = tk.DoubleVar(value=self.settings.get('lens_flare_start_time', 1.0))
+        self.create_slider(content, "Lens Flare Start Time (seconds):", self.lens_flare_start_time_var, 0.0, 10.0, 0.5)
+
+        self.lens_flare_duration_var = tk.DoubleVar(value=self.settings.get('lens_flare_duration', 2.0))
+        self.create_slider(content, "Lens Flare Duration (seconds):", self.lens_flare_duration_var, 0.5, 5.0, 0.5)
+
+        self.lens_flare_position_var = tk.StringVar(value=self.settings.get('lens_flare_position', 'center'))
+        self.create_dropdown(content, "Lens Flare Position:", self.lens_flare_position_var,
+                           ['center', 'top'])
+
+        # === FILM BURN ===
+        tk.Label(content, text="", bg=ModernStyles.BG_PRIMARY).pack(pady=5)
+
+        self.film_burn_enabled_var = tk.BooleanVar(value=self.settings.get('film_burn_enabled', False))
+        self.create_checkbox(content, "🔥 Film Burn (vintage burn effect)", self.film_burn_enabled_var)
+
+        self.film_burn_start_time_var = tk.DoubleVar(value=self.settings.get('film_burn_start_time', 0.0))
+        self.create_slider(content, "Film Burn Start Time (seconds):", self.film_burn_start_time_var, 0.0, 10.0, 0.5)
+
+        self.film_burn_duration_var = tk.DoubleVar(value=self.settings.get('film_burn_duration', 1.5))
+        self.create_slider(content, "Film Burn Duration (seconds):", self.film_burn_duration_var, 0.5, 5.0, 0.5)
+
+    def create_section(self, parent, title, color):
+        """Create section header"""
+        frame = tk.Frame(parent, bg=color, height=40)
+        frame.pack(fill='x', pady=(15, 10))
+        frame.pack_propagate(False)
+
+        tk.Label(frame, text=title, bg=color, fg='white',
+                font=('Segoe UI', 12, 'bold')).pack(side='left', padx=15, pady=8)
+
+    def create_checkbox(self, parent, text, variable):
+        """Create checkbox"""
+        cb = tk.Checkbutton(parent, text=text, variable=variable,
+                           bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                           selectcolor=ModernStyles.BG_PRIMARY, activebackground=ModernStyles.BG_CARD,
+                           font=('Segoe UI', 10))
+        cb.pack(anchor='w', padx=20, pady=5)
+
+    def create_slider(self, parent, label, variable, from_, to, resolution):
+        """Create labeled slider"""
+        label_frame = tk.Frame(parent, bg=ModernStyles.BG_PRIMARY)
+        label_frame.pack(fill='x', padx=20, pady=(10, 2))
+
+        tk.Label(label_frame, text=label, bg=ModernStyles.BG_PRIMARY,
+                fg=ModernStyles.TEXT_SECONDARY, font=('Segoe UI', 9)).pack(side='left')
+
+        value_label = tk.Label(label_frame, text=f"{variable.get():.2f}",
+                              bg=ModernStyles.BG_PRIMARY, fg=ModernStyles.ACCENT_BLUE,
+                              font=('Segoe UI', 9, 'bold'))
+        value_label.pack(side='right')
+
+        slider = tk.Scale(parent, from_=from_, to=to, resolution=resolution,
+                         orient='horizontal', variable=variable,
+                         bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                         highlightthickness=0, troughcolor=ModernStyles.BG_SECONDARY,
+                         activebackground=ModernStyles.ACCENT_BLUE,
+                         command=lambda v: value_label.config(text=f"{float(v):.2f}"))
+        slider.pack(fill='x', padx=20, pady=(0, 10))
+
+    def create_dropdown(self, parent, label, variable, options):
+        """Create labeled dropdown"""
+        label_widget = tk.Label(parent, text=label, bg=ModernStyles.BG_PRIMARY,
+                               fg=ModernStyles.TEXT_SECONDARY, font=('Segoe UI', 9))
+        label_widget.pack(anchor='w', padx=20, pady=(10, 2))
+
+        dropdown = ttk.Combobox(parent, textvariable=variable, values=options,
+                               state='readonly', font=('Segoe UI', 10))
+        dropdown.pack(fill='x', padx=20, pady=(0, 10))
+
+    def save_settings(self):
+        """Save all transition settings"""
+        # Fade transitions
+        self.settings['transition_fade_in'] = self.fade_in_var.get()
+        self.settings['transition_fade_out'] = self.fade_out_var.get()
+        self.settings['transition_fade_in_duration'] = self.fade_in_duration_var.get()
+        self.settings['transition_fade_out_duration'] = self.fade_out_duration_var.get()
+
+        # Zoom transitions
+        self.settings['transition_zoom_in'] = self.zoom_in_var.get()
+        self.settings['transition_zoom_out'] = self.zoom_out_var.get()
+        self.settings['transition_zoom_in_duration'] = self.zoom_in_duration_var.get()
+        self.settings['transition_zoom_out_duration'] = self.zoom_out_duration_var.get()
+        self.settings['transition_zoom_scale'] = self.zoom_scale_var.get()
+
+        # Blur transitions
+        self.settings['transition_blur_in'] = self.blur_in_var.get()
+        self.settings['transition_blur_out'] = self.blur_out_var.get()
+        self.settings['transition_blur_duration'] = self.blur_duration_var.get()
+        self.settings['transition_blur_amount'] = self.blur_amount_var.get()
+
+        # Slide transitions
+        self.settings['transition_slide_in'] = self.slide_in_var.get()
+        self.settings['transition_slide_out'] = self.slide_out_var.get()
+        self.settings['transition_slide_direction'] = self.slide_direction_var.get()
+        self.settings['transition_slide_duration'] = self.slide_duration_var.get()
+
+        # Wipe transitions
+        self.settings['transition_wipe_in'] = self.wipe_in_var.get()
+        self.settings['transition_wipe_out'] = self.wipe_out_var.get()
+        self.settings['transition_wipe_direction'] = self.wipe_direction_var.get()
+        self.settings['transition_wipe_duration'] = self.wipe_duration_var.get()
+
+        # Glitch transitions
+        self.settings['transition_glitch_start'] = self.glitch_start_var.get()
+        self.settings['transition_glitch_end'] = self.glitch_end_var.get()
+        self.settings['transition_glitch_duration'] = self.glitch_duration_var.get()
+        self.settings['transition_glitch_intensity'] = self.glitch_intensity_var.get()
+
+        # Cinematic bars
+        self.settings['transition_cinematic_bars'] = self.cinematic_bars_var.get()
+        self.settings['transition_bars_duration'] = self.bars_duration_var.get()
+        self.settings['transition_bars_height'] = self.bars_height_var.get()
+
+        # Light leaks
+        self.settings['light_leak_enabled'] = self.light_leak_enabled_var.get()
+        self.settings['light_leak_color'] = self.light_leak_color_var.get()
+        self.settings['light_leak_intensity'] = self.light_leak_intensity_var.get()
+        self.settings['light_leak_start_time'] = self.light_leak_start_time_var.get()
+        self.settings['light_leak_duration'] = self.light_leak_duration_var.get()
+        self.settings['light_leak_direction'] = self.light_leak_direction_var.get()
+
+        # Lens flare
+        self.settings['lens_flare_enabled'] = self.lens_flare_enabled_var.get()
+        self.settings['lens_flare_intensity'] = self.lens_flare_intensity_var.get()
+        self.settings['lens_flare_start_time'] = self.lens_flare_start_time_var.get()
+        self.settings['lens_flare_duration'] = self.lens_flare_duration_var.get()
+        self.settings['lens_flare_position'] = self.lens_flare_position_var.get()
+
+        # Film burn
+        self.settings['film_burn_enabled'] = self.film_burn_enabled_var.get()
+        self.settings['film_burn_start_time'] = self.film_burn_start_time_var.get()
+        self.settings['film_burn_duration'] = self.film_burn_duration_var.get()
+
+        self.on_save(self.settings)
+        messagebox.showinfo("Success", "Transition settings saved successfully!")
+        self.window.destroy()
+
+
 class ProcessingPopup:
     """Popup for configuring processing paths"""
 
@@ -2254,6 +2583,23 @@ class DashboardGUI:
                                 ModernStyles.ACCENT_ORANGE, lambda: self.show_processing())
         card4.grid(row=0, column=1, sticky='nsew', padx=(10,0))
 
+        # Row 3 - New Transitions Card
+        row3 = tk.Frame(cards_container, bg=ModernStyles.BG_PRIMARY)
+        row3.pack(fill='both', expand=True)
+
+        row3.grid_columnconfigure(0, weight=1)
+        row3.grid_columnconfigure(1, weight=1)
+        row3.grid_rowconfigure(0, weight=1)
+
+        card5 = self.create_modern_card(row3, "🎬", "Transitions & Effects",
+                                "Professional transitions, light leaks, cinematic effects with timing control",
+                                ModernStyles.ACCENT_RED, lambda: self.open_transitions_settings())
+        card5.grid(row=0, column=0, sticky='nsew', padx=(0,10))
+
+        # Empty space for future feature
+        # card6 = self.create_modern_card(row3, "🎥", "Future Feature", ...)
+        # card6.grid(row=0, column=1, sticky='nsew', padx=(10,0))
+
         # ═══════════════════════════════════════════════════════════
         # BOTTOM ACTION BAR with Modern Buttons
         # ═══════════════════════════════════════════════════════════
@@ -2447,6 +2793,9 @@ class DashboardGUI:
 
     def open_audio_settings(self):
         AudioSettingsPopup(self.root, self.settings, self.update_settings)
+
+    def open_transitions_settings(self):
+        TransitionsEffectsPopup(self.root, self.settings, self.update_settings)
 
     def show_processing(self):
         """Open processing popup"""

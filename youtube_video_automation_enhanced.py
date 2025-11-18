@@ -305,6 +305,497 @@ class ParticleEffects:
         return ParticleEffects.create_stars_overlay(width, height, duration, fps, particle_type='circle')
 
 
+class TransitionEffects:
+    """Professional transition effects for video intro/outro"""
+
+    @staticmethod
+    def apply_fade_transition(clip, fade_in_duration=0, fade_out_duration=0):
+        """Apply fade in/out transitions"""
+        if fade_in_duration > 0:
+            try:
+                clip = clip.with_effects([FadeIn(fade_in_duration)])
+            except:
+                try:
+                    clip = clip.fadein(fade_in_duration)
+                except:
+                    pass
+
+        if fade_out_duration > 0:
+            try:
+                from moviepy.video.fx import FadeOut
+                clip = clip.with_effects([FadeOut(fade_out_duration)])
+            except:
+                try:
+                    clip = clip.fadeout(fade_out_duration)
+                except:
+                    pass
+
+        return clip
+
+    @staticmethod
+    def create_zoom_transition(clip, zoom_in=True, duration=1.0, zoom_scale=1.3):
+        """Create zoom in/out transition effect"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        def zoom_effect(get_frame, t):
+            frame = get_frame(t)
+
+            if zoom_in:
+                # Zoom from scale to 1.0
+                progress = min(t / duration, 1.0)
+                current_scale = zoom_scale - (zoom_scale - 1.0) * progress
+            else:
+                # Zoom from 1.0 to scale
+                progress = max((t - (clip.duration - duration)) / duration, 0.0)
+                current_scale = 1.0 + (zoom_scale - 1.0) * progress
+
+            if abs(current_scale - 1.0) > 0.01:  # Only apply if zoom needed
+                h, w = frame.shape[:2]
+                new_h, new_w = int(h * current_scale), int(w * current_scale)
+
+                from PIL import Image as PILImage
+                pil_frame = PILImage.fromarray(frame)
+                pil_frame = pil_frame.resize((new_w, new_h), PILImage.LANCZOS)
+
+                # Crop to original size (center crop)
+                crop_x = (new_w - w) // 2
+                crop_y = (new_h - h) // 2
+                pil_frame = pil_frame.crop((crop_x, crop_y, crop_x + w, crop_y + h))
+
+                return np.array(pil_frame).copy()
+
+            return frame
+
+        try:
+            return clip.transform(zoom_effect)
+        except:
+            return clip.fl(zoom_effect)
+
+    @staticmethod
+    def create_blur_transition(clip, blur_in=True, duration=0.5, max_blur=15):
+        """Create blur in/out transition"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        def blur_effect(get_frame, t):
+            frame = get_frame(t)
+
+            if blur_in:
+                # Blur from max to 0
+                progress = min(t / duration, 1.0)
+                blur_amount = int(max_blur * (1 - progress))
+            else:
+                # Blur from 0 to max
+                progress = max((t - (clip.duration - duration)) / duration, 0.0)
+                blur_amount = int(max_blur * progress)
+
+            if blur_amount > 0:
+                pil_img = Image.fromarray(frame)
+                pil_img = pil_img.filter(ImageFilter.GaussianBlur(radius=blur_amount))
+                return np.array(pil_img).copy()
+
+            return frame
+
+        try:
+            return clip.image_transform(blur_effect)
+        except:
+            return clip.fl_image(blur_effect)
+
+    @staticmethod
+    def create_slide_transition(clip, direction='left', in_transition=True, duration=0.8):
+        """Create slide in/out transition (video slides into frame)"""
+        def slide_position(t):
+            w, h = clip.size
+
+            if in_transition:
+                # Slide in
+                progress = min(t / duration, 1.0)
+                # Ease out cubic
+                progress = 1 - (1 - progress) ** 3
+            else:
+                # Slide out
+                progress = max((t - (clip.duration - duration)) / duration, 0.0)
+                # Ease in cubic
+                progress = progress ** 3
+
+            if direction == 'left':
+                offset = w * (1 - progress) if in_transition else -w * progress
+                return (int(offset), 0)
+            elif direction == 'right':
+                offset = -w * (1 - progress) if in_transition else w * progress
+                return (int(offset), 0)
+            elif direction == 'up':
+                offset = h * (1 - progress) if in_transition else -h * progress
+                return (0, int(offset))
+            elif direction == 'down':
+                offset = -h * (1 - progress) if in_transition else h * progress
+                return (0, int(offset))
+
+            return (0, 0)
+
+        try:
+            return clip.with_position(slide_position)
+        except:
+            return clip.set_position(slide_position)
+
+    @staticmethod
+    def create_wipe_transition(clip, direction='right', in_transition=True, duration=0.8):
+        """Create wipe transition (reveals video gradually)"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        def wipe_mask(t):
+            w, h = clip.size
+            mask = np.zeros((h, w), dtype=np.uint8)
+
+            if in_transition:
+                progress = min(t / duration, 1.0)
+            else:
+                progress = 1.0 - max((t - (clip.duration - duration)) / duration, 0.0)
+
+            if direction == 'right':
+                reveal_x = int(w * progress)
+                mask[:, :reveal_x] = 255
+            elif direction == 'left':
+                reveal_x = int(w * (1 - progress))
+                mask[:, reveal_x:] = 255
+            elif direction == 'down':
+                reveal_y = int(h * progress)
+                mask[:reveal_y, :] = 255
+            elif direction == 'up':
+                reveal_y = int(h * (1 - progress))
+                mask[reveal_y:, :] = 255
+
+            return mask
+
+        mask_clip = VideoClip(wipe_mask, duration=clip.duration, is_mask=True)
+        try:
+            mask_clip = mask_clip.with_fps(clip.fps if hasattr(clip, 'fps') else 30)
+            return clip.with_mask(mask_clip)
+        except:
+            mask_clip = mask_clip.set_fps(clip.fps if hasattr(clip, 'fps') else 30)
+            return clip.set_mask(mask_clip)
+
+    @staticmethod
+    def create_glitch_transition(clip, glitch_start=True, duration=0.5, intensity=0.5):
+        """Create digital glitch transition effect"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        def glitch_effect(get_frame, t):
+            frame = get_frame(t)
+
+            if glitch_start:
+                if t > duration:
+                    return frame
+                progress = t / duration
+            else:
+                if t < (clip.duration - duration):
+                    return frame
+                progress = (t - (clip.duration - duration)) / duration
+
+            # Apply glitch only during transition
+            glitch_amount = intensity * (1 - progress) if glitch_start else intensity * progress
+
+            if glitch_amount > 0.1:
+                frame = frame.copy()
+                h, w = frame.shape[:2]
+
+                # RGB channel shift
+                shift = int(w * 0.02 * glitch_amount)
+                if shift > 0:
+                    frame[:, shift:, 0] = frame[:, :-shift, 0]
+                    frame[:, :-shift, 2] = frame[:, shift:, 2]
+
+                # Random horizontal slices
+                if np.random.random() < glitch_amount:
+                    num_slices = int(5 * glitch_amount)
+                    for _ in range(num_slices):
+                        y1 = np.random.randint(0, h - 10)
+                        y2 = y1 + np.random.randint(5, 30)
+                        offset = np.random.randint(-int(w * 0.1), int(w * 0.1))
+                        if offset > 0:
+                            frame[y1:y2, offset:] = frame[y1:y2, :-offset]
+                        elif offset < 0:
+                            frame[y1:y2, :offset] = frame[y1:y2, -offset:]
+
+            return frame
+
+        try:
+            return clip.image_transform(glitch_effect)
+        except:
+            return clip.fl_image(glitch_effect)
+
+    @staticmethod
+    def create_cinematic_bars(clip, fade_in=True, duration=0.8, bar_height_percent=10):
+        """Create cinematic letterbox bars (black bars top/bottom)"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        def bars_frame(t):
+            w, h = clip.size
+            bar_height = int(h * bar_height_percent / 100)
+
+            # Create bars
+            bars = np.zeros((h, w, 3), dtype=np.uint8)
+
+            if fade_in:
+                progress = min(t / duration, 1.0)
+                current_height = int(bar_height * progress)
+            else:
+                current_height = bar_height
+
+            # Top and bottom bars
+            bars[:current_height, :] = 0
+            bars[-current_height:, :] = 0
+
+            return bars
+
+        bars_clip = VideoClip(bars_frame, duration=clip.duration)
+        try:
+            bars_clip = bars_clip.with_fps(clip.fps if hasattr(clip, 'fps') else 30)
+        except:
+            bars_clip = bars_clip.set_fps(clip.fps if hasattr(clip, 'fps') else 30)
+
+        # Composite bars over video
+        try:
+            from moviepy import CompositeVideoClip
+        except:
+            from moviepy.editor import CompositeVideoClip
+
+        return CompositeVideoClip([clip, bars_clip])
+
+
+class LightLeaksEffects:
+    """Cinematic light leaks and lens flare effects"""
+
+    @staticmethod
+    def create_light_leak(width, height, duration, fps, color='warm', intensity=0.6,
+                         start_time=0, leak_duration=None, direction='top_right'):
+        """
+        Create light leak overlay effect
+
+        Args:
+            color: 'warm' (orange/yellow), 'cold' (blue/cyan), 'pink', 'purple', 'rainbow'
+            direction: 'top_right', 'top_left', 'bottom_right', 'bottom_left', 'center'
+        """
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        if leak_duration is None:
+            leak_duration = duration
+
+        # Color palettes
+        colors = {
+            'warm': [(255, 200, 100), (255, 150, 50), (255, 100, 0)],
+            'cold': [(100, 200, 255), (50, 150, 255), (0, 100, 255)],
+            'pink': [(255, 100, 150), (255, 150, 200), (255, 50, 100)],
+            'purple': [(200, 100, 255), (150, 50, 255), (100, 0, 200)],
+            'rainbow': [(255, 0, 0), (255, 127, 0), (255, 255, 0), (0, 255, 0), (0, 0, 255), (75, 0, 130)]
+        }
+
+        color_palette = colors.get(color, colors['warm'])
+
+        def make_frame(t):
+            # Create RGBA frame
+            img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+
+            # Calculate progress (0 to 1 and back)
+            relative_t = t - start_time
+            if relative_t < 0 or relative_t > leak_duration:
+                return np.array(img).copy()
+
+            progress = relative_t / leak_duration
+            # Fade in and out
+            if progress < 0.3:
+                alpha = progress / 0.3
+            elif progress > 0.7:
+                alpha = (1.0 - progress) / 0.3
+            else:
+                alpha = 1.0
+
+            # Position based on direction
+            positions = {
+                'top_right': (width * 0.7, -height * 0.2),
+                'top_left': (-width * 0.2, -height * 0.2),
+                'bottom_right': (width * 0.7, height * 0.7),
+                'bottom_left': (-width * 0.2, height * 0.7),
+                'center': (width * 0.3, height * 0.3)
+            }
+
+            pos_x, pos_y = positions.get(direction, positions['top_right'])
+
+            # Draw multiple overlapping ellipses for organic look
+            for i, color_rgb in enumerate(color_palette):
+                offset_x = i * 50 + int(progress * 100)
+                offset_y = i * 30
+
+                size_w = int(width * 0.6 * (1 + i * 0.1))
+                size_h = int(height * 0.8 * (1 + i * 0.1))
+
+                bbox = [
+                    int(pos_x + offset_x),
+                    int(pos_y + offset_y),
+                    int(pos_x + offset_x + size_w),
+                    int(pos_y + offset_y + size_h)
+                ]
+
+                # Calculate alpha for this layer
+                layer_alpha = int(255 * intensity * alpha * (1 - i * 0.2))
+
+                draw.ellipse(bbox, fill=color_rgb + (layer_alpha,))
+
+            # Apply gaussian blur for soft glow
+            img = img.filter(ImageFilter.GaussianBlur(radius=50))
+
+            return np.array(img).copy()
+
+        clip = VideoClip(make_frame, duration=duration)
+        try:
+            clip = clip.with_fps(fps)
+        except:
+            clip = clip.set_fps(fps)
+
+        return clip
+
+    @staticmethod
+    def create_lens_flare(width, height, duration, fps, intensity=0.5,
+                         start_time=0, flare_duration=2.0, position='center'):
+        """Create lens flare effect"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        def make_frame(t):
+            img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+
+            relative_t = t - start_time
+            if relative_t < 0 or relative_t > flare_duration:
+                return np.array(img).copy()
+
+            progress = relative_t / flare_duration
+            # Quick flash
+            if progress < 0.2:
+                alpha = progress / 0.2
+            else:
+                alpha = max(0, 1.0 - (progress - 0.2) / 0.8)
+
+            # Position
+            if position == 'center':
+                center_x, center_y = width // 2, height // 2
+            elif position == 'top':
+                center_x, center_y = width // 2, height // 4
+            else:
+                center_x, center_y = width // 2, height // 2
+
+            # Main flare
+            flare_size = int(min(width, height) * 0.3)
+            bbox = [
+                center_x - flare_size,
+                center_y - flare_size,
+                center_x + flare_size,
+                center_y + flare_size
+            ]
+
+            flare_alpha = int(255 * intensity * alpha)
+            draw.ellipse(bbox, fill=(255, 255, 255, flare_alpha))
+
+            # Additional smaller flares
+            for i in range(3):
+                offset = (i + 1) * 100
+                size = flare_size // (i + 2)
+                bbox = [
+                    center_x + offset - size,
+                    center_y - size,
+                    center_x + offset + size,
+                    center_y + size
+                ]
+                draw.ellipse(bbox, fill=(255, 200, 100, flare_alpha // 2))
+
+            img = img.filter(ImageFilter.GaussianBlur(radius=30))
+
+            return np.array(img).copy()
+
+        clip = VideoClip(make_frame, duration=duration)
+        try:
+            clip = clip.with_fps(fps)
+        except:
+            clip = clip.set_fps(fps)
+
+        return clip
+
+    @staticmethod
+    def create_film_burn(width, height, duration, fps, start_time=0, burn_duration=1.5):
+        """Create film burn effect (vintage film look)"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        def make_frame(t):
+            img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+
+            relative_t = t - start_time
+            if relative_t < 0 or relative_t > burn_duration:
+                return np.array(img).copy()
+
+            progress = relative_t / burn_duration
+
+            # Burn effect spreads from corner
+            spread = progress * max(width, height) * 1.5
+
+            # Create irregular burn shape
+            np.random.seed(int(progress * 100))
+            num_circles = int(20 * progress)
+
+            for _ in range(num_circles):
+                angle = np.random.uniform(0, np.pi / 2)
+                dist = np.random.uniform(0, spread)
+
+                x = width + int(dist * np.cos(angle))
+                y = height + int(dist * np.sin(angle))
+
+                size = np.random.randint(50, 200)
+
+                # Orange/yellow burn colors
+                colors = [(255, 200, 0), (255, 150, 0), (255, 100, 0), (200, 50, 0)]
+                color = colors[int(np.random.random() * len(colors))]
+
+                alpha = int(200 * progress)
+
+                bbox = [x - size, y - size, x + size, y + size]
+                draw.ellipse(bbox, fill=color + (alpha,))
+
+            img = img.filter(ImageFilter.GaussianBlur(radius=20))
+
+            return np.array(img).copy()
+
+        clip = VideoClip(make_frame, duration=duration)
+        try:
+            clip = clip.with_fps(fps)
+        except:
+            clip = clip.set_fps(fps)
+
+        return clip
+
+
 class TTSGenerator:
     """Text-to-Speech voiceover generator using Microsoft Edge TTS (natural voices)"""
 
@@ -2216,6 +2707,187 @@ class VideoQuoteAutomation:
                 print(f"⚠ Caption rendering failed: {e}")
                 import traceback
                 traceback.print_exc()
+
+        # Apply transitions if enabled
+        print("\n🎬 Applying transitions and effects...")
+
+        # 1. Fade transitions
+        if self.settings.get('transition_fade_in', False) or self.settings.get('transition_fade_out', False):
+            try:
+                fade_in_duration = self.settings.get('transition_fade_in_duration', 0.5) if self.settings.get('transition_fade_in', False) else 0
+                fade_out_duration = self.settings.get('transition_fade_out_duration', 0.5) if self.settings.get('transition_fade_out', False) else 0
+
+                if fade_in_duration > 0 or fade_out_duration > 0:
+                    final_video = TransitionEffects.apply_fade_transition(final_video, fade_in_duration, fade_out_duration)
+                    print(f"✓ Applied fade transitions (in: {fade_in_duration}s, out: {fade_out_duration}s)")
+            except Exception as e:
+                print(f"⚠ Fade transition failed: {e}")
+
+        # 2. Zoom transitions
+        if self.settings.get('transition_zoom_in', False):
+            try:
+                duration = self.settings.get('transition_zoom_in_duration', 1.0)
+                scale = self.settings.get('transition_zoom_scale', 1.3)
+                final_video = TransitionEffects.create_zoom_transition(final_video, zoom_in=True, duration=duration, zoom_scale=scale)
+                print(f"✓ Applied zoom-in transition ({duration}s, scale: {scale})")
+            except Exception as e:
+                print(f"⚠ Zoom-in transition failed: {e}")
+
+        if self.settings.get('transition_zoom_out', False):
+            try:
+                duration = self.settings.get('transition_zoom_out_duration', 1.0)
+                scale = self.settings.get('transition_zoom_scale', 1.3)
+                final_video = TransitionEffects.create_zoom_transition(final_video, zoom_in=False, duration=duration, zoom_scale=scale)
+                print(f"✓ Applied zoom-out transition ({duration}s, scale: {scale})")
+            except Exception as e:
+                print(f"⚠ Zoom-out transition failed: {e}")
+
+        # 3. Blur transitions
+        if self.settings.get('transition_blur_in', False):
+            try:
+                duration = self.settings.get('transition_blur_duration', 0.5)
+                max_blur = self.settings.get('transition_blur_amount', 15)
+                final_video = TransitionEffects.create_blur_transition(final_video, blur_in=True, duration=duration, max_blur=max_blur)
+                print(f"✓ Applied blur-in transition ({duration}s, blur: {max_blur})")
+            except Exception as e:
+                print(f"⚠ Blur-in transition failed: {e}")
+
+        if self.settings.get('transition_blur_out', False):
+            try:
+                duration = self.settings.get('transition_blur_duration', 0.5)
+                max_blur = self.settings.get('transition_blur_amount', 15)
+                final_video = TransitionEffects.create_blur_transition(final_video, blur_in=False, duration=duration, max_blur=max_blur)
+                print(f"✓ Applied blur-out transition ({duration}s, blur: {max_blur})")
+            except Exception as e:
+                print(f"⚠ Blur-out transition failed: {e}")
+
+        # 4. Slide transitions
+        if self.settings.get('transition_slide_in', False):
+            try:
+                direction = self.settings.get('transition_slide_direction', 'left')
+                duration = self.settings.get('transition_slide_duration', 0.8)
+                final_video = TransitionEffects.create_slide_transition(final_video, direction=direction, in_transition=True, duration=duration)
+                print(f"✓ Applied slide-in transition (from {direction}, {duration}s)")
+            except Exception as e:
+                print(f"⚠ Slide-in transition failed: {e}")
+
+        if self.settings.get('transition_slide_out', False):
+            try:
+                direction = self.settings.get('transition_slide_direction', 'left')
+                duration = self.settings.get('transition_slide_duration', 0.8)
+                final_video = TransitionEffects.create_slide_transition(final_video, direction=direction, in_transition=False, duration=duration)
+                print(f"✓ Applied slide-out transition (to {direction}, {duration}s)")
+            except Exception as e:
+                print(f"⚠ Slide-out transition failed: {e}")
+
+        # 5. Wipe transitions
+        if self.settings.get('transition_wipe_in', False):
+            try:
+                direction = self.settings.get('transition_wipe_direction', 'right')
+                duration = self.settings.get('transition_wipe_duration', 0.8)
+                final_video = TransitionEffects.create_wipe_transition(final_video, direction=direction, in_transition=True, duration=duration)
+                print(f"✓ Applied wipe-in transition ({direction}, {duration}s)")
+            except Exception as e:
+                print(f"⚠ Wipe-in transition failed: {e}")
+
+        if self.settings.get('transition_wipe_out', False):
+            try:
+                direction = self.settings.get('transition_wipe_direction', 'right')
+                duration = self.settings.get('transition_wipe_duration', 0.8)
+                final_video = TransitionEffects.create_wipe_transition(final_video, direction=direction, in_transition=False, duration=duration)
+                print(f"✓ Applied wipe-out transition ({direction}, {duration}s)")
+            except Exception as e:
+                print(f"⚠ Wipe-out transition failed: {e}")
+
+        # 6. Glitch transitions
+        if self.settings.get('transition_glitch_start', False):
+            try:
+                duration = self.settings.get('transition_glitch_duration', 0.5)
+                intensity = self.settings.get('transition_glitch_intensity', 0.5)
+                final_video = TransitionEffects.create_glitch_transition(final_video, glitch_start=True, duration=duration, intensity=intensity)
+                print(f"✓ Applied glitch start transition ({duration}s, intensity: {intensity})")
+            except Exception as e:
+                print(f"⚠ Glitch start transition failed: {e}")
+
+        if self.settings.get('transition_glitch_end', False):
+            try:
+                duration = self.settings.get('transition_glitch_duration', 0.5)
+                intensity = self.settings.get('transition_glitch_intensity', 0.5)
+                final_video = TransitionEffects.create_glitch_transition(final_video, glitch_start=False, duration=duration, intensity=intensity)
+                print(f"✓ Applied glitch end transition ({duration}s, intensity: {intensity})")
+            except Exception as e:
+                print(f"⚠ Glitch end transition failed: {e}")
+
+        # 7. Cinematic bars
+        if self.settings.get('transition_cinematic_bars', False):
+            try:
+                duration = self.settings.get('transition_bars_duration', 0.8)
+                bar_height = self.settings.get('transition_bars_height', 10)
+                final_video = TransitionEffects.create_cinematic_bars(final_video, fade_in=True, duration=duration, bar_height_percent=bar_height)
+                print(f"✓ Applied cinematic bars ({bar_height}% height)")
+            except Exception as e:
+                print(f"⚠ Cinematic bars failed: {e}")
+
+        # 8. Light leaks and lens effects
+        light_leak_layers = []
+
+        if self.settings.get('light_leak_enabled', False):
+            try:
+                color = self.settings.get('light_leak_color', 'warm')
+                intensity = self.settings.get('light_leak_intensity', 0.6)
+                start_time = self.settings.get('light_leak_start_time', 0.0)
+                leak_duration = self.settings.get('light_leak_duration', 3.0)
+                direction = self.settings.get('light_leak_direction', 'top_right')
+
+                light_leak = LightLeaksEffects.create_light_leak(
+                    video.w, video.h, final_video.duration, video.fps,
+                    color=color, intensity=intensity, start_time=start_time,
+                    leak_duration=leak_duration, direction=direction
+                )
+                light_leak_layers.append(light_leak)
+                print(f"✓ Added light leak ({color}, {direction}, from {start_time}s for {leak_duration}s)")
+            except Exception as e:
+                print(f"⚠ Light leak failed: {e}")
+
+        if self.settings.get('lens_flare_enabled', False):
+            try:
+                intensity = self.settings.get('lens_flare_intensity', 0.5)
+                start_time = self.settings.get('lens_flare_start_time', 1.0)
+                flare_duration = self.settings.get('lens_flare_duration', 2.0)
+                position = self.settings.get('lens_flare_position', 'center')
+
+                lens_flare = LightLeaksEffects.create_lens_flare(
+                    video.w, video.h, final_video.duration, video.fps,
+                    intensity=intensity, start_time=start_time,
+                    flare_duration=flare_duration, position=position
+                )
+                light_leak_layers.append(lens_flare)
+                print(f"✓ Added lens flare ({position}, from {start_time}s for {flare_duration}s)")
+            except Exception as e:
+                print(f"⚠ Lens flare failed: {e}")
+
+        if self.settings.get('film_burn_enabled', False):
+            try:
+                start_time = self.settings.get('film_burn_start_time', 0.0)
+                burn_duration = self.settings.get('film_burn_duration', 1.5)
+
+                film_burn = LightLeaksEffects.create_film_burn(
+                    video.w, video.h, final_video.duration, video.fps,
+                    start_time=start_time, burn_duration=burn_duration
+                )
+                light_leak_layers.append(film_burn)
+                print(f"✓ Added film burn (from {start_time}s for {burn_duration}s)")
+            except Exception as e:
+                print(f"⚠ Film burn failed: {e}")
+
+        # Composite light leaks if any were added
+        if light_leak_layers:
+            try:
+                all_layers = [final_video] + light_leak_layers
+                final_video = CompositeVideoClip(all_layers)
+                print(f"✓ Composited {len(light_leak_layers)} light leak effects")
+            except Exception as e:
+                print(f"⚠ Light leak compositing failed: {e}")
 
         output_path = self.output_folder / output_filename
         counter = 1
