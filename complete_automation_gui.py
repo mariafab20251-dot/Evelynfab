@@ -914,6 +914,34 @@ class AudioSettingsPopup:
                 bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
                 font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=10)
 
+        # Caption Style Presets (Like CapCut)
+        self.create_label(content, "Caption Style Preset:")
+        preset_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        preset_frame.pack(fill='x', padx=20, pady=5)
+
+        self.caption_preset_var = tk.StringVar(value="Custom")
+        caption_presets = [
+            "Custom",
+            "🔥 Bold Impact (TikTok Style)",
+            "✨ Minimal Clean",
+            "💎 Neon Glow",
+            "🎬 Cinematic",
+            "🎮 Gaming Style",
+            "📰 News Anchor",
+            "🌅 Vintage Film",
+            "🎯 Corporate Pro",
+            "🌈 Colorful Pop",
+            "🖤 Dark Mode"
+        ]
+        preset_dropdown = ttk.Combobox(preset_frame, textvariable=self.caption_preset_var,
+                                     values=caption_presets, state='readonly', width=35)
+        preset_dropdown.pack(side='left', padx=15, pady=10, fill='x', expand=True)
+        preset_dropdown.bind('<<ComboboxSelected>>', lambda e: self.apply_caption_preset())
+
+        tk.Button(preset_frame, text="Apply Preset", command=self.apply_caption_preset,
+                 bg=ModernStyles.ACCENT_ORANGE, fg='white', relief='flat',
+                 font=('Segoe UI', 9, 'bold'), padx=15, pady=5).pack(side='left', padx=5)
+
         # Caption font size
         self.create_label(content, "Caption Font Size:")
         caption_size_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
@@ -1084,17 +1112,141 @@ class AudioSettingsPopup:
         if folder:
             self.vo_path_var.set(folder)
 
+    def apply_caption_preset(self):
+        """Apply professional caption preset styles (CapCut-inspired)"""
+        preset = self.caption_preset_var.get()
+
+        # Define preset configurations
+        presets = {
+            "🔥 Bold Impact (TikTok Style)": {
+                'font': 'impact.ttf',
+                'size': 80,
+                'text_color': '#FFFFFF',
+                'bg_enabled': True,
+                'bg_color': '#000000',
+                'opacity': 200,
+                'position': 'center',
+                'words': 2
+            },
+            "✨ Minimal Clean": {
+                'font': 'calibrib.ttf',
+                'size': 60,
+                'text_color': '#FFFFFF',
+                'bg_enabled': False,
+                'bg_color': '#000000',
+                'opacity': 0,
+                'position': 'bottom',
+                'words': 3
+            },
+            "💎 Neon Glow": {
+                'font': 'arialbd.ttf',
+                'size': 75,
+                'text_color': '#00FFFF',
+                'bg_enabled': True,
+                'bg_color': '#FF00FF',
+                'opacity': 180,
+                'position': 'center',
+                'words': 2
+            },
+            "🎬 Cinematic": {
+                'font': 'garamond.ttf',
+                'size': 65,
+                'text_color': '#F5F5DC',
+                'bg_enabled': True,
+                'bg_color': '#1C1C1C',
+                'opacity': 220,
+                'position': 'bottom',
+                'words': 4
+            },
+            "🎮 Gaming Style": {
+                'font': 'impact.ttf',
+                'size': 85,
+                'text_color': '#00FF00',
+                'bg_enabled': True,
+                'bg_color': '#000000',
+                'opacity': 240,
+                'position': 'top',
+                'words': 2
+            },
+            "📰 News Anchor": {
+                'font': 'arialbd.ttf',
+                'size': 70,
+                'text_color': '#FFFFFF',
+                'bg_enabled': True,
+                'bg_color': '#003366',
+                'opacity': 230,
+                'position': 'bottom',
+                'words': 4
+            },
+            "🌅 Vintage Film": {
+                'font': 'georgia.ttf',
+                'size': 65,
+                'text_color': '#FFE4B5',
+                'bg_enabled': True,
+                'bg_color': '#8B4513',
+                'opacity': 150,
+                'position': 'center',
+                'words': 3
+            },
+            "🎯 Corporate Pro": {
+                'font': 'calibrib.ttf',
+                'size': 65,
+                'text_color': '#2C3E50',
+                'bg_enabled': True,
+                'bg_color': '#ECF0F1',
+                'opacity': 220,
+                'position': 'bottom',
+                'words': 4
+            },
+            "🌈 Colorful Pop": {
+                'font': 'comic.ttf',
+                'size': 75,
+                'text_color': '#FF1493',
+                'bg_enabled': True,
+                'bg_color': '#FFFF00',
+                'opacity': 200,
+                'position': 'center',
+                'words': 2
+            },
+            "🖤 Dark Mode": {
+                'font': 'arialbd.ttf',
+                'size': 70,
+                'text_color': '#E0E0E0',
+                'bg_enabled': True,
+                'bg_color': '#121212',
+                'opacity': 240,
+                'position': 'bottom',
+                'words': 3
+            }
+        }
+
+        if preset in presets:
+            config = presets[preset]
+            # Apply all preset values to the UI controls
+            self.caption_font_var.set(config['font'])
+            self.caption_size_var.set(config['size'])
+            self.caption_text_color_var.set(config['text_color'])
+            self.caption_bg_enabled_var.set(config['bg_enabled'])
+            self.caption_bg_color_var.set(config['bg_color'])
+            self.caption_opacity_var.set(config['opacity'])
+            self.caption_position_var.set(config['position'])
+            self.caption_words_var.set(config['words'])
+
+            messagebox.showinfo("Preset Applied", f"✓ Applied '{preset}' style to captions!\n\nYou can still customize individual settings.")
+
     def choose_caption_text_color(self):
         color = colorchooser.askcolor(title="Choose Caption Text Color",
                                       initialcolor=self.caption_text_color_var.get())
         if color[1]:  # color[1] is the hex value
             self.caption_text_color_var.set(color[1])
+            self.caption_preset_var.set("Custom")  # Mark as custom when manually changed
 
     def choose_caption_bg_color(self):
         color = colorchooser.askcolor(title="Choose Caption Background Color",
                                       initialcolor=self.caption_bg_color_var.get())
         if color[1]:  # color[1] is the hex value
             self.caption_bg_color_var.set(color[1])
+            self.caption_preset_var.set("Custom")  # Mark as custom when manually changed
 
     def save_settings(self):
         self.settings['mute_original_audio'] = self.mute_var.get()
