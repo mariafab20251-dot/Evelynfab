@@ -355,6 +355,28 @@ class TTSGenerator:
         'emma': 'en-US-EmmaNeural',           # Professional, warm female
         'jacob': 'en-US-JacobNeural',         # Deep, confident male (DEEP)
 
+        # PREMIUM MOTIVATIONAL VOICES (Perfect for quotes & inspiration)
+        'steffan_multi': 'en-US-SteffanMultilingualNeural',  # Powerful multilingual (MOTIVATION KING)
+        'andrew_multi': 'en-US-AndrewMultilingualNeural',    # Deep motivational narrator (ULTRA POWERFUL)
+        'ava_multi': 'en-US-AvaMultilingualNeural',          # Commanding female (POWERFUL MOTIVATION)
+        'emma_multi': 'en-US-EmmaMultilingualNeural',        # Warm inspirational female (INSPIRING)
+        'brian_multi': 'en-US-BrianMultilingualNeural',      # Deep powerful narrator (EPIC MOTIVATION)
+        'alloy': 'en-US-AlloyMultilingualNeural',            # Smooth deep male (PREMIUM DEEP)
+        'nova': 'en-US-NovaMultilingualNeural',              # Clear powerful female (PREMIUM)
+        'shimmer': 'en-US-ShimmerMultilingualNeural',        # Energetic motivational (HIGH ENERGY)
+
+        # Additional Powerful Voices
+        'kai': 'en-US-KaiNeural',                            # Deep authoritative male (COMMAND)
+        'luna': 'en-US-LunaNeural',                          # Rich warm female (INSPIRING)
+        'jenny_multi': 'en-US-JennyMultilingualNeural',      # Energetic multilingual female (UPBEAT)
+        'ryan_multi': 'en-US-RyanMultilingualNeural',        # Deep confident male (STRONG)
+
+        # URDU VOICES (اردو آوازیں)
+        'asad': 'ur-PK-AsadNeural',           # Pakistani Urdu Male (Professional)
+        'uzma': 'ur-PK-UzmaNeural',           # Pakistani Urdu Female (Clear & Professional)
+        'salman': 'ur-IN-SalmanNeural',       # Indian Urdu Male (Warm)
+        'gul': 'ur-IN-GulNeural',             # Indian Urdu Female (Friendly)
+
         # Backward compatibility
         'female': 'en-US-AriaNeural',         # Default female
         'male': 'en-US-GuyNeural',            # Default male
@@ -395,6 +417,26 @@ class TTSGenerator:
         'brandon': 'Brandon - US Male (Deep & Mature) 🔥',
         'emma': 'Emma - US Female (Professional & Warm)',
         'jacob': 'Jacob - US Male (Deep & Confident) 🔥',
+
+        # Premium Motivational Voices
+        'steffan_multi': '⭐ Steffan Multi - US Male (MOTIVATION KING) 👑',
+        'andrew_multi': '⭐ Andrew Multi - US Male (Ultra Powerful Motivation) 🚀',
+        'ava_multi': '⭐ Ava Multi - US Female (Commanding & Powerful) 💪',
+        'emma_multi': '⭐ Emma Multi - US Female (Warm & Inspiring) ✨',
+        'brian_multi': '⭐ Brian Multi - US Male (Epic Deep Narrator) 🎬',
+        'alloy': '⭐ Alloy - US Male (Premium Smooth Deep) 💎',
+        'nova': '⭐ Nova - US Female (Premium Clear & Powerful) 🌟',
+        'shimmer': '⭐ Shimmer - US Female (High Energy Motivation) ⚡',
+        'kai': 'Kai - US Male (Deep Authoritative Command) 🎖️',
+        'luna': 'Luna - US Female (Rich Warm Inspiring) 🌙',
+        'jenny_multi': 'Jenny Multi - US Female (Energetic Upbeat) 🎉',
+        'ryan_multi': 'Ryan Multi - US Male (Deep Confident Strong) 💪',
+
+        # Urdu Voices
+        'asad': 'اسد Asad - Pakistani اردو Male (Professional) 🇵🇰',
+        'uzma': 'عظمیٰ Uzma - Pakistani اردو Female (Clear) 🇵🇰',
+        'salman': 'سلمان Salman - Indian اردو Male (Warm) 🇮🇳',
+        'gul': 'گل Gul - Indian اردو Female (Friendly) 🇮🇳',
     }
 
     @staticmethod

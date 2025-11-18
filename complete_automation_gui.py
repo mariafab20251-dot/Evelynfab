@@ -854,12 +854,30 @@ class AudioSettingsPopup:
         voice_options = []
         voice_keys = []
         if TTSGenerator:
-            # Group voices by category (deep voices marked with 💎🔥🎙️)
-            voice_keys = ['aria', 'jenny', 'michelle', 'monica', 'nancy', 'ana', 'amber', 'ashley', 'sara', 'emma',  # US Female
-                         'guy', 'davis', 'eric', 'christopher', 'jason', 'tony', 'andrew', 'brian', 'brandon', 'jacob', 'roger', 'steffan',  # US Male
-                         'sonia', 'mia', 'ryan', 'thomas', 'libby', 'alfie',  # British
-                         'natasha', 'annette', 'william',  # Australian
-                         'neerja', 'prabhat']  # Indian
+            # Group voices by category (⭐ = Premium Motivation, 💎🔥🎙️ = Deep voices)
+            voice_keys = [
+                # PREMIUM MOTIVATIONAL VOICES (Top of list!)
+                'steffan_multi', 'andrew_multi', 'brian_multi', 'ava_multi', 'emma_multi',
+                'alloy', 'nova', 'shimmer', 'kai', 'luna', 'jenny_multi', 'ryan_multi',
+
+                # US Female Deep
+                'monica', 'nancy', 'ana', 'aria', 'jenny', 'michelle', 'amber', 'ashley', 'sara', 'emma',
+
+                # US Male Deep
+                'andrew', 'brian', 'tony', 'jason', 'brandon', 'jacob', 'christopher', 'guy', 'davis', 'eric', 'roger', 'steffan',
+
+                # British
+                'thomas', 'mia', 'ryan', 'sonia', 'libby', 'alfie',
+
+                # Australian
+                'annette', 'natasha', 'william',
+
+                # Indian English
+                'neerja', 'prabhat',
+
+                # URDU VOICES (اردو)
+                'asad', 'uzma', 'salman', 'gul'
+            ]
             voice_options = [TTSGenerator.VOICE_NAMES.get(k, k) for k in voice_keys]
         else:
             voice_keys = ['aria', 'guy']
