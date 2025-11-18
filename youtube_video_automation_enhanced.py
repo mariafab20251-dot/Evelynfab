@@ -716,7 +716,7 @@ class CaptionRenderer:
         bg_enabled = settings.get('caption_bg_enabled', True)  # Enable/disable background
         position = settings.get('caption_position', 'center')  # top, center, bottom
         words_per_caption = settings.get('caption_words_per_line', 3)  # Show 3 words at a time
-        gap_between_captions = 0.1  # Small gap between captions for better readability
+        gap_between_captions = 0.0  # No gap - perfect sync with voiceover
 
         # Load font
         try:
@@ -1643,26 +1643,16 @@ class VideoQuoteAutomation:
                         if total_chars == 0:
                             total_chars = 1
 
+                        # Use even distribution - simple and accurate
+                        # Most TTS engines speak at consistent pace
+                        word_count = len(word_timings)
+                        avg_word_duration = total_duration / word_count
+
                         current_time = 0.0
                         for word_info in word_timings:
-                            word_length = len(word_info['word'])
-                            # Allocate time based on word length proportion
-                            word_duration = (word_length / total_chars) * total_duration
-                            # Add minimum duration (0.35s) for better synchronization
-                            word_duration = max(word_duration, 0.35)
-
                             word_info['offset'] = current_time
-                            word_info['duration'] = word_duration
-                            current_time += word_duration
-
-                        # Normalize if we overshot the duration
-                        if current_time > total_duration:
-                            scale_factor = total_duration / current_time
-                            current_time = 0.0
-                            for word_info in word_timings:
-                                word_info['duration'] *= scale_factor
-                                word_info['offset'] = current_time
-                                current_time += word_info['duration']
+                            word_info['duration'] = avg_word_duration
+                            current_time += avg_word_duration
 
                         print(f"✓ Calculated weighted word timing: {len(word_timings)} words, {total_duration:.2f}s total")
                     except Exception as e:
