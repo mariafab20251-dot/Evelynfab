@@ -478,9 +478,9 @@ class TTSGenerator:
             voice = TTSGenerator.VOICES.get(voice_key, TTSGenerator.VOICES['aria'])
 
             # Calculate speech rate adjustment
-            # Settings range: 100-250 (default 150)
+            # Settings range: 100-250 (default 130 - slower for better caption sync)
             # edge-tts rate format: "+0%", "-20%", "+50%"
-            speed = settings.get('tts_speed', 150)
+            speed = settings.get('tts_speed', 130)
             rate_percent = int((speed - 150) / 150 * 100)  # Convert to percentage
             rate = f"{rate_percent:+d}%" if rate_percent != 0 else "+0%"
 
@@ -660,7 +660,7 @@ class CaptionRenderer:
         bg_enabled = settings.get('caption_bg_enabled', True)  # Enable/disable background
         position = settings.get('caption_position', 'center')  # top, center, bottom
         words_per_caption = settings.get('caption_words_per_line', 3)  # Show 3 words at a time
-        overlap_duration = 0.0  # No overlap to prevent double captions appearing simultaneously
+        gap_between_captions = 0.1  # Small gap between captions for better readability
 
         # Load font
         try:
@@ -681,8 +681,10 @@ class CaptionRenderer:
             start_time = segment_words[0]['offset']
             end_time = segment_words[-1]['offset'] + segment_words[-1]['duration']
 
-            # Add overlap to make captions stay visible longer
-            end_time += overlap_duration
+            # Add small gap before next caption (except for first caption)
+            if i > 0:
+                start_time += gap_between_captions
+                end_time += gap_between_captions
 
             # Combine words
             text = ' '.join([w['word'] for w in segment_words])
@@ -1590,8 +1592,8 @@ class VideoQuoteAutomation:
                             word_length = len(word_info['word'])
                             # Allocate time based on word length proportion
                             word_duration = (word_length / total_chars) * total_duration
-                            # Add minimum duration (0.2s) to prevent too-fast words
-                            word_duration = max(word_duration, 0.2)
+                            # Add minimum duration (0.35s) for better synchronization
+                            word_duration = max(word_duration, 0.35)
 
                             word_info['offset'] = current_time
                             word_info['duration'] = word_duration
