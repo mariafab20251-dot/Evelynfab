@@ -1455,8 +1455,16 @@ class VideoQuoteAutomation:
         hex_color = hex_color.lstrip('#')
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
-    def read_quotes(self) -> List[str]:
-        """Read quotes from file"""
+    def read_quotes(self) -> List[dict]:
+        """
+        Read quotes from file with support for separate subtitle and voiceover text.
+
+        Format options:
+        1. Simple format (backward compatible): "Quote text"
+        2. Separate subtitle/voiceover: "Subtitle text|||Voiceover text with explanations"
+
+        Returns list of dicts with 'subtitle' and 'voiceover' keys.
+        """
         if not self.quotes_file.exists():
             print(f"✗ Quotes file not found: {self.quotes_file}")
             return []
@@ -1476,21 +1484,44 @@ class VideoQuoteAutomation:
         else:
             quotes = [line.strip() for line in content.split('\n') if line.strip()]
 
-        cleaned_quotes = []
+        processed_quotes = []
         for quote in quotes:
             cleaned = re.sub(r'^\d+\.\s*', '', quote).strip()
-            if cleaned:
-                cleaned_quotes.append(cleaned)
+            if not cleaned:
+                continue
 
-        print(f"✓ Loaded {len(cleaned_quotes)} quotes")
+            # Check if quote uses subtitle|||voiceover format
+            if '|||' in cleaned:
+                parts = cleaned.split('|||', 1)  # Split only on first occurrence
+                subtitle_text = parts[0].strip()
+                voiceover_text = parts[1].strip() if len(parts) > 1 else subtitle_text
 
-        if cleaned_quotes:
+                processed_quotes.append({
+                    'subtitle': subtitle_text,
+                    'voiceover': voiceover_text
+                })
+                print(f"  → Found split format:")
+                print(f"     Subtitle: {subtitle_text[:60]}...")
+                print(f"     Voiceover: {voiceover_text[:60]}...")
+            else:
+                # Backward compatible: use same text for both
+                processed_quotes.append({
+                    'subtitle': cleaned,
+                    'voiceover': cleaned
+                })
+
+        print(f"✓ Loaded {len(processed_quotes)} quotes")
+
+        if processed_quotes:
             print(f"\nFirst 3 quotes:")
-            for i, quote in enumerate(cleaned_quotes[:3], 1):
-                preview = quote[:80] + "..." if len(quote) > 80 else quote
-                print(f"  {i}. {preview}")
+            for i, quote_data in enumerate(processed_quotes[:3], 1):
+                subtitle_preview = quote_data['subtitle'][:80] + "..." if len(quote_data['subtitle']) > 80 else quote_data['subtitle']
+                print(f"  {i}. Subtitle: {subtitle_preview}")
+                if quote_data['subtitle'] != quote_data['voiceover']:
+                    voiceover_preview = quote_data['voiceover'][:80] + "..." if len(quote_data['voiceover']) > 80 else quote_data['voiceover']
+                    print(f"     Voiceover: {voiceover_preview}")
 
-        return cleaned_quotes
+        return processed_quotes
 
     def get_video_files(self, sort_by: str = 'created') -> List[Path]:
         """Get video files from folder"""
@@ -1743,24 +1774,50 @@ class VideoQuoteAutomation:
 
         return img
 
-    def add_quote_to_video(self, video_path: Path, quote: str, video_index: int = 0) -> Tuple[Path, str]:
-        """Add quote overlay with advanced effects"""
+    def add_quote_to_video(self, video_path: Path, quote: dict, video_index: int = 0) -> Tuple[Path, str]:
+        """
+        Add quote overlay with advanced effects.
+
+        Args:
+            video_path: Path to video file
+            quote: Dictionary with 'subtitle' and 'voiceover' keys
+                   - subtitle: Text shown in captions/overlay (short)
+                   - voiceover: Text spoken in TTS (can include explanations)
+            video_index: Index of current video
+
+        Returns:
+            Tuple of (output_path, output_filename)
+        """
+        # Extract subtitle and voiceover text
+        # Support both dict format and legacy string format for backward compatibility
+        if isinstance(quote, dict):
+            subtitle_text = quote['subtitle']
+            voiceover_text = quote['voiceover']
+        else:
+            # Backward compatible: treat as single string
+            subtitle_text = quote
+            voiceover_text = quote
+
         print(f"\n{'='*70}")
         print(f"Processing: {video_path.name}")
-        print(f"Quote: {quote[:80]}...")
+        print(f"Subtitle: {subtitle_text[:80]}...")
+        if subtitle_text != voiceover_text:
+            print(f"Voiceover: {voiceover_text[:80]}...")
 
-        hashtags = self.generate_hashtags(quote)
+        # Use subtitle text for hashtags and filename (visual elements)
+        hashtags = self.generate_hashtags(subtitle_text)
         print(f"Hashtags: {', '.join(hashtags)}")
 
-        output_filename = self.create_filename(quote, hashtags)
+        output_filename = self.create_filename(subtitle_text, hashtags)
         print(f"Output: {output_filename}")
 
         video = VideoFileClip(str(video_path))
 
         emoji_pattern = re.compile(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+')
 
-        emojis_found = emoji_pattern.findall(quote)
-        text_without_emojis = emoji_pattern.sub(' ', quote).strip()
+        # Parse subtitle text for visual display
+        emojis_found = emoji_pattern.findall(subtitle_text)
+        text_without_emojis = emoji_pattern.sub(' ', subtitle_text).strip()
 
         cta_patterns = [
             r'\s+(Agree\s+or\s+not\?)', r'\s+(True\?)', r'\s+(Relatable\?)',
@@ -1938,8 +1995,9 @@ class VideoQuoteAutomation:
             tts_filename = f"tts_{video_index + 1}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp3"
             tts_path = tts_folder / tts_filename
 
-            # Generate TTS from the quote text
-            success, word_timings = TTSGenerator.generate_voiceover(quote, tts_path, self.settings)
+            # Generate TTS from the voiceover text (can include explanations)
+            success, word_timings = TTSGenerator.generate_voiceover(voiceover_text, tts_path, self.settings)
+            print(f"  → TTS generated from voiceover text ({len(voiceover_text)} chars)")
             if success:
                 voiceover_file = tts_path
                 print(f"✓ Using TTS voiceover: {tts_filename}")
@@ -2011,32 +2069,48 @@ class VideoQuoteAutomation:
             try:
                 caption_clips = []
 
-                # Try word-level timing if available
-                if word_timings:
-                    print(f"Adding synchronized captions... (word_timings: {len(word_timings)} words)")
-                    caption_clips = CaptionRenderer.create_word_captions(
-                        word_timings,
-                        video.w,
-                        video.h,
-                        self.settings
-                    )
-                # Fallback to estimated timing if TTS voiceover was generated
-                elif voiceover_file and voiceover_file.exists():
-                    print(f"Using estimated caption timing (no word boundaries from TTS)")
+                # IMPORTANT: Captions display subtitle_text (short), but sync with voiceover audio
+                # We need to create timing for subtitle words based on voiceover duration
+                if voiceover_file and voiceover_file.exists():
+                    print(f"Adding synchronized captions for subtitle text...")
                     try:
                         tts_audio = AudioFileClip(str(voiceover_file))
                         audio_duration = tts_audio.duration
                         tts_audio.close()
 
+                        # Use subtitle_text for captions (short heading)
+                        # Timing is estimated based on voiceover duration
                         caption_clips = CaptionRenderer.create_estimated_captions(
-                            quote,
+                            subtitle_text,
                             audio_duration,
                             video.w,
                             video.h,
                             self.settings
                         )
+                        print(f"  → Captions show: {subtitle_text[:60]}...")
+                        print(f"  → Synced to {audio_duration:.2f}s voiceover")
                     except Exception as e:
                         print(f"⚠ Could not get TTS audio duration: {e}")
+                elif word_timings:
+                    # If we have word timings but they're for voiceover_text,
+                    # we still need to use subtitle_text for display
+                    print(f"⚠ Word timings from voiceover don't match subtitle - using estimated timing")
+                    # Try to estimate timing
+                    if voiceover_file and voiceover_file.exists():
+                        try:
+                            tts_audio = AudioFileClip(str(voiceover_file))
+                            audio_duration = tts_audio.duration
+                            tts_audio.close()
+
+                            caption_clips = CaptionRenderer.create_estimated_captions(
+                                subtitle_text,
+                                audio_duration,
+                                video.w,
+                                video.h,
+                                self.settings
+                            )
+                        except Exception as e:
+                            print(f"⚠ Could not create captions: {e}")
 
                 if caption_clips:
                     print(f"Compositing {len(caption_clips)} caption clips with video...")
@@ -2136,10 +2210,19 @@ class VideoQuoteAutomation:
             try:
                 output_path, filename = self.add_quote_to_video(video_path, quote, video_index=i)
 
+                # Store subtitle and voiceover separately in log
+                if isinstance(quote, dict):
+                    quote_log = {
+                        'subtitle': quote['subtitle'],
+                        'voiceover': quote['voiceover']
+                    }
+                else:
+                    quote_log = quote
+
                 result = {
                     'index': i,
                     'original_video': video_path.name,
-                    'quote': quote,
+                    'quote': quote_log,
                     'output_file': filename,
                     'timestamp': datetime.now().isoformat(),
                     'status': 'success'

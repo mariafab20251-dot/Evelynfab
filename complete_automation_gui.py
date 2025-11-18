@@ -1500,11 +1500,23 @@ class AudioSettingsPopup:
                 return
 
             with open(quotes_file, 'r', encoding='utf-8') as f:
-                quotes = [line.strip() for line in f if line.strip()]
+                raw_quotes = [line.strip() for line in f if line.strip()]
 
-            if not quotes:
+            if not raw_quotes:
                 messagebox.showerror("Error", "No quotes found in Quotes.txt")
                 return
+
+            # Parse quotes - extract subtitle text only for images
+            # Format: "Subtitle|||Voiceover" or just "Quote"
+            quotes = []
+            for quote_line in raw_quotes:
+                if '|||' in quote_line:
+                    # Extract subtitle part only
+                    subtitle = quote_line.split('|||', 1)[0].strip()
+                    quotes.append(subtitle)
+                else:
+                    # Use full text
+                    quotes.append(quote_line)
 
             # Get selected template
             template_selection = self.image_template_var.get()

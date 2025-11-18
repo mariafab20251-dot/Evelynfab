@@ -1,0 +1,51 @@
+===============================================================================
+QUOTES.TXT FORMAT GUIDE - Separate Subtitle & Voiceover
+===============================================================================
+
+NEW FEATURE: You can now have different text for subtitles and voiceover!
+
+FORMAT:
+  Subtitle text|||Voiceover text with explanations
+
+EXAMPLES:
+
+Success is not final|||Success is not final, failure is not fatal. It is the courage to continue that counts. Remember, every successful person has faced failures along the way. The difference is they didn't give up. They kept pushing forward, learning from their mistakes, and eventually achieved their dreams. You can do the same!
+
+Hard work beats talent|||Hard work beats talent when talent doesn't work hard. You might not be the most gifted person in the room, but consistent effort and dedication will take you further than raw talent alone. Make it a habit to work hard every single day, and you'll be amazed at what you can accomplish.
+
+Dream big|||Dream big, work hard, stay focused, and surround yourself with good people. Your dreams are valid, no matter how impossible they might seem right now. Break them down into smaller goals, take action every day, and never lose sight of your vision. Success is a journey, not a destination.
+
+===============================================================================
+HOW IT WORKS:
+===============================================================================
+
+1. SUBTITLES/CAPTIONS (What viewers SEE):
+   - Uses the text BEFORE the "|||" separator
+   - Short, punchy, main heading
+   - Displayed as word-by-word captions in center
+   - Also shown in static text overlay at top
+
+2. VOICEOVER (What viewers HEAR):
+   - Uses the text AFTER the "|||" separator
+   - Can be much longer with full explanations
+   - Spoken by TTS voiceover
+   - Includes context, examples, motivation
+
+3. BACKWARD COMPATIBLE:
+   - If you don't use "|||", same text is used for both
+   - Your old quotes will still work perfectly
+
+===============================================================================
+BEST PRACTICES:
+===============================================================================
+
+✓ Keep subtitles short (5-10 words)
+✓ Make voiceover engaging with explanations
+✓ Use emojis in subtitle text for visual appeal
+✓ Include storytelling in voiceover for connection
+✓ Add calls-to-action in voiceover
+
+EXAMPLE WITH EMOJI:
+Success is the best revenge 💪|||Success is the best revenge. Don't waste your energy proving people wrong. Instead, focus that energy on proving yourself right. Work in silence, let your success make the noise. When they doubted you, you kept going. Now they're watching. Keep rising!
+
+===============================================================================
