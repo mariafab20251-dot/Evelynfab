@@ -189,7 +189,7 @@ class TextSettingsPopup:
         self.window = tk.Toplevel(parent)
         self.window.title("📝 Text & Font Settings")
         self.window.geometry("850x680")
-        self.window.configure(bg=ModernStyles.BG_DARK)
+        self.window.configure(bg=ModernStyles.BG_PRIMARY)
         # Removed grab_set to allow minimize
 
         self.setup_ui()
@@ -206,7 +206,7 @@ class TextSettingsPopup:
                 font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
 
         # Main container
-        main = tk.Frame(self.window, bg=ModernStyles.BG_DARK)
+        main = tk.Frame(self.window, bg=ModernStyles.BG_PRIMARY)
         main.pack(fill='both', expand=True, padx=20, pady=20)
 
         # Left: Settings
@@ -230,12 +230,12 @@ class TextSettingsPopup:
         tk.Label(preset_header, text="💾 Caption Presets", bg=ModernStyles.ACCENT_PURPLE, fg='white',
                 font=('Segoe UI', 11, 'bold'), pady=6).pack(padx=15)
 
-        preset_frame = tk.Frame(settings_frame, bg=ModernStyles.BG_DARK)
+        preset_frame = tk.Frame(settings_frame, bg=ModernStyles.BG_PRIMARY)
         preset_frame.pack(fill='x', padx=15, pady=10)
 
         # Preset dropdown
-        tk.Label(preset_frame, text="Select Preset:", bg=ModernStyles.BG_DARK,
-                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 9)).pack(anchor='w', pady=(0,5))
+        tk.Label(preset_frame, text="Select Preset:", bg=ModernStyles.BG_PRIMARY,
+                fg=ModernStyles.TEXT_SECONDARY, font=('Segoe UI', 9)).pack(anchor='w', pady=(0,5))
 
         self.preset_var = tk.StringVar(value="Current Settings")
         self.preset_combo = ttk.Combobox(preset_frame, textvariable=self.preset_var,
@@ -244,7 +244,7 @@ class TextSettingsPopup:
         self.preset_combo.bind('<<ComboboxSelected>>', self.load_preset)
 
         # Preset buttons
-        preset_btns = tk.Frame(preset_frame, bg=ModernStyles.BG_DARK)
+        preset_btns = tk.Frame(preset_frame, bg=ModernStyles.BG_PRIMARY)
         preset_btns.pack(fill='x')
 
         tk.Button(preset_btns, text="💾 Save as Preset", command=self.save_preset,
@@ -277,11 +277,11 @@ class TextSettingsPopup:
 
         tk.Scale(size_frame, from_=20, to=100, orient='horizontal',
                 variable=self.font_size_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                fg=ModernStyles.TEXT_PRIMARY, highlightthickness=0,
                 command=lambda v: self.update_preview()).pack(side='left', fill='x', expand=True)
 
         tk.Label(size_frame, textvariable=self.font_size_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, width=3).pack(side='left', padx=5)
+                fg=ModernStyles.TEXT_PRIMARY, width=3).pack(side='left', padx=5)
 
         # Colors
         self.create_label(settings_frame, "Text Color")
@@ -304,11 +304,11 @@ class TextSettingsPopup:
 
         tk.Scale(opacity_frame, from_=0, to=100, orient='horizontal',
                 variable=self.bg_opacity_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                fg=ModernStyles.TEXT_PRIMARY, highlightthickness=0,
                 command=lambda v: self.update_preview()).pack(side='left', fill='x', expand=True)
 
         tk.Label(opacity_frame, textvariable=self.bg_opacity_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, width=3).pack(side='left', padx=5)
+                fg=ModernStyles.TEXT_PRIMARY, width=3).pack(side='left', padx=5)
 
         # Position
         self.create_label(settings_frame, "Text Position")
@@ -318,8 +318,8 @@ class TextSettingsPopup:
 
         for pos in ['top', 'center', 'bottom']:
             tk.Radiobutton(pos_frame, text=pos.capitalize(), variable=self.position_var,
-                          value=pos, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
-                          selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD,
+                          value=pos, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                          selectcolor=ModernStyles.BG_PRIMARY, activebackground=ModernStyles.BG_CARD,
                           command=self.update_preview).pack(side='left', padx=10)
 
         # Right: Preview
@@ -327,7 +327,7 @@ class TextSettingsPopup:
         right.pack(side='right', fill='both')
 
         tk.Label(right, text="🎬 Live Preview (1080x1920)", bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, font=('Segoe UI', 12, 'bold')).pack(pady=15)
+                fg=ModernStyles.TEXT_PRIMARY, font=('Segoe UI', 12, 'bold')).pack(pady=15)
 
         # Preview scaled down to fit (maintaining 9:16 aspect ratio)
         preview_frame = tk.Frame(right, bg='#000000')
@@ -337,11 +337,11 @@ class TextSettingsPopup:
         self.preview_label.pack()
 
         # Bottom buttons
-        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_PRIMARY, height=70)
         btn_frame.pack(fill='x', side='bottom')
         btn_frame.pack_propagate(False)
 
-        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_PRIMARY)
         buttons.pack(expand=True)
 
         tk.Button(buttons, text="💾  Save Changes", command=self.save_settings,
@@ -354,7 +354,7 @@ class TextSettingsPopup:
 
     def create_label(self, parent, text, pady=(10,5)):
         tk.Label(parent, text=text, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 10)).pack(anchor='w', padx=15, pady=pady)
+                fg=ModernStyles.TEXT_SECONDARY, font=('Segoe UI', 10)).pack(anchor='w', padx=15, pady=pady)
 
     def pick_color(self, color_type):
         color = colorchooser.askcolor(title=f"Choose {color_type}")[1]
@@ -603,7 +603,7 @@ class EffectsSettingsPopup:
         self.window = tk.Toplevel(parent)
         self.window.title("✨ Visual Effects")
         self.window.geometry("680x630")
-        self.window.configure(bg=ModernStyles.BG_DARK)
+        self.window.configure(bg=ModernStyles.BG_PRIMARY)
         # Removed grab_set to allow minimize
 
         self.setup_ui()
@@ -619,11 +619,11 @@ class EffectsSettingsPopup:
                 font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
 
         # Bottom buttons - PACK FIRST before scrollable content
-        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_PRIMARY, height=70)
         btn_frame.pack(fill='x', side='bottom')
         btn_frame.pack_propagate(False)
 
-        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_PRIMARY)
         buttons.pack(expand=True)
 
         tk.Button(buttons, text="💾  Save Changes", command=self.save_settings,
@@ -635,9 +635,9 @@ class EffectsSettingsPopup:
                  relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
 
         # Scrollable content - pack AFTER buttons
-        canvas = tk.Canvas(self.window, bg=ModernStyles.BG_DARK, highlightthickness=0)
+        canvas = tk.Canvas(self.window, bg=ModernStyles.BG_PRIMARY, highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.window, orient="vertical", command=canvas.yview)
-        content = tk.Frame(canvas, bg=ModernStyles.BG_DARK)
+        content = tk.Frame(canvas, bg=ModernStyles.BG_PRIMARY)
 
         canvas.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
@@ -678,8 +678,8 @@ class EffectsSettingsPopup:
 
         for text, value in [('None', 'none'), ('Warm', 'warm'), ('Cold', 'cold'), ('Cinematic', 'cinematic')]:
             tk.Radiobutton(grade_frame, text=text, variable=self.grade_var, value=value,
-                          bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
-                          selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD).pack(side='left', padx=15)
+                          bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                          selectcolor=ModernStyles.BG_PRIMARY, activebackground=ModernStyles.BG_CARD).pack(side='left', padx=15)
 
         # Particle Effects (NEW!)
         self.create_section(content, "✨ Particle Effects (Glitter, Stars, etc.)", ModernStyles.ACCENT_GREEN)
@@ -688,8 +688,8 @@ class EffectsSettingsPopup:
         self.create_checkbox(content, "✨ Glitter / Sparkles (Twinkling)", self.glitter_var)
 
         # Glitter intensity slider
-        glitter_label = tk.Label(content, text="Glitter Intensity:", bg=ModernStyles.BG_DARK,
-                                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 9))
+        glitter_label = tk.Label(content, text="Glitter Intensity:", bg=ModernStyles.BG_PRIMARY,
+                                fg=ModernStyles.TEXT_SECONDARY, font=('Segoe UI', 9))
         glitter_label.pack(anchor='w', padx=20, pady=(10,2))
 
         glitter_intensity_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
@@ -698,11 +698,11 @@ class EffectsSettingsPopup:
         self.glitter_intensity_var = tk.DoubleVar(value=self.settings.get('glitter_intensity', 0.5))
         tk.Scale(glitter_intensity_frame, from_=0.1, to=1.0, resolution=0.1, orient='horizontal',
                 variable=self.glitter_intensity_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                fg=ModernStyles.TEXT_PRIMARY, highlightthickness=0,
                 font=('Segoe UI', 9)).pack(side='left', fill='x', expand=True, padx=15, pady=10)
 
         tk.Label(glitter_intensity_frame, textvariable=self.glitter_intensity_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
+                fg=ModernStyles.TEXT_PRIMARY, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
 
         self.stars_var = tk.BooleanVar(value=self.settings.get('add_stars', False))
         self.create_checkbox(content, "⭐ Falling Stars (Animated)", self.stars_var)
@@ -716,7 +716,7 @@ class EffectsSettingsPopup:
         info_particles = tk.Frame(content, bg=ModernStyles.BG_CARD)
         info_particles.pack(fill='x', padx=20, pady=(0,10))
         tk.Label(info_particles, text="ℹ️ Particle effects overlay on top of video. Great for celebrations!",
-                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
                 font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=10)
 
     def create_section(self, parent, title, color):
@@ -731,8 +731,8 @@ class EffectsSettingsPopup:
         frame.pack(fill='x', padx=20, pady=5)
 
         tk.Checkbutton(frame, text=text, variable=variable,
-                      bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
-                      selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD,
+                      bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                      selectcolor=ModernStyles.BG_PRIMARY, activebackground=ModernStyles.BG_CARD,
                       font=('Segoe UI', 10)).pack(anchor='w', padx=15, pady=10)
 
     def save_settings(self):
@@ -765,7 +765,7 @@ class AudioSettingsPopup:
         self.window = tk.Toplevel(parent)
         self.window.title("🔊 Audio Settings")
         self.window.geometry("720x950")  # Increased height for caption controls
-        self.window.configure(bg=ModernStyles.BG_DARK)
+        self.window.configure(bg=ModernStyles.BG_PRIMARY)
         # Removed grab_set to allow minimize
 
         self.setup_ui()
@@ -781,11 +781,11 @@ class AudioSettingsPopup:
                 font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
 
         # Bottom buttons - PACK FIRST before scrollable content
-        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_PRIMARY, height=70)
         btn_frame.pack(fill='x', side='bottom')
         btn_frame.pack_propagate(False)
 
-        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_PRIMARY)
         buttons.pack(expand=True)
 
         tk.Button(buttons, text="💾  Save Changes", command=self.save_settings,
@@ -797,9 +797,9 @@ class AudioSettingsPopup:
                  relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
 
         # Scrollable content - pack AFTER buttons
-        canvas = tk.Canvas(self.window, bg=ModernStyles.BG_DARK, highlightthickness=0)
+        canvas = tk.Canvas(self.window, bg=ModernStyles.BG_PRIMARY, highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.window, orient="vertical", command=canvas.yview)
-        content = tk.Frame(canvas, bg=ModernStyles.BG_DARK)
+        content = tk.Frame(canvas, bg=ModernStyles.BG_PRIMARY)
 
         canvas.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
@@ -813,7 +813,7 @@ class AudioSettingsPopup:
         self.create_label(content, "Generate beautiful background images from your quotes:")
         info_label = tk.Label(content,
                              text="This creates gradient/template-based images with your quotes.\nPerfect for simple quote videos without video backgrounds!",
-                             bg=ModernStyles.BG_DARK, fg=ModernStyles.TEXT_GRAY,
+                             bg=ModernStyles.BG_PRIMARY, fg=ModernStyles.TEXT_SECONDARY,
                              font=('Segoe UI', 9), justify='left')
         info_label.pack(padx=20, pady=(0, 10))
 
@@ -854,7 +854,7 @@ class AudioSettingsPopup:
         # Status label
         self.image_gen_status_var = tk.StringVar(value="")
         status_label = tk.Label(content, textvariable=self.image_gen_status_var,
-                               bg=ModernStyles.BG_DARK, fg=ModernStyles.ACCENT_GREEN,
+                               bg=ModernStyles.BG_PRIMARY, fg=ModernStyles.ACCENT_GREEN,
                                font=('Segoe UI', 9, 'italic'))
         status_label.pack(padx=20, pady=(0, 10))
 
@@ -871,11 +871,11 @@ class AudioSettingsPopup:
         self.original_volume_var = tk.IntVar(value=self.settings.get('original_audio_volume', 100))
         tk.Scale(volume_frame, from_=0, to=200, orient='horizontal',
                 variable=self.original_volume_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                fg=ModernStyles.TEXT_PRIMARY, highlightthickness=0,
                 font=('Segoe UI', 9)).pack(side='left', fill='x', expand=True, padx=15, pady=10)
 
         tk.Label(volume_frame, textvariable=self.original_volume_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
+                fg=ModernStyles.TEXT_PRIMARY, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
 
         # BGM
         self.create_section(content, "Background Music", ModernStyles.ACCENT_PURPLE)
@@ -888,7 +888,7 @@ class AudioSettingsPopup:
         path_frame.pack(fill='x', padx=20, pady=5)
 
         tk.Entry(path_frame, textvariable=self.bgm_path_var, width=40,
-                bg='#0f172a', fg=ModernStyles.TEXT_WHITE, relief='flat').pack(side='left', fill='x', expand=True, padx=10, pady=10)
+                bg='#0f172a', fg=ModernStyles.TEXT_PRIMARY, relief='flat').pack(side='left', fill='x', expand=True, padx=10, pady=10)
 
         tk.Button(path_frame, text="📄 File", command=self.browse_bgm_file,
                  bg=ModernStyles.ACCENT_BLUE, fg='white', relief='flat', cursor='hand2', padx=10).pack(side='left', padx=2)
@@ -906,7 +906,7 @@ class AudioSettingsPopup:
         vo_frame.pack(fill='x', padx=20, pady=5)
 
         tk.Entry(vo_frame, textvariable=self.vo_path_var, width=40,
-                bg='#0f172a', fg=ModernStyles.TEXT_WHITE, relief='flat').pack(side='left', fill='x', expand=True, padx=10, pady=10)
+                bg='#0f172a', fg=ModernStyles.TEXT_PRIMARY, relief='flat').pack(side='left', fill='x', expand=True, padx=10, pady=10)
 
         tk.Button(vo_frame, text="📁 Browse", command=self.browse_voiceover,
                  bg=ModernStyles.ACCENT_GREEN, fg='white', relief='flat', cursor='hand2', padx=15).pack(side='left', padx=5)
@@ -920,7 +920,7 @@ class AudioSettingsPopup:
         info_frame = tk.Frame(content, bg=ModernStyles.BG_CARD)
         info_frame.pack(fill='x', padx=20, pady=(0,10))
         tk.Label(info_frame, text="ℹ️ Automatically converts quote text to speech using natural AI voices. \nRequires edge-tts library (pip install edge-tts)",
-                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
                 font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=10)
 
         # TTS Voice selection
@@ -992,11 +992,11 @@ class AudioSettingsPopup:
         self.tts_speed_var = tk.IntVar(value=self.settings.get('tts_speed', 150))
         tk.Scale(speed_frame, from_=100, to=250, orient='horizontal',
                 variable=self.tts_speed_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                fg=ModernStyles.TEXT_PRIMARY, highlightthickness=0,
                 font=('Segoe UI', 9)).pack(side='left', fill='x', expand=True, padx=15, pady=10)
 
         tk.Label(speed_frame, textvariable=self.tts_speed_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
+                fg=ModernStyles.TEXT_PRIMARY, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
 
         # Voiceover Text File (Separate from Quotes)
         self.create_label(content, "Voiceover Text File (Optional - for longer narration):")
@@ -1004,7 +1004,7 @@ class AudioSettingsPopup:
         info_frame_vo.pack(fill='x', padx=20, pady=(0,5))
         tk.Label(info_frame_vo,
                 text="ℹ️ Use a separate file for voiceover text (what TTS speaks).\nIf not selected, Quotes.txt will be used for both subtitles and voiceover.",
-                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
                 font=('Segoe UI', 8, 'italic'), justify='left').pack(anchor='w', padx=15, pady=5)
 
         self.voiceover_text_path_var = tk.StringVar(value=self.settings.get('voiceover_text_file', ''))
@@ -1012,7 +1012,7 @@ class AudioSettingsPopup:
         vo_text_frame.pack(fill='x', padx=20, pady=5)
 
         tk.Entry(vo_text_frame, textvariable=self.voiceover_text_path_var, width=40,
-                bg='#0f172a', fg=ModernStyles.TEXT_WHITE, relief='flat').pack(side='left', fill='x', expand=True, padx=10, pady=10)
+                bg='#0f172a', fg=ModernStyles.TEXT_PRIMARY, relief='flat').pack(side='left', fill='x', expand=True, padx=10, pady=10)
 
         tk.Button(vo_text_frame, text="📄 Browse", command=self.browse_voiceover_text_file,
                  bg=ModernStyles.ACCENT_PURPLE, fg='white', relief='flat', cursor='hand2', padx=15).pack(side='left', padx=5)
@@ -1029,7 +1029,7 @@ class AudioSettingsPopup:
         info_frame2 = tk.Frame(content, bg=ModernStyles.BG_CARD)
         info_frame2.pack(fill='x', padx=20, pady=(0,10))
         tk.Label(info_frame2, text="ℹ️ Captions appear word-by-word synchronized with TTS audio. \nLike TikTok/YouTube auto-captions!",
-                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
                 font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=10)
 
         # Caption Style Presets (Like CapCut)
@@ -1086,11 +1086,11 @@ class AudioSettingsPopup:
         self.caption_size_var = tk.IntVar(value=self.settings.get('caption_font_size', 60))
         tk.Scale(caption_size_frame, from_=30, to=100, orient='horizontal',
                 variable=self.caption_size_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                fg=ModernStyles.TEXT_PRIMARY, highlightthickness=0,
                 font=('Segoe UI', 9)).pack(side='left', fill='x', expand=True, padx=15, pady=10)
 
         tk.Label(caption_size_frame, textvariable=self.caption_size_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
+                fg=ModernStyles.TEXT_PRIMARY, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
 
         # Caption position
         self.create_label(content, "Caption Position:")
@@ -1100,8 +1100,8 @@ class AudioSettingsPopup:
         self.caption_position_var = tk.StringVar(value=self.settings.get('caption_position', 'bottom'))
         for pos in ['top', 'center', 'bottom']:
             tk.Radiobutton(caption_pos_frame, text=pos.capitalize(), variable=self.caption_position_var,
-                          value=pos, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
-                          selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD,
+                          value=pos, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                          selectcolor=ModernStyles.BG_PRIMARY, activebackground=ModernStyles.BG_CARD,
                           font=('Segoe UI', 10)).pack(side='left', padx=15, pady=10)
 
         # Words per caption line
@@ -1112,11 +1112,11 @@ class AudioSettingsPopup:
         self.caption_words_var = tk.IntVar(value=self.settings.get('caption_words_per_line', 3))
         tk.Scale(words_frame, from_=1, to=5, orient='horizontal',
                 variable=self.caption_words_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                fg=ModernStyles.TEXT_PRIMARY, highlightthickness=0,
                 font=('Segoe UI', 9)).pack(side='left', fill='x', expand=True, padx=15, pady=10)
 
         tk.Label(words_frame, textvariable=self.caption_words_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
+                fg=ModernStyles.TEXT_PRIMARY, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
 
         # Caption font style
         print("DEBUG: Adding caption font style control")
@@ -1139,7 +1139,7 @@ class AudioSettingsPopup:
 
         self.caption_text_color_var = tk.StringVar(value=self.settings.get('caption_text_color', '#FFFFFF'))
         tk.Entry(text_color_frame, textvariable=self.caption_text_color_var, width=10,
-                bg=ModernStyles.BG_DARK, fg=ModernStyles.TEXT_WHITE,
+                bg=ModernStyles.BG_PRIMARY, fg=ModernStyles.TEXT_PRIMARY,
                 font=('Segoe UI', 10)).pack(side='left', padx=(15,5), pady=10)
 
         tk.Button(text_color_frame, text="Choose Color", command=self.choose_caption_text_color,
@@ -1159,7 +1159,7 @@ class AudioSettingsPopup:
 
         self.caption_bg_color_var = tk.StringVar(value=self.settings.get('caption_bg_color', '#000000'))
         tk.Entry(bg_color_frame, textvariable=self.caption_bg_color_var, width=10,
-                bg=ModernStyles.BG_DARK, fg=ModernStyles.TEXT_WHITE,
+                bg=ModernStyles.BG_PRIMARY, fg=ModernStyles.TEXT_PRIMARY,
                 font=('Segoe UI', 10)).pack(side='left', padx=(15,5), pady=10)
 
         tk.Button(bg_color_frame, text="Choose Color", command=self.choose_caption_bg_color,
@@ -1174,16 +1174,16 @@ class AudioSettingsPopup:
         self.caption_opacity_var = tk.IntVar(value=self.settings.get('caption_bg_opacity', 180))
         tk.Scale(opacity_frame, from_=0, to=255, orient='horizontal',
                 variable=self.caption_opacity_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, highlightthickness=0,
+                fg=ModernStyles.TEXT_PRIMARY, highlightthickness=0,
                 font=('Segoe UI', 9)).pack(side='left', fill='x', expand=True, padx=15, pady=10)
 
         tk.Label(opacity_frame, textvariable=self.caption_opacity_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
+                fg=ModernStyles.TEXT_PRIMARY, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
 
         info_frame3 = tk.Frame(content, bg=ModernStyles.BG_CARD)
         info_frame3.pack(fill='x', padx=20, pady=(0,10))
         tk.Label(info_frame3, text="💡 Tip: Use hex colors (#FFFFFF = white, #000000 = black, #FFFF00 = yellow)",
-                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
                 font=('Segoe UI', 8), justify='left').pack(anchor='w', padx=15, pady=5)
 
     def create_section(self, parent, title, color):
@@ -1198,13 +1198,13 @@ class AudioSettingsPopup:
         frame.pack(fill='x', padx=20, pady=5)
 
         tk.Checkbutton(frame, text=text, variable=variable,
-                      bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_WHITE,
-                      selectcolor=ModernStyles.BG_DARK, activebackground=ModernStyles.BG_CARD,
+                      bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                      selectcolor=ModernStyles.BG_PRIMARY, activebackground=ModernStyles.BG_CARD,
                       font=('Segoe UI', 10)).pack(anchor='w', padx=15, pady=10)
 
     def create_label(self, parent, text):
-        tk.Label(parent, text=text, bg=ModernStyles.BG_DARK,
-                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 9)).pack(anchor='w', padx=20, pady=(10,2))
+        tk.Label(parent, text=text, bg=ModernStyles.BG_PRIMARY,
+                fg=ModernStyles.TEXT_SECONDARY, font=('Segoe UI', 9)).pack(anchor='w', padx=20, pady=(10,2))
 
     def get_windows_fonts(self):
         """Get all TrueType fonts from Windows Fonts folder"""
@@ -1661,7 +1661,7 @@ class VideoProcessingWindow:
         self.window = tk.Toplevel(parent)
         self.window.title("▶️ Video Processing")
         self.window.geometry("950x700")
-        self.window.configure(bg=ModernStyles.BG_DARK)
+        self.window.configure(bg=ModernStyles.BG_PRIMARY)
         # Removed transient and grab_set to allow minimize button
         # self.window.transient(parent)
         # self.window.grab_set()
@@ -1686,7 +1686,7 @@ class VideoProcessingWindow:
                 font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
 
         # Content
-        content = tk.Frame(self.window, bg=ModernStyles.BG_DARK)
+        content = tk.Frame(self.window, bg=ModernStyles.BG_PRIMARY)
         content.pack(fill='both', expand=True, padx=20, pady=20)
 
         # Progress section
@@ -1697,7 +1697,7 @@ class VideoProcessingWindow:
 
         self.progress_var = tk.StringVar(value="Ready to start processing")
         tk.Label(progress_frame, textvariable=self.progress_var, bg=ModernStyles.BG_CARD,
-                fg=ModernStyles.TEXT_WHITE, font=('Segoe UI', 10)).pack(pady=10)
+                fg=ModernStyles.TEXT_PRIMARY, font=('Segoe UI', 10)).pack(pady=10)
 
         self.progress = ttk.Progressbar(progress_frame, mode='determinate', length=400)
         self.progress.pack(pady=(0,10), padx=20)
@@ -1709,16 +1709,16 @@ class VideoProcessingWindow:
         log_frame.pack(fill='both', expand=True, padx=20, pady=10)
 
         self.log_text = scrolledtext.ScrolledText(log_frame, height=18, bg='#0f172a',
-                                                  fg=ModernStyles.TEXT_WHITE, font=('Consolas', 9),
+                                                  fg=ModernStyles.TEXT_PRIMARY, font=('Consolas', 9),
                                                   relief='flat', state='disabled')
         self.log_text.pack(fill='both', expand=True, padx=10, pady=10)
 
         # Bottom buttons
-        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_PRIMARY, height=70)
         btn_frame.pack(fill='x', side='bottom')
         btn_frame.pack_propagate(False)
 
-        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_PRIMARY)
         buttons.pack(expand=True)
 
         self.start_btn = tk.Button(buttons, text="▶️  Start Processing", command=self.start_processing,
@@ -1967,7 +1967,7 @@ class ProcessingPopup:
         self.window = tk.Toplevel(parent)
         self.window.title("⚙️ Processing Configuration")
         self.window.geometry("680x480")
-        self.window.configure(bg=ModernStyles.BG_DARK)
+        self.window.configure(bg=ModernStyles.BG_PRIMARY)
         # Removed grab_set to allow minimize
 
         self.setup_ui()
@@ -1984,7 +1984,7 @@ class ProcessingPopup:
                 font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
 
         # Content
-        content = tk.Frame(self.window, bg=ModernStyles.BG_DARK)
+        content = tk.Frame(self.window, bg=ModernStyles.BG_PRIMARY)
         content.pack(fill='both', expand=True, padx=20, pady=20)
 
         # Path configurations
@@ -2011,11 +2011,11 @@ class ProcessingPopup:
         self.create_path_selector(content, self.archive_folder_var, self.browse_archive_folder)
 
         # Bottom buttons
-        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_DARK, height=70)
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_PRIMARY, height=70)
         btn_frame.pack(fill='x', side='bottom')
         btn_frame.pack_propagate(False)
 
-        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_DARK)
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_PRIMARY)
         buttons.pack(expand=True)
 
         tk.Button(buttons, text="💾  Save Paths", command=self.save_paths_only,
@@ -2034,15 +2034,15 @@ class ProcessingPopup:
                 font=('Segoe UI', 11, 'bold'), pady=6).pack(padx=15)
 
     def create_label(self, parent, text):
-        tk.Label(parent, text=text, bg=ModernStyles.BG_DARK,
-                fg=ModernStyles.TEXT_GRAY, font=('Segoe UI', 9)).pack(anchor='w', padx=20, pady=(10,2))
+        tk.Label(parent, text=text, bg=ModernStyles.BG_PRIMARY,
+                fg=ModernStyles.TEXT_SECONDARY, font=('Segoe UI', 9)).pack(anchor='w', padx=20, pady=(10,2))
 
     def create_path_selector(self, parent, var, browse_cmd, is_file=False):
         frame = tk.Frame(parent, bg=ModernStyles.BG_CARD)
         frame.pack(fill='x', padx=20, pady=5)
 
         tk.Entry(frame, textvariable=var, width=60,
-                bg='#0f172a', fg=ModernStyles.TEXT_WHITE, relief='flat', font=('Segoe UI', 9)).pack(
+                bg='#0f172a', fg=ModernStyles.TEXT_PRIMARY, relief='flat', font=('Segoe UI', 9)).pack(
             side='left', fill='x', expand=True, padx=10, pady=10)
 
         icon = "📄" if is_file else "📁"
@@ -2399,7 +2399,7 @@ class DashboardGUI:
         tk.Label(content, text=title, bg=ModernStyles.BG_CARD, fg=color,
                 font=('Segoe UI', 16, 'bold')).pack(pady=(0,8))
 
-        tk.Label(content, text=description, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_GRAY,
+        tk.Label(content, text=description, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
                 font=('Segoe UI', 11), wraplength=280, justify='center').pack(pady=(0,0))
 
         # Border
