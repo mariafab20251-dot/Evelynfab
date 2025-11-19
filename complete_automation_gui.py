@@ -2580,7 +2580,7 @@ class DashboardGUI:
         self.root.geometry("950x650")  # Wider, more modern aspect ratio
         self.root.configure(bg=ModernStyles.BG_PRIMARY)
         self.root.resizable(True, True)
-        self.root.minsize(900, 600)  # Larger minimum for modern UI
+        self.root.minsize(800, 500)  # Larger minimum for modern UI
 
         self.settings = self.load_settings()
         self.processing = False
@@ -2637,8 +2637,35 @@ class DashboardGUI:
         # ═══════════════════════════════════════════════════════════
         # MAIN CONTENT AREA
         # ═══════════════════════════════════════════════════════════
-        main_content = tk.Frame(self.root, bg=ModernStyles.BG_PRIMARY)
-        main_content.pack(fill='both', expand=True, padx=25, pady=15)
+        # Create scrollable main content area
+        main_container = tk.Frame(self.root, bg=ModernStyles.BG_PRIMARY)
+        main_container.pack(fill='both', expand=True)
+        
+        # Canvas for scrolling
+        from tkinter import ttk
+        canvas = tk.Canvas(main_container, bg=ModernStyles.BG_PRIMARY, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(main_container, orient='vertical', command=canvas.yview)
+        
+        main_content = tk.Frame(canvas, bg=ModernStyles.BG_PRIMARY)
+        
+        # Configure scrolling
+        main_content.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
+        canvas.create_window((0, 0), window=main_content, anchor='nw', width=canvas.winfo_reqwidth())
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Pack canvas and scrollbar
+        canvas.pack(side='left', fill='both', expand=True, padx=25, pady=15)
+        scrollbar.pack(side='right', fill='y')
+        
+        # Bind canvas width to update
+        def on_canvas_configure(event):
+            canvas.itemconfig(canvas.find_withtag('all')[0], width=event.width-50)
+        canvas.bind('<Configure>', on_canvas_configure)
+        
+        # Mouse wheel scrolling
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
         # Welcome message card
         welcome_card = tk.Frame(main_content, bg=ModernStyles.BG_CARD,
