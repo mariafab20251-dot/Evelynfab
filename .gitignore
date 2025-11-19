@@ -131,3 +131,6 @@ $RECYCLE.BIN/
 # Cache
 .cache/
 *.cache
+
+# Claude Code settings
+.claude/settings.local.json
