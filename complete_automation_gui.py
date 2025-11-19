@@ -2272,6 +2272,13 @@ class TransitionsEffectsPopup:
         self.create_dropdown(content, "Lens Flare Position:", self.lens_flare_position_var,
                            ['center', 'top'])
 
+        # Repeat controls for lens flare
+        self.lens_flare_repeat_var = tk.BooleanVar(value=self.settings.get('lens_flare_repeat_enabled', False))
+        self.create_checkbox(content, "🔁 Repeat Lens Flare throughout video", self.lens_flare_repeat_var)
+
+        self.lens_flare_repeat_interval_var = tk.DoubleVar(value=self.settings.get('lens_flare_repeat_interval', 5.0))
+        self.create_slider(content, "   Repeat interval (seconds):", self.lens_flare_repeat_interval_var, 3.0, 30.0, 1.0)
+
         # === FILM BURN ===
         tk.Label(content, text="", bg=ModernStyles.BG_PRIMARY).pack(pady=5)
 
