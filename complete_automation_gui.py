@@ -2383,6 +2383,8 @@ class TransitionsEffectsPopup:
         self.settings['light_leak_start_time'] = self.light_leak_start_time_var.get()
         self.settings['light_leak_duration'] = self.light_leak_duration_var.get()
         self.settings['light_leak_direction'] = self.light_leak_direction_var.get()
+        self.settings['light_leak_repeat_enabled'] = self.light_leak_repeat_var.get()
+        self.settings['light_leak_repeat_interval'] = self.light_leak_repeat_interval_var.get()
 
         # Lens flare
         self.settings['lens_flare_enabled'] = self.lens_flare_enabled_var.get()
@@ -2390,11 +2392,15 @@ class TransitionsEffectsPopup:
         self.settings['lens_flare_start_time'] = self.lens_flare_start_time_var.get()
         self.settings['lens_flare_duration'] = self.lens_flare_duration_var.get()
         self.settings['lens_flare_position'] = self.lens_flare_position_var.get()
+        self.settings['lens_flare_repeat_enabled'] = self.lens_flare_repeat_var.get()
+        self.settings['lens_flare_repeat_interval'] = self.lens_flare_repeat_interval_var.get()
 
         # Film burn
         self.settings['film_burn_enabled'] = self.film_burn_enabled_var.get()
         self.settings['film_burn_start_time'] = self.film_burn_start_time_var.get()
         self.settings['film_burn_duration'] = self.film_burn_duration_var.get()
+        self.settings['film_burn_repeat_enabled'] = self.film_burn_repeat_var.get()
+        self.settings['film_burn_repeat_interval'] = self.film_burn_repeat_interval_var.get()
 
         # Watermark blur
         self.settings['blur_watermark_enabled'] = self.blur_watermark_enabled_var.get()

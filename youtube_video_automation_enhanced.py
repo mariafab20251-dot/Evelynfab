@@ -2900,14 +2900,31 @@ class VideoQuoteAutomation:
                 start_time = self.settings.get('light_leak_start_time', 0.0)
                 leak_duration = self.settings.get('light_leak_duration', 3.0)
                 direction = self.settings.get('light_leak_direction', 'top_right')
+                repeat_enabled = self.settings.get('light_leak_repeat_enabled', False)
+                repeat_interval = self.settings.get('light_leak_repeat_interval', 8.0)
 
-                light_leak = LightLeaksEffects.create_light_leak(
-                    video.w, video.h, final_video.duration, video.fps,
-                    color=color, intensity=intensity, start_time=start_time,
-                    leak_duration=leak_duration, direction=direction
-                )
-                light_leak_layers.append(light_leak)
-                print(f"✓ Added light leak ({color}, {direction}, from {start_time}s for {leak_duration}s)")
+                if repeat_enabled:
+                    # Create multiple light leaks at intervals
+                    current_time = start_time
+                    count = 0
+                    while current_time < final_video.duration:
+                        light_leak = LightLeaksEffects.create_light_leak(
+                            video.w, video.h, final_video.duration, video.fps,
+                            color=color, intensity=intensity, start_time=current_time,
+                            leak_duration=leak_duration, direction=direction
+                        )
+                        light_leak_layers.append(light_leak)
+                        current_time += repeat_interval
+                        count += 1
+                    print(f"✓ Added {count} repeated light leaks every {repeat_interval}s")
+                else:
+                    light_leak = LightLeaksEffects.create_light_leak(
+                        video.w, video.h, final_video.duration, video.fps,
+                        color=color, intensity=intensity, start_time=start_time,
+                        leak_duration=leak_duration, direction=direction
+                    )
+                    light_leak_layers.append(light_leak)
+                    print(f"✓ Added light leak from {start_time}s for {leak_duration}s")
             except Exception as e:
                 print(f"⚠ Light leak failed: {e}")
 
@@ -2918,13 +2935,30 @@ class VideoQuoteAutomation:
                 flare_duration = self.settings.get('lens_flare_duration', 2.0)
                 position = self.settings.get('lens_flare_position', 'center')
 
-                lens_flare = LightLeaksEffects.create_lens_flare(
-                    video.w, video.h, final_video.duration, video.fps,
-                    intensity=intensity, start_time=start_time,
-                    flare_duration=flare_duration, position=position
-                )
-                light_leak_layers.append(lens_flare)
-                print(f"✓ Added lens flare ({position}, from {start_time}s for {flare_duration}s)")
+                repeat_enabled = self.settings.get('lens_flare_repeat_enabled', False)
+                repeat_interval = self.settings.get('lens_flare_repeat_interval', 5.0)
+
+                if repeat_enabled:
+                    current_time = start_time
+                    count = 0
+                    while current_time < final_video.duration:
+                        lens_flare = LightLeaksEffects.create_lens_flare(
+                            video.w, video.h, final_video.duration, video.fps,
+                            intensity=intensity, start_time=current_time,
+                            flare_duration=flare_duration, position=position
+                        )
+                        light_leak_layers.append(lens_flare)
+                        current_time += repeat_interval
+                        count += 1
+                    print(f"✓ Added {count} repeated lens flares every {repeat_interval}s")
+                else:
+                    lens_flare = LightLeaksEffects.create_lens_flare(
+                        video.w, video.h, final_video.duration, video.fps,
+                        intensity=intensity, start_time=start_time,
+                        flare_duration=flare_duration, position=position
+                    )
+                    light_leak_layers.append(lens_flare)
+                    print(f"✓ Added lens flare from {start_time}s for {flare_duration}s")
             except Exception as e:
                 print(f"⚠ Lens flare failed: {e}")
 
@@ -2933,12 +2967,28 @@ class VideoQuoteAutomation:
                 start_time = self.settings.get('film_burn_start_time', 0.0)
                 burn_duration = self.settings.get('film_burn_duration', 1.5)
 
-                film_burn = LightLeaksEffects.create_film_burn(
-                    video.w, video.h, final_video.duration, video.fps,
-                    start_time=start_time, burn_duration=burn_duration
-                )
-                light_leak_layers.append(film_burn)
-                print(f"✓ Added film burn (from {start_time}s for {burn_duration}s)")
+                repeat_enabled = self.settings.get('film_burn_repeat_enabled', False)
+                repeat_interval = self.settings.get('film_burn_repeat_interval', 10.0)
+
+                if repeat_enabled:
+                    current_time = start_time
+                    count = 0
+                    while current_time < final_video.duration:
+                        film_burn = LightLeaksEffects.create_film_burn(
+                            video.w, video.h, final_video.duration, video.fps,
+                            start_time=current_time, burn_duration=burn_duration
+                        )
+                        light_leak_layers.append(film_burn)
+                        current_time += repeat_interval
+                        count += 1
+                    print(f"✓ Added {count} repeated film burns every {repeat_interval}s")
+                else:
+                    film_burn = LightLeaksEffects.create_film_burn(
+                        video.w, video.h, final_video.duration, video.fps,
+                        start_time=start_time, burn_duration=burn_duration
+                    )
+                    light_leak_layers.append(film_burn)
+                    print(f"✓ Added film burn from {start_time}s for {burn_duration}s")
             except Exception as e:
                 print(f"⚠ Film burn failed: {e}")
 
