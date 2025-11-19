@@ -1162,21 +1162,20 @@ class CaptionRenderer:
             font = ImageFont.load_default()
             emoji_font = font
 
-        # Distribute emojis across segments (1 emoji per 2-3 words, CapCut style)
+        # Distribute emojis across segments (1 emoji per caption line, context-based)
         emoji_distribution = []
         if emoji_in_captions and emojis_found:
             total_segments = (len(words) + words_per_caption - 1) // words_per_caption
-            emoji_interval = 2  # Show emoji every 2 segments (adjust based on preference)
-
+            
+            # Show only 1 emoji at a time, distributed evenly across segments
             for seg_idx in range(total_segments):
-                # Distribute emojis evenly
-                if emojis_found and seg_idx % emoji_interval == 0:
-                    emoji_idx = (seg_idx // emoji_interval) % len(emojis_found)
-                    emoji_distribution.append(emojis_found[emoji_idx])
+                if seg_idx < len(emojis_found):
+                    # Use emoji based on order they appear in text
+                    emoji_distribution.append(emojis_found[seg_idx])
                 else:
-                    emoji_distribution.append('')  # No emoji for this segment
+                    emoji_distribution.append('')  # No emoji for segments after emojis run out
 
-            print(f"  Emojis found: {emojis_found}, distributed across {len(emoji_distribution)} segments")
+            print(f"  Emojis found: {emojis_found}, showing 1 per caption line across {len(emoji_distribution)} segments")
 
         # Create caption segments
         current_time = 0.0
@@ -1190,8 +1189,8 @@ class CaptionRenderer:
             if emoji_in_captions and segment_index < len(emoji_distribution):
                 emoji_for_segment = emoji_distribution[segment_index]
 
-            # Calculate timing - start slightly early for better sync
-            start_time = max(0, current_time - timing_offset)  # Don't go negative
+            # Calculate timing - perfect sync with voiceover
+            start_time = current_time  # Exact timing, no offset needed
             duration = len(segment_words) * time_per_word
             current_time += duration
 
@@ -1301,7 +1300,7 @@ class CaptionRenderer:
         bg_enabled = settings.get('caption_bg_enabled', True)  # Enable/disable background
         position = settings.get('caption_position', 'center')  # top, center, bottom
         words_per_caption = settings.get('caption_words_per_line', 3)  # Show 3 words at a time
-        gap_between_captions = 0.0  # No gap - perfect sync with voiceover
+        gap_between_captions = 0.0  # Perfect sync with voiceover (no gap)
 
         # Load font
         try:
