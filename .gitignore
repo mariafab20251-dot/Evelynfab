@@ -95,7 +95,6 @@ env/
 *.gif
 *.bmp
 !NotoColorEmoji.ttf
-!screenshot.png
 
 # ============================================
 # SYSTEM FILES
@@ -121,6 +120,8 @@ $RECYCLE.BIN/
 # ============================================
 
 # Temporary files
+*TEMP_MPY*.mp4
+*TEMP_MPY*.avi
 *.tmp
 *.temp
 *.bak

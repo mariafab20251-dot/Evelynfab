@@ -20,7 +20,6 @@
   "position": "top",
   "font_file": "C:\\Windows\\Fonts\\ANTQUAB.TTF",
   "cta_font_file": "C:\\Windows\\Fonts\\ariali.ttf",
-
   "_comment_animations": "TEXT ANIMATION EFFECTS",
   "text_fade_in": true,
   "text_fade_duration": 0.4,
@@ -31,7 +30,6 @@
   "text_kinetic": false,
   "text_kinetic_word_delay": 0.08,
   "text_glitch": false,
-
   "_comment_visual": "VISUAL EFFECTS",
   "text_glow": true,
   "glow_color": "#ffffff",
@@ -43,7 +41,6 @@
   "film_grain": false,
   "grain_intensity": 0.15,
   "color_grade": "warm",
-
   "_comment_motion": "MOTION EFFECTS",
   "video_zoom": true,
   "zoom_scale": 1.08,
@@ -51,7 +48,6 @@
   "ken_burns_pan": "right",
   "parallax_text": false,
   "parallax_intensity": 10,
-
   "_comment_lighting": "LIGHTING & POLISH",
   "neon_glow": false,
   "neon_color": "#00ff88",
@@ -62,7 +58,6 @@
   "gradient_type": "top_to_bottom",
   "gradient_intensity": 0.3,
   "light_leaks": false,
-
   "_comment_engagement": "ENGAGEMENT BOOSTERS",
   "animated_arrow": false,
   "arrow_color": "#ff0000",
@@ -72,7 +67,6 @@
   "emoji_pop_delay": 0.2,
   "progress_bar": false,
   "progress_color": "#00ff40",
-
   "_comment_audio": "AUDIO SETTINGS",
   "enable_captions": true,
   "caption_font_style": "arialbd.ttf",
@@ -96,7 +90,6 @@
   "voiceover_delay": 0.0,
   "mix_audio": true,
   "original_audio_volume": 0.5,
-
   "_comment_transitions": "PROFESSIONAL TRANSITIONS",
   "transition_fade_in": false,
   "transition_fade_out": false,
@@ -126,7 +119,6 @@
   "transition_cinematic_bars": false,
   "transition_bars_duration": 0.8,
   "transition_bars_height": 10,
-
   "_comment_light_leaks": "LIGHT LEAKS & CINEMATIC EFFECTS",
   "light_leak_enabled": false,
   "light_leak_color": "warm",
@@ -141,5 +133,6 @@
   "lens_flare_position": "center",
   "film_burn_enabled": false,
   "film_burn_start_time": 0.0,
-  "film_burn_duration": 1.5
+  "film_burn_duration": 1.5,
+  "caption_preset": "Custom"
 }

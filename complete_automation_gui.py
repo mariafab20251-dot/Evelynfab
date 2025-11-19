@@ -2577,10 +2577,10 @@ class DashboardGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("🎬 Video Automation Studio - Professional Dashboard")
-        self.root.geometry("1280x780")  # Wider, more modern aspect ratio
+        self.root.geometry("1200x720")  # Wider, more modern aspect ratio
         self.root.configure(bg=ModernStyles.BG_PRIMARY)
         self.root.resizable(True, True)
-        self.root.minsize(1100, 700)  # Larger minimum for modern UI
+        self.root.minsize(1000, 650)  # Larger minimum for modern UI
 
         self.settings = self.load_settings()
         self.processing = False
@@ -2609,12 +2609,12 @@ class DashboardGUI:
         # ═══════════════════════════════════════════════════════════
         # MODERN HEADER with Gradient Effect
         # ═══════════════════════════════════════════════════════════
-        header = tk.Frame(self.root, bg=ModernStyles.BG_SECONDARY, height=80)
+        header = tk.Frame(self.root, bg=ModernStyles.BG_SECONDARY, height=65)
         header.pack(fill='x')
         header.pack_propagate(False)
 
         header_content = tk.Frame(header, bg=ModernStyles.BG_SECONDARY)
-        header_content.pack(expand=True, fill='both', padx=40, pady=15)
+        header_content.pack(expand=True, fill='both', padx=30, pady=10)
 
         # Left side - Logo and title
         left_header = tk.Frame(header_content, bg=ModernStyles.BG_SECONDARY)
@@ -2622,11 +2622,11 @@ class DashboardGUI:
 
         tk.Label(left_header, text="🎬 Video Automation Studio",
                 bg=ModernStyles.BG_SECONDARY, fg=ModernStyles.TEXT_PRIMARY,
-                font=('Segoe UI', 24, 'bold')).pack(anchor='w')
+                font=('Segoe UI', 20, 'bold')).pack(anchor='w')
 
         tk.Label(left_header, text="Professional AI-Powered Video Creation Platform",
                 bg=ModernStyles.BG_SECONDARY, fg=ModernStyles.TEXT_MUTED,
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(2,0))
+                font=('Segoe UI', 9)).pack(anchor='w', pady=(2,0))
 
         # Right side - Quick stats
         right_header = tk.Frame(header_content, bg=ModernStyles.BG_SECONDARY)
@@ -2638,7 +2638,7 @@ class DashboardGUI:
         # MAIN CONTENT AREA
         # ═══════════════════════════════════════════════════════════
         main_content = tk.Frame(self.root, bg=ModernStyles.BG_PRIMARY)
-        main_content.pack(fill='both', expand=True, padx=30, pady=25)
+        main_content.pack(fill='both', expand=True, padx=25, pady=15)
 
         # Welcome message card
         welcome_card = tk.Frame(main_content, bg=ModernStyles.BG_CARD,
@@ -2646,11 +2646,11 @@ class DashboardGUI:
         welcome_card.pack(fill='x', pady=(0,20))
 
         welcome_content = tk.Frame(welcome_card, bg=ModernStyles.BG_CARD)
-        welcome_content.pack(padx=30, pady=20)
+        welcome_content.pack(padx=25, pady=15)
 
         tk.Label(welcome_content, text="👋 Welcome Back!",
                 bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
-                font=('Segoe UI', 16, 'bold')).pack(anchor='w')
+                font=('Segoe UI', 14, 'bold')).pack(anchor='w')
 
         tk.Label(welcome_content,
                 text="Transform your videos with AI-powered automation. Select a feature below to get started.",
@@ -2663,7 +2663,7 @@ class DashboardGUI:
 
         # Row 1
         row1 = tk.Frame(cards_container, bg=ModernStyles.BG_PRIMARY)
-        row1.pack(fill='both', expand=True, pady=(0,18))
+        row1.pack(fill='both', expand=True, pady=(0,12))
 
         row1.grid_columnconfigure(0, weight=1)
         row1.grid_columnconfigure(1, weight=1)
@@ -2681,7 +2681,7 @@ class DashboardGUI:
 
         # Row 2
         row2 = tk.Frame(cards_container, bg=ModernStyles.BG_PRIMARY)
-        row2.pack(fill='both', expand=True)
+        row2.pack(fill='both', expand=True, pady=(0,12))
 
         row2.grid_columnconfigure(0, weight=1)
         row2.grid_columnconfigure(1, weight=1)
@@ -2717,18 +2717,18 @@ class DashboardGUI:
         # ═══════════════════════════════════════════════════════════
         # BOTTOM ACTION BAR with Modern Buttons
         # ═══════════════════════════════════════════════════════════
-        action_bar = tk.Frame(self.root, bg=ModernStyles.BG_SECONDARY, height=85)
+        action_bar = tk.Frame(self.root, bg=ModernStyles.BG_SECONDARY, height=70)
         action_bar.pack(fill='x', side='bottom')
         action_bar.pack_propagate(False)
 
         btn_container = tk.Frame(action_bar, bg=ModernStyles.BG_SECONDARY)
-        btn_container.pack(expand=True, pady=18)
+        btn_container.pack(expand=True, pady=12)
 
         # Save button with modern styling
         save_btn = tk.Button(btn_container, text="💾  Save All Settings", command=self.save_settings,
                  bg=ModernStyles.BG_CARD_HOVER, fg=ModernStyles.TEXT_PRIMARY,
-                 font=('Segoe UI', 12, 'bold'),
-                 relief='flat', padx=40, pady=18, cursor='hand2',
+                 font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2',
                  borderwidth=0, highlightthickness=2,
                  highlightbackground=ModernStyles.BORDER_LIGHT,
                  activebackground=ModernStyles.BG_CARD)
@@ -2738,8 +2738,8 @@ class DashboardGUI:
         self.process_btn = tk.Button(btn_container, text="▶  Start Processing",
                                      command=self.start_processing,
                                      bg=ModernStyles.ACCENT_GREEN, fg='white',
-                                     font=('Segoe UI', 13, 'bold'),
-                                     relief='flat', padx=50, pady=18, cursor='hand2',
+                                     font=('Segoe UI', 12, 'bold'),
+                                     relief='flat', padx=40, pady=12, cursor='hand2',
                                      borderwidth=0, highlightthickness=0,
                                      activebackground=ModernStyles.ACCENT_GREEN_LIGHT)
         self.process_btn.pack(side='left', padx=10)
@@ -2790,35 +2790,35 @@ class DashboardGUI:
 
         # Content container
         content = tk.Frame(card, bg=ModernStyles.BG_CARD)
-        content.pack(expand=True, fill='both', pady=30, padx=30)
+        content.pack(expand=True, fill='both', pady=20, padx=20)
 
         # Icon with colored background circle effect
         icon_container = tk.Frame(content, bg=ModernStyles.BG_CARD)
-        icon_container.pack(pady=(0,15))
+        icon_container.pack(pady=(0,10))
 
         # Create icon with background
-        icon_bg = tk.Frame(icon_container, bg=color, width=80, height=80)
+        icon_bg = tk.Frame(icon_container, bg=color, width=65, height=65)
         icon_bg.pack_propagate(False)
         icon_bg.pack()
 
         tk.Label(icon_bg, text=emoji, bg=color,
-                font=('Segoe UI', 36)).pack(expand=True)
+                font=('Segoe UI', 28)).pack(expand=True)
 
         # Title
         tk.Label(content, text=title, bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
-                font=('Segoe UI', 18, 'bold')).pack(pady=(0,10))
+                font=('Segoe UI', 15, 'bold')).pack(pady=(0,8))
 
         # Description
         desc_label = tk.Label(content, text=description, bg=ModernStyles.BG_CARD,
                              fg=ModernStyles.TEXT_MUTED,
-                             font=('Segoe UI', 10), wraplength=300, justify='center')
-        desc_label.pack(pady=(0,20))
+                             font=('Segoe UI', 9), wraplength=280, justify='center')
+        desc_label.pack(pady=(0,12))
 
         # Action button
         btn = tk.Button(content, text="Open Settings →", command=command,
                        bg=ModernStyles.BG_CARD_HOVER, fg=color,
-                       font=('Segoe UI', 10, 'bold'),
-                       relief='flat', padx=25, pady=10, cursor='hand2',
+                       font=('Segoe UI', 9, 'bold'),
+                       relief='flat', padx=20, pady=8, cursor='hand2',
                        borderwidth=0, highlightthickness=1,
                        highlightbackground=ModernStyles.BORDER_LIGHT)
         btn.pack()

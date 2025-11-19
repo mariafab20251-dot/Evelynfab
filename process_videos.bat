@@ -25,7 +25,7 @@ echo Using settings from overlay_settings.json
 echo This may take a while depending on the number of videos.
 echo.
 
-python youtube_video_automation.py
+python youtube_video_automation_enhanced.py
 
 if errorlevel 1 (
     echo.
