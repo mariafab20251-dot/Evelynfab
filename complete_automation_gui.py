@@ -2396,6 +2396,14 @@ class TransitionsEffectsPopup:
         self.settings['film_burn_start_time'] = self.film_burn_start_time_var.get()
         self.settings['film_burn_duration'] = self.film_burn_duration_var.get()
 
+        # Watermark blur
+        self.settings['blur_watermark_enabled'] = self.blur_watermark_enabled_var.get()
+        self.settings['blur_x'] = self.blur_x_var.get()
+        self.settings['blur_y'] = self.blur_y_var.get()
+        self.settings['blur_width'] = self.blur_width_var.get()
+        self.settings['blur_height'] = self.blur_height_var.get()
+        self.settings['blur_intensity'] = self.blur_intensity_var.get()
+
         self.on_save(self.settings)
         messagebox.showinfo("Success", "Transition settings saved successfully!")
         self.window.destroy()

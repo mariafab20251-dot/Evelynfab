@@ -120,6 +120,50 @@ class VideoEffects:
         noise = np.random.normal(0, intensity * 255, frame.shape)
         return np.clip(frame + noise, 0, 255).astype('uint8')
 
+
+    @staticmethod
+    def apply_selective_blur(get_frame, t):
+        """Apply blur to a specific region (for hiding watermarks/logos)"""
+        frame = get_frame(t)
+        
+        # Get blur settings
+        if not hasattr(apply_selective_blur, 'settings'):
+            return frame
+            
+        settings = apply_selective_blur.settings
+        
+        if not settings.get('blur_watermark_enabled', False):
+            return frame
+        
+        try:
+            from PIL import Image, ImageFilter
+            import numpy as np
+            
+            # Get blur region
+            x = settings.get('blur_x', 50)
+            y = settings.get('blur_y', 700)
+            width = settings.get('blur_width', 200)
+            height = settings.get('blur_height', 50)
+            intensity = settings.get('blur_intensity', 15)
+            
+            # Convert frame to PIL Image
+            img = Image.fromarray(frame.astype('uint8'), 'RGB')
+            
+            # Extract region to blur
+            region = img.crop((x, y, x + width, y + height))
+            
+            # Apply blur
+            blurred_region = region.filter(ImageFilter.GaussianBlur(radius=intensity))
+            
+            # Paste back
+            img.paste(blurred_region, (x, y))
+            
+            # Convert back to numpy array
+            return np.array(img)
+        except Exception as e:
+            print(f"Blur error: {e}")
+            return frame
+
     @staticmethod
     def apply_background_dim(frame, intensity=0.25):
         """Dim the background"""
@@ -1228,15 +1272,18 @@ class CaptionRenderer:
                 text_y = padding
                 draw.text((content_start_x, text_y), text_content, font=font, fill=(255, 255, 255))  # White text
 
-                # Draw emoji next to text (CapCut style) - with original emoji colors
+                # Draw emoji ABOVE text, centered (modern style) - with original emoji colors
                 if emoji_for_segment:
-                    emoji_x = content_start_x + text_width + emoji_spacing
+                    # Center emoji above the text
+                    emoji_x = content_start_x + (text_width // 2) - (emoji_width // 2)
+                    emoji_y = text_y - emoji_height - 10  # 10px gap above text
+                    
                     # Use embedded_color=True to preserve emoji colors (Pillow 8.0+)
                     try:
-                        draw.text((emoji_x, text_y - 5), emoji_for_segment, font=emoji_font, embedded_color=True)
+                        draw.text((emoji_x, emoji_y), emoji_for_segment, font=emoji_font, embedded_color=True)
                     except TypeError:
                         # Fallback for older Pillow versions - draw without fill to use emoji colors
-                        draw.text((emoji_x, text_y - 5), emoji_for_segment, font=emoji_font)
+                        draw.text((emoji_x, emoji_y), emoji_for_segment, font=emoji_font)
 
                 # Create clip - no mask needed since background is solid
                 frame = np.array(img_rgb).copy()
@@ -2514,6 +2561,17 @@ class VideoQuoteAutomation:
                 video = video.image_transform(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
             except AttributeError:
                 video = video.fl_image(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
+
+        # Apply selective blur for watermark/logo hiding
+        if self.settings.get('blur_watermark_enabled', False):
+            print("  → Applying selective blur to hide watermark...")
+            # Pass settings to the blur function
+            VideoEffects.apply_selective_blur.settings = self.settings
+            try:
+                video = video.with_fps(video.fps).transform(VideoEffects.apply_selective_blur)
+            except AttributeError:
+                video = video.with_fps(video.fps).fl(VideoEffects.apply_selective_blur)
+
 
         # Start with video and static text overlay
         layers = [video, txt_clip]

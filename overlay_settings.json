@@ -78,7 +78,7 @@
   "caption_position": "center",
   "caption_words_per_line": 2,
   "use_tts_voiceover": true,
-  "tts_voice": "steffan_multi",
+  "tts_voice": "emma_multi",
   "mute_original_audio": false,
   "add_custom_bgm": false,
   "bgm_file": "",
@@ -136,5 +136,13 @@
   "film_burn_duration": 1.5,
   "caption_preset": "\ud83e\udde0 Psychology Facts (Purple Deep)",
   "tts_speed": 150,
-  "voiceover_text_file": ""
+  "voiceover_text_file": "",
+  "emoji_in_captions": true,
+  "_comment_watermark_blur": "WATERMARK/LOGO BLUR",
+  "blur_watermark_enabled": false,
+  "blur_x": 50,
+  "blur_y": 700,
+  "blur_width": 200,
+  "blur_height": 50,
+  "blur_intensity": 15
 }
