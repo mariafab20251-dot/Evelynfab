@@ -2577,10 +2577,10 @@ class DashboardGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("🎬 Video Automation Studio - Professional Dashboard")
-        self.root.geometry("1200x720")  # Wider, more modern aspect ratio
+        self.root.geometry("950x650")  # Wider, more modern aspect ratio
         self.root.configure(bg=ModernStyles.BG_PRIMARY)
         self.root.resizable(True, True)
-        self.root.minsize(1000, 650)  # Larger minimum for modern UI
+        self.root.minsize(900, 600)  # Larger minimum for modern UI
 
         self.settings = self.load_settings()
         self.processing = False
@@ -2643,7 +2643,7 @@ class DashboardGUI:
         # Welcome message card
         welcome_card = tk.Frame(main_content, bg=ModernStyles.BG_CARD,
                                highlightbackground=ModernStyles.BORDER, highlightthickness=1)
-        welcome_card.pack(fill='x', pady=(0,20))
+        welcome_card.pack(fill='x', pady=(0,10))
 
         welcome_content = tk.Frame(welcome_card, bg=ModernStyles.BG_CARD)
         welcome_content.pack(padx=25, pady=15)
@@ -2790,7 +2790,7 @@ class DashboardGUI:
 
         # Content container
         content = tk.Frame(card, bg=ModernStyles.BG_CARD)
-        content.pack(expand=True, fill='both', pady=20, padx=20)
+        content.pack(expand=True, fill='both', pady=12, padx=15)
 
         # Icon with colored background circle effect
         icon_container = tk.Frame(content, bg=ModernStyles.BG_CARD)
