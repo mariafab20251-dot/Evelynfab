@@ -1,4 +1,4 @@
-# YouTube Deep Research Agent Dependencies
+# Viral Research Agent Dependencies
 
 # YouTube API
 google-api-python-client>=2.100.0
@@ -6,8 +6,17 @@ google-auth>=2.23.0
 google-auth-httplib2>=0.1.1
 google-auth-oauthlib>=1.1.0
 
+# Reddit API
+praw>=7.7.0
+
+# Google Trends
+pytrends>=4.9.0
+
 # HTTP requests (for OpenRouter LLM)
 requests>=2.31.0
 
-# Optional: for better environment variable management
+# Data handling
+pandas>=2.0.0
+
+# Environment variable management
 python-dotenv>=1.0.0
