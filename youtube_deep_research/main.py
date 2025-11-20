@@ -23,7 +23,7 @@ from engagement import (
     sort_by_engagement
 )
 from language_validator import validate_english_videos
-from airtable_storage import store_to_airtable
+from google_sheets_storage import store_to_google_sheets
 from config import (
     MIN_LIKE_RATIO,
     MIN_COMMENT_RATIO,
@@ -39,7 +39,7 @@ def run_youtube_research(
     min_like_ratio: float = MIN_LIKE_RATIO,
     min_comment_ratio: float = MIN_COMMENT_RATIO,
     validate_language: bool = True,
-    save_to_airtable: bool = True,
+    save_to_sheets: bool = True,
     output_json: Optional[str] = None
 ) -> list:
     """
@@ -52,7 +52,7 @@ def run_youtube_research(
         min_like_ratio: Minimum like ratio (e.g., 0.05 for 5%)
         min_comment_ratio: Minimum comment ratio (e.g., 0.002 for 0.2%)
         validate_language: Whether to validate English titles
-        save_to_airtable: Whether to save results to Airtable
+        save_to_sheets: Whether to save results to Google Sheets
         output_json: Optional path to save results as JSON
 
     Returns:
@@ -109,11 +109,11 @@ def run_youtube_research(
     print("\nStep 6: Sorting by engagement...")
     videos = sort_by_engagement(videos, key="like_ratio")
 
-    # Step 7: Store in Airtable (optional)
-    if save_to_airtable:
-        print("\nStep 7: Storing in Airtable...")
-        records = store_to_airtable(videos)
-        print(f"  Stored {len(records)} records")
+    # Step 7: Store in Google Sheets (optional)
+    if save_to_sheets:
+        print("\nStep 7: Storing in Google Sheets...")
+        rows_added = store_to_google_sheets(videos)
+        print(f"  Stored {rows_added} records")
 
     # Save to JSON (optional)
     if output_json:
@@ -192,9 +192,9 @@ def main():
     )
 
     parser.add_argument(
-        "--no-airtable",
+        "--no-sheets",
         action="store_true",
-        help="Skip saving to Airtable"
+        help="Skip saving to Google Sheets"
     )
 
     parser.add_argument(
@@ -227,7 +227,7 @@ def main():
         min_like_ratio=args.min_likes / 100,
         min_comment_ratio=args.min_comments / 100,
         validate_language=not args.no_language_check,
-        save_to_airtable=not args.no_airtable,
+        save_to_sheets=not args.no_sheets,
         output_json=args.output
     )
 

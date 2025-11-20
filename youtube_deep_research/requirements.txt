@@ -4,8 +4,9 @@
 google-api-python-client>=2.100.0
 google-auth>=2.23.0
 google-auth-httplib2>=0.1.1
+google-auth-oauthlib>=1.1.0
 
-# HTTP requests (for OpenRouter and Airtable)
+# HTTP requests (for OpenRouter LLM)
 requests>=2.31.0
 
 # Optional: for better environment variable management

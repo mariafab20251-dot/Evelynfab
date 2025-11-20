@@ -15,7 +15,7 @@ from .engagement import (
     sort_by_engagement
 )
 from .language_validator import LanguageValidator, validate_english_videos
-from .airtable_storage import AirtableStorage, store_to_airtable
+from .google_sheets_storage import GoogleSheetsStorage, store_to_google_sheets
 from .main import run_youtube_research
 
 __all__ = [
@@ -27,7 +27,7 @@ __all__ = [
     "sort_by_engagement",
     "LanguageValidator",
     "validate_english_videos",
-    "AirtableStorage",
-    "store_to_airtable",
+    "GoogleSheetsStorage",
+    "store_to_google_sheets",
     "run_youtube_research"
 ]
