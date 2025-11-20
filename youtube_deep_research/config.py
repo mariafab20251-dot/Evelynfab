@@ -13,7 +13,17 @@ except ImportError:
     pass  # python-dotenv not installed, use system env vars
 
 # YouTube Data API v3
+# Single key (backward compatible)
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
+
+# Multiple API keys (comma-separated) for automatic rotation when quota exceeded
+# Example in .env: YOUTUBE_API_KEYS=key1,key2,key3
+_api_keys_str = os.getenv("YOUTUBE_API_KEYS", "")
+YOUTUBE_API_KEYS = [k.strip() for k in _api_keys_str.split(",") if k.strip()]
+
+# If no multiple keys, use single key
+if not YOUTUBE_API_KEYS and YOUTUBE_API_KEY:
+    YOUTUBE_API_KEYS = [YOUTUBE_API_KEY]
 
 # OpenRouter API (for DeepSeek LLM)
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")

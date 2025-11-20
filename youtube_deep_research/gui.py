@@ -75,10 +75,14 @@ class ViralResearchGUI:
 
         r1 = tk.Frame(sf, bg="#2d2d2d")
         r1.pack(fill="x", padx=10, pady=5)
-        tk.Label(r1, text="Topic:", bg="#2d2d2d", fg="#ffffff").pack(side="left")
+        tk.Label(r1, text="Topics:", bg="#2d2d2d", fg="#ffffff").pack(side="left")
         self.yt_topic = tk.Entry(r1, font=("Segoe UI", 11), width=50)
         self.yt_topic.pack(side="left", padx=10)
-        self.yt_topic.insert(0, "viral celebrities USA")
+        self.yt_topic.insert(0, "celebrity, hollywood, gossip")
+
+        # Tooltip for multiple keywords
+        tk.Label(r1, text="(comma separated)", bg="#2d2d2d", fg="#888888",
+                 font=("Segoe UI", 8)).pack(side="left")
 
         r2 = tk.Frame(sf, bg="#2d2d2d")
         r2.pack(fill="x", padx=10, pady=5)
@@ -221,18 +225,24 @@ class ViralResearchGUI:
             messagebox.showerror("Error", "YouTube API key not configured!")
             return
 
-        topic = self.yt_topic.get().strip()
-        if not topic:
-            messagebox.showerror("Error", "Enter a topic!")
+        topics_str = self.yt_topic.get().strip()
+        if not topics_str:
+            messagebox.showerror("Error", "Enter at least one topic!")
+            return
+
+        # Split by comma for multiple keywords
+        topics = [t.strip() for t in topics_str.split(",") if t.strip()]
+        if not topics:
+            messagebox.showerror("Error", "Enter at least one topic!")
             return
 
         self.yt_btn.config(state="disabled", text="Searching...")
         for item in self.yt_tree.get_children():
             self.yt_tree.delete(item)
 
-        threading.Thread(target=self._search_yt, args=(topic,), daemon=True).start()
+        threading.Thread(target=self._search_yt, args=(topics,), daemon=True).start()
 
-    def _search_yt(self, topic):
+    def _search_yt(self, topics):
         try:
             min_views = int(self.yt_views.get())
             min_likes = float(self.yt_likes.get()) / 100
@@ -248,8 +258,20 @@ class ViralResearchGUI:
             dur_map = {"Any": None, "Short": "short", "Medium": "medium", "Long": "long"}
             dur = dur_map.get(self.duration_type.get())
 
-            self.status_var.set("Searching...")
-            videos = search_youtube_videos(topic)
+            # Search for each keyword and combine results
+            all_videos = []
+            for i, topic in enumerate(topics):
+                self.status_var.set(f"Searching '{topic}' ({i+1}/{len(topics)})...")
+                videos = search_youtube_videos(topic)
+                all_videos.extend(videos)
+
+            # Remove duplicates by video_id
+            seen_ids = set()
+            videos = []
+            for v in all_videos:
+                if v.get("video_id") not in seen_ids:
+                    seen_ids.add(v.get("video_id"))
+                    videos.append(v)
 
             if not videos:
                 self.root.after(0, lambda: messagebox.showinfo("Info", "No videos found"))
