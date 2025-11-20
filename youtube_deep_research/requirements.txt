@@ -1,0 +1,12 @@
+# YouTube Deep Research Agent Dependencies
+
+# YouTube API
+google-api-python-client>=2.100.0
+google-auth>=2.23.0
+google-auth-httplib2>=0.1.1
+
+# HTTP requests (for OpenRouter and Airtable)
+requests>=2.31.0
+
+# Optional: for better environment variable management
+python-dotenv>=1.0.0
