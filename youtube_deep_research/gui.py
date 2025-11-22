@@ -34,6 +34,7 @@ from outlier_analysis import (
 )
 from google_sheets_storage import store_to_google_sheets
 from config import YOUTUBE_API_KEY, GOOGLE_SHEETS_SPREADSHEET_ID
+from transcript_extractor import extract_video_content, batch_extract_content, export_content_report
 
 # YouTube categories
 YOUTUBE_CATEGORIES = {
@@ -223,6 +224,9 @@ class ViralResearchGUI:
 
         tk.Button(bf, text="Word Cloud", command=self.show_word_cloud,
                   bg="#f39c12", fg="#000000").pack(side="left", padx=5)
+
+        tk.Button(bf, text="Extract Content", command=self.extract_transcripts,
+                  bg="#e74c3c", fg="#ffffff").pack(side="left", padx=5)
 
         # Results
         cols = ("Title", "Views", "Outlier", "V/Day", "Viral", "Subs", "Size", "Dur", "Type")
@@ -731,6 +735,74 @@ class ViralResearchGUI:
                             row["tags"] = ", ".join(v.get("tags", [])[:10])
                             writer.writerow(row)
                 messagebox.showinfo("Exported", f"Saved to {filename}")
+
+    def extract_transcripts(self):
+        if not self.results:
+            messagebox.showwarning("No Results", "Run a search first")
+            return
+
+        # Ask user for options
+        popup = tk.Toplevel(self.root)
+        popup.title("Extract Video Content")
+        popup.geometry("400x300")
+        popup.configure(bg="#1e1e1e")
+
+        tk.Label(popup, text="Extract Transcripts & Summaries", bg="#1e1e1e", fg="#00d4aa",
+                 font=("Segoe UI", 14, "bold")).pack(pady=10)
+
+        tk.Label(popup, text=f"Found {len(self.results)} videos to process",
+                 bg="#1e1e1e", fg="#ffffff").pack(pady=5)
+
+        include_summary = tk.BooleanVar(value=True)
+        tk.Checkbutton(popup, text="Include AI Summary (uses OpenRouter)",
+                       variable=include_summary, bg="#1e1e1e", fg="#ffffff",
+                       selectcolor="#3d3d3d").pack(pady=5)
+
+        tk.Label(popup, text="Note: This may take a few minutes",
+                 bg="#1e1e1e", fg="#888888").pack(pady=5)
+
+        progress_var = tk.StringVar(value="")
+        progress_label = tk.Label(popup, textvariable=progress_var,
+                                   bg="#1e1e1e", fg="#4a9eff")
+        progress_label.pack(pady=10)
+
+        def start_extraction():
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".txt",
+                filetypes=[("Text Report", "*.txt"), ("JSON", "*.json")]
+            )
+            if not filename:
+                return
+
+            popup.grab_set()
+
+            def extract():
+                def progress_callback(current, total, title):
+                    progress_var.set(f"Processing {current}/{total}: {title[:30]}...")
+
+                results = batch_extract_content(
+                    self.results,
+                    include_summary.get(),
+                    progress_callback
+                )
+
+                if filename.endswith(".json"):
+                    import json
+                    with open(filename, "w", encoding="utf-8") as f:
+                        json.dump(results, f, indent=2, ensure_ascii=False)
+                else:
+                    export_content_report(results, filename)
+
+                self.root.after(0, lambda: progress_var.set("Done!"))
+                self.root.after(0, lambda: messagebox.showinfo("Exported",
+                    f"Content extracted to {filename}\n\nIncludes:\n- Titles\n- Tags\n- Transcripts\n- AI Summaries"))
+                self.root.after(1000, popup.destroy)
+
+            threading.Thread(target=extract, daemon=True).start()
+
+        tk.Button(popup, text="Start Extraction", command=start_extraction,
+                  bg="#e74c3c", fg="#ffffff", font=("Segoe UI", 11, "bold"),
+                  width=20).pack(pady=20)
 
 
 def main():
