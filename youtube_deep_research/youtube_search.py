@@ -47,7 +47,7 @@ class YouTubeSearcher:
         print(f"Switched to API key {self.current_key_index + 1}/{len(self.api_keys)}")
 
     def search_videos(self, query: str, days_ago: int = SEARCH_DAYS_AGO,
-                      max_results: int = MAX_RESULTS) -> list:
+                      max_results: int = MAX_RESULTS, region_code: str = None) -> list:
         """
         Search YouTube for videos matching the query from the past N days.
         """
@@ -55,14 +55,19 @@ class YouTubeSearcher:
 
         while True:
             try:
-                search_response = self.youtube.search().list(
-                    q=query,
-                    part="id",
-                    type="video",
-                    order="relevance",
-                    publishedAfter=published_after,
-                    maxResults=max_results
-                ).execute()
+                search_params = {
+                    "q": query,
+                    "part": "id",
+                    "type": "video",
+                    "order": "relevance",
+                    "publishedAfter": published_after,
+                    "maxResults": max_results
+                }
+
+                if region_code:
+                    search_params["regionCode"] = region_code
+
+                search_response = self.youtube.search().list(**search_params).execute()
 
                 video_ids = [
                     item["id"]["videoId"]
@@ -178,6 +183,12 @@ class YouTubeSearcher:
 
                         views = int(item["statistics"].get("viewCount", 0))
 
+                        # Get tags
+                        tags = item["snippet"].get("tags", [])
+
+                        # Determine if it's a Short (under 60 seconds and vertical)
+                        is_short = duration_seconds <= 60
+
                         video_data = {
                             "video_id": item["id"],
                             "title": item["snippet"]["title"],
@@ -195,6 +206,10 @@ class YouTubeSearcher:
                             "duration_formatted": self._format_duration(duration_seconds),
                             "views_per_day": views // days_since_posted,
                             "category_id": item["snippet"].get("categoryId", ""),
+                            "tags": tags,
+                            "is_short": is_short,
+                            "publish_hour": publish_date.hour,
+                            "publish_day": publish_date.strftime("%A"),
                         }
                         videos.append(video_data)
 
@@ -265,11 +280,55 @@ class YouTubeSearcher:
 
 
 def search_youtube_videos(query: str, api_key: Optional[str] = None,
-                          include_channel_stats: bool = True) -> list:
+                          include_channel_stats: bool = True, region_code: str = None,
+                          days_ago: int = SEARCH_DAYS_AGO) -> list:
     """
     Convenience function to search YouTube and get video details.
     """
     searcher = YouTubeSearcher(api_key)
-    video_ids = searcher.search_videos(query)
+    video_ids = searcher.search_videos(query, days_ago=days_ago, region_code=region_code)
     videos = searcher.get_video_details(video_ids, include_channel_stats)
     return videos
+
+
+def analyze_channel(channel_id: str, api_key: Optional[str] = None, max_videos: int = 50) -> dict:
+    """
+    Analyze a specific channel to find their viral videos.
+    """
+    searcher = YouTubeSearcher(api_key)
+
+    try:
+        # Get channel info
+        channel_response = searcher.youtube.channels().list(
+            part="snippet,statistics,contentDetails",
+            id=channel_id
+        ).execute()
+
+        if not channel_response.get("items"):
+            return {"error": "Channel not found"}
+
+        channel = channel_response["items"][0]
+        uploads_playlist = channel["contentDetails"]["relatedPlaylists"]["uploads"]
+
+        # Get recent videos from uploads playlist
+        videos_response = searcher.youtube.playlistItems().list(
+            part="contentDetails",
+            playlistId=uploads_playlist,
+            maxResults=max_videos
+        ).execute()
+
+        video_ids = [item["contentDetails"]["videoId"] for item in videos_response.get("items", [])]
+
+        # Get video details
+        videos = searcher.get_video_details(video_ids, include_channel_stats=True)
+
+        return {
+            "channel_name": channel["snippet"]["title"],
+            "subscribers": int(channel["statistics"].get("subscriberCount", 0)),
+            "total_views": int(channel["statistics"].get("viewCount", 0)),
+            "video_count": int(channel["statistics"].get("videoCount", 0)),
+            "videos": videos
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
